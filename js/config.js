@@ -1,4 +1,4 @@
-export const VERSION = '1.0.5';
+export const VERSION = '1.1.1';
 export const CATEGORIES = {
   VERDAD: { label: 'Verdad', color: '#39E58C', icon: '◉' },
   DESAFIO: { label: 'Desafío', color: '#FF3CAC', icon: '✦' },

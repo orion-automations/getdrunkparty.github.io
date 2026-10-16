@@ -1,6 +1,6 @@
 # Get Drunk Party Web
 
-Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, selección con dado físico, acción SHOT independiente, participantes, editor, manuales, respaldos JSON y PWA con caché offline. No usa cuenta, backend, CDN ni fuentes remotas.
+Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, dado digital 3D con modo físico opcional, participantes, editor, manuales, respaldos JSON y PWA con caché offline. No usa cuenta, backend, CDN ni fuentes remotas.
 
 ## Ejecutar en PC
 
@@ -29,11 +29,12 @@ Con la URL HTTPS abierta y conectada, espera a que el service worker termine de 
 ## Usar el juego
 
 1. Abre **Participantes**, agrega los nombres y ajusta el orden; el primer nombre activo tiene el primer turno.
-2. En **Partida**, lanza un dado físico. La cara 1 corresponde a **SHOT** y la cara 6 a **MINIJUEGO**. El grupo acuerda qué categorías corresponden a las caras 2–5; luego toca el reverso de esa categoría en el dashboard. El juego no hace una segunda tirada digital.
-3. Se ven siempre los cinco reversos. Toca uno para tomar una carta de ese mazo; se muestra primero el dorso y se voltea para revelar la carta. Encima aparece solo la persona cuyo turno está activo; la asignación de la dinámica se mantiene en la carta.
-4. Si sale **SHOT**, toca el control de cara 1. No roba carta y ofrece registrar la acción, elegir alternativa sin alcohol o pasar.
-5. Resuelve una carta con **Completada**, **Alternativa** o **Pasar**. El siguiente turno avanza una posición circular.
-6. El botón `?` aparece cuando la carta tiene manual. Abrirlo no altera el turno.
+2. En **Partida**, el modo predeterminado es **Dado digital**. Pulsa **LANZAR DADO**; la cara queda elegida antes de girar y la animación termina con esa misma categoría. Las probabilidades son 35 % VERDAD, 35 % DESAFÍO, 15 % MINIJUEGO y 15 % BLOQUEADA.
+3. Al terminar la tirada, se iluminan los reversos de los tres mazos principales y solo queda habilitado el que corresponde al resultado. Pulsa ese mazo para revelar la carta. BLOQUEADA no roba carta ni genera acción y permite finalizar el turno.
+4. En un turno activo puedes robar una o más cartas de **PREMIO** o **CASTIGO**. Se muestran junto a la carta principal; no sustituyen la carta ni avanzan el turno.
+5. Si el turno requiere un PREMIO o CASTIGO, pulsa solo uno de esos dos mazos auxiliares. Marca el resultado con **Cumplió** (en desafíos puedes indicar si se cumplió el desafío o el castigo) y después pulsa **Finalizar turno**. La carta principal, el auxiliar elegido y el resultado quedan en el historial y el siguiente participante recibe el turno.
+6. El menú permite cambiar a **Dado físico**. En ese modo eliges manualmente VERDAD, DESAFÍO, MINIJUEGO o BLOQUEADA; no se genera una tirada aleatoria digital. La opción persiste en este navegador.
+7. El botón `?` abre el manual cuando la carta tiene uno. Cerrar el manual mantiene el turno y las cartas en pantalla.
 
 ## Editar, añadir y administrar cartas
 
@@ -50,13 +51,29 @@ Para editar una existente, busca o filtra la carta y pulsa **Editar**. Cambia lo
 
 Para crear una carta: elige un ID descriptivo que no exista (por ejemplo `DESAFIO_mimo_de_robot`), completa los campos y guarda. Para editar una existente, pulsa **Editar** en la fila; el ID no cambia. Desactivar conserva la carta pero la retira de los sorteos. Eliminar la quita del catálogo y de las referencias del mazo. También puedes exportar/importar catálogos JSON; se validan antes de modificar los datos y se rechazan IDs duplicados.
 
-Las cinco categorías y colores están en `js/config.js`. Las 50 cartas de fábrica están individualizadas en `data/initial-cards.js`, y se copian al almacenamiento solo en una instalación nueva. Para agregar código fuente a una versión nueva, edita ese archivo; los usuarios existentes mantienen su catálogo local y pueden importar cartas nuevas con IDs no repetidos.
+Las categorías y colores están en `js/config.js`. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición de 2.5 segundos se configuran en `css/dice.css`; las caras visibles están en `index.html`. Cambiar la tabla de caras no altera el ciclo del turno. Las 50 cartas de fábrica están individualizadas en `data/initial-cards.js`, y se copian al almacenamiento solo en una instalación nueva. Para agregar código fuente a una versión nueva, edita ese archivo; los usuarios existentes mantienen su catálogo local y pueden importar cartas nuevas con IDs no repetidos.
 
 ## Manuales, bebidas e iconos
 
-En **Manuales**, edita título, resumen e instrucciones. Semana inglesa queda marcada como pendiente hasta que el grupo configure sus reglas. Para un manual nuevo, añade un objeto con ID estable en `data/initial-manuals.js` y selecciónalo desde el editor. El catálogo editable de bebidas y alternativas está en **Ajustes**. La penalización configurada en una carta se muestra como cantidad de shots.
+En **Manuales**, usa **＋ Nuevo manual** para crear reglas o **Editar manual** para cambiar un manual existente. El formulario solicita título, resumen, instrucciones y, opcionalmente, un objeto JSON `details` con `objective`, `participants`, `materials`, `preparation`, `victoryCondition`, `tiebreaker`, `duration` y `resultToRecord`. Estos campos aparecen en la ayuda de la carta cuando se rellenan. Semana inglesa queda marcada como pendiente hasta que el grupo configure sus reglas. Los IDs de manual se generan al crearlos; luego selecciónalo en el editor de cartas. El catálogo editable de bebidas y alternativas está en **Ajustes**. La penalización configurada en una carta se muestra como cantidad de Shots.
 
 El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). Para añadir iconos vectoriales locales revisa `assets/icons/icon.svg`; no son necesarios para jugar.
+
+Las cartas pueden incluir opcionalmente `effects`. Es un objeto de datos; por ejemplo `{"onCompleted":[{"type":"DRAW_AUXILIARY","category":"PREMIO"},{"type":"GRANT_REWARD","key":"protection","label":"Protección futura"}]}` permite acceder a un mazo auxiliar tras confirmar el resultado y guardar una ventaja con nombre para usar manualmente. `onNotCompleted` puede declarar de la misma forma una acción auxiliar de castigo. Estos efectos no se derivan del texto de la carta.
+
+El importador acepta una lista JSON o un objeto `{ "version": 1, "cards": [...] }`; valida IDs únicos, categorías y campos obligatorios antes de incorporar el lote. Un ID que ya existe cancela la importación completa con un mensaje. Las cartas recibidas conservan sus propiedades opcionales como `effects` y los campos extra del manual. El ciclo y el orden de barajado se guardan por categoría en el estado local para evitar repetir una carta antes de agotar el mazo, incluso tras recargar.
+
+Ejemplos mínimos válidos por tipo (son solo plantillas documentales, no se cargan al catálogo):
+
+```json
+[
+  {"id":"V_ejemplo","categoryId":"VERDAD","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
+  {"id":"D_ejemplo","categoryId":"DESAFIO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
+  {"id":"M_ejemplo","categoryId":"MINIJUEGO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"ALL_PLAYERS","count":0},"penalty":{"enabled":false,"units":0},"manualId":"MANUAL_MIMICA","enabled":true},
+  {"id":"P_ejemplo","categoryId":"PREMIO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
+  {"id":"C_ejemplo","categoryId":"CASTIGO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true}
+]
+```
 
 Ejemplo de carta:
 
@@ -67,9 +84,12 @@ Ejemplo de carta:
   icon: { type: 'glyph', value: '✦' }, spiceLevel: 1,
   target: { mode: 'CURRENT_PLAYER', count: 1, position: null },
   penalty: { enabled: true, units: 1 }, // 1 Shot
-  manualId: null, enabled: true
+  manualId: null, enabled: true,
+  effects: { onCompleted: [{ type: 'DRAW_AUXILIARY', category: 'PREMIO' }] }
 }
 ```
+
+Para preparar archivos con una carta de cada categoría, usa el mismo formato y cambia el `id`, `categoryId`, `title`, `description` y `target` de cada objeto. Los cinco valores válidos para `categoryId` son `VERDAD`, `DESAFIO`, `MINIJUEGO`, `PREMIO` y `CASTIGO`. En una carta de `MINIJUEGO`, `manualId` debe apuntar a un ID existente; el manual puede agregar los campos opcionales descritos abajo.
 
 Ejemplo de manual: `{ id: 'MANUAL_MIMICA', title: 'Mímica', summary: 'Adivina con gestos', instructions: ['Una persona representa una palabra'], notes: '', pending: false }`.
 
@@ -89,5 +109,6 @@ No abras el HTML desde un administrador de archivos esperando que funcionen mód
 npm test
 ```
 
-Las pruebas cubren las 50 cartas y sus IDs, manuales, ciclos del mazo, categoría agotada, asignación de participantes, turnos, bloqueos, SHOT independiente y validación de estado/cartas. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
+Las pruebas cubren las 50 cartas, pesos del dado, ciclos independientes, mazos agotados, asignación, resultados, selección de un único auxiliar, cara bloqueada, avance único, migración del turno anterior, manuales y validación del catálogo. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
+
 

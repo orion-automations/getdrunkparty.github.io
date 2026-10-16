@@ -1,44 +1,344 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b0b0f">
-  <meta name="description" content="Juego de cartas de fiesta instalable y disponible sin conexión.">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/styles.css">
-  <link rel="stylesheet" href="./css/dashboard-categories.css">
-  <title>Get Drunk Party Web</title>
-</head>
-<body>
-  <header class="topbar"><a class="brand" href="#inicio" aria-label="Get Drunk Party inicio"><span class="brand-mark">GDP</span><span>GET DRUNK <b>PARTY</b><small>WEB · OFFLINE EDITION</small></span></a><button id="menu-toggle" class="icon-button" aria-label="Abrir menú">☰</button></header>
-  <nav id="nav" class="nav"><button data-view="game" class="nav-link active">🎲 Partida</button><button data-view="players" class="nav-link">👥 Participantes</button><button data-view="editor" class="nav-link">🃏 Cartas</button><button data-view="manuals" class="nav-link">❔ Manuales</button><button data-view="settings" class="nav-link">⚙ Ajustes</button></nav>
-  <main>
-    <section id="view-game" class="view active">
-      <div class="game-layout">
-        <section class="panel game-panel"><div class="turn-line"><div><span class="eyebrow">TURNO ACTUAL</span><h2 id="current-player">Agrega participantes</h2></div></div>
-          <div class="physical-die-note"><span class="eyebrow">USA EL DADO FÍSICO</span><p id="game-message" class="game-message">Cara 1: SHOT · Cara 6: MINIJUEGO. Acuerden qué categorías corresponden a las caras 2–5.</p></div>
-          <div id="category-choices" class="category-choices" aria-label="Elegir categoría según el dado físico"></div>
-          <button id="shot-button" class="shot-choice" type="button"><span class="shot-face">CARA 1</span><span><b>SHOT</b><small>Acción sin carta · alternativa o pasar</small></span><span aria-hidden="true">↗</span></button>
-          <div id="shot-actions" class="shot-actions hidden"><p><b>SHOT: esta cara no tiene carta.</b><br>Elige libremente cómo resolverla.</p><button data-result="COMPLETED" class="button">Registrar acción</button><button data-result="ALTERNATIVE_SELECTED" class="button">Alternativa sin alcohol</button><button data-result="PASSED" class="button button-quiet">Pasar</button></div>
-          <div id="card-area" class="card-area hidden"><button id="help-button" class="help-button" aria-label="Abrir manual">?</button><div id="playing-card" class="playing-card"><div class="card-back"><div class="cross-ribbon"><span id="back-category">VERDAD</span></div><b>GDP</b><small>GIRA PARA REVELAR</small></div><article class="card-front"><div id="card-category" class="card-category">VERDAD</div><div id="card-players" class="card-players"></div><div class="card-copy"><h3 id="card-title"></h3><p id="card-description"></p></div><div class="card-footer"><span id="card-penalty"></span><span id="card-fires" aria-label="Intensidad"></span></div></article></div></div>
-          <div id="resolve-actions" class="resolve-actions hidden"><p id="reward-status" class="reward-status"></p><div class="button-row"><button data-result="COMPLETED" class="button button-primary">Completada</button><button data-result="ALTERNATIVE_SELECTED" class="button">Alternativa</button><button data-result="PASSED" class="button button-quiet">Pasar</button></div></div>
-        </section>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b0b0f" />
+    <meta
+      name="description"
+      content="Juego de cartas de fiesta instalable y disponible sin conexión."
+    />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/dashboard-categories.css" />
+    <link rel="stylesheet" href="./css/dice.css" />
+    <title>Get Drunk Party Web</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Get Drunk Party inicio"
+        ><span class="brand-mark">GDP</span
+        ><span
+          >GET DRUNK <b>PARTY</b><small>WEB · OFFLINE EDITION</small></span
+        ></a
+      ><button id="menu-toggle" class="icon-button" aria-label="Abrir menú">
+        ☰
+      </button>
+    </header>
+    <nav id="nav" class="nav">
+      <button data-view="game" class="nav-link active">🎲 Partida</button
+      ><button data-view="players" class="nav-link">👥 Participantes</button
+      ><button data-view="editor" class="nav-link">🃏 Cartas</button
+      ><button data-view="manuals" class="nav-link">❔ Manuales</button
+      ><button data-view="settings" class="nav-link">⚙ Ajustes</button>
+    </nav>
+    <main>
+      <section id="view-game" class="view active">
+        <div class="game-layout">
+          <section class="panel game-panel">
+            <div class="turn-line">
+              <div>
+                <span class="eyebrow">TURNO ACTUAL</span>
+                <h2 id="current-player">Agrega participantes</h2>
+              </div>
+            </div>
+            <label class="mode-picker">Modo de juego
+              <select id="game-mode" aria-label="Modo de juego">
+                <option value="digital">Dado digital</option>
+                <option value="physical">Dado físico</option>
+              </select>
+            </label>
+            <div id="dice-stage" class="dice-stage">
+              <div id="dice-cube" class="dice-cube" aria-label="Dado de seis caras"></div>
+              <button id="roll-button" class="button button-primary">LANZAR DADO</button>
+            </div>
+            <p id="game-message" class="game-message" aria-live="polite"></p>
+            <div id="category-choices" class="category-choices" aria-label="Mazos principales"></div>
+            <button id="blocked-choice" class="category-back-button blocked-choice hidden" type="button">BLOQUEADA</button>
+            <div id="aux-decks" class="aux-decks">
+              <span class="eyebrow">MAZOS AUXILIARES</span>
+              <div id="aux-category-choices" class="aux-category-choices"></div>
+            </div>
+            <div id="turn-cards" class="turn-cards hidden"></div>
+            <section id="resolve-actions" class="resolve-actions hidden">
+              <p id="reward-status" class="reward-status"></p>
+              <div class="button-row">
+                <button id="confirm-completed" class="button button-primary">Cumplió</button>
+                <button id="confirm-challenge" class="button hidden">Cumplió el desafío</button>
+                <button id="confirm-penalty" class="button hidden">Cumplió el castigo</button>
+                <button id="confirm-alternative" class="button hidden">Toma Shot</button>
+                <button id="confirm-pass" class="button button-quiet hidden">Pasar</button>
+                <button id="finish-turn" class="button button-quiet hidden">Finalizar turno</button>
+              </div>
+            </section>
+          </section>
+        </div>
+      </section>
+      <section id="view-players" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">CONFIGURACIÓN DE PARTIDA</p>
+          <h1>Participantes</h1>
+          <p class="muted">
+            El orden de la lista define los turnos y posiciones circulares.
+          </p>
+        </div>
+        <div class="panel">
+          <form id="player-form" class="inline-form">
+            <label class="grow"
+              >Nombre<input
+                id="player-name"
+                maxlength="32"
+                required
+                placeholder="Nombre del participante" /></label
+            ><button class="button button-primary">Añadir</button>
+          </form>
+          <div id="players-list" class="management-list"></div>
+          <hr />
+          <label class="check-row"
+            ><input id="position-reversed" type="checkbox" /> Invertir izquierda
+            y derecha para esta mesa</label
+          >
+          <p class="fine-print">
+            La aplicación no deduce género ni orientación. Las preferencias son
+            voluntarias y locales.
+          </p>
+        </div>
+      </section>
+      <section id="view-editor" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">CATÁLOGO PERSONALIZABLE</p>
+          <h1>Editor de cartas</h1>
+          <p class="muted">
+            Busca, filtra, crea y ajusta las cartas guardadas en este
+            dispositivo.
+          </p>
+        </div>
+        <div class="panel editor-panel">
+          <div class="editor-toolbar">
+            <input
+              id="card-search"
+              type="search"
+              placeholder="Buscar por título, texto o ID"
+            /><select id="category-filter" aria-label="Filtrar por categoría">
+              <option value="">Todas las categorías</option></select
+            ><button id="new-card" class="button button-primary">
+              ＋ Nueva carta
+            </button>
+          </div>
+          <div class="editor-toolbar compact">
+            <label class="button upload-button"
+              >Importar cartas JSON<input
+                id="import-cards"
+                type="file"
+                accept="application/json,.json"
+                hidden /></label
+            ><button id="export-cards" class="button">Exportar cartas</button>
+          </div>
+          <div id="cards-list" class="cards-list"></div>
+        </div>
+      </section>
+      <section id="view-manuals" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">REGLAS DEL GRUPO</p>
+          <h1>Manuales</h1>
+          <p class="muted">
+            Consulta y edita las instrucciones de los minijuegos.
+          </p>
+          <button id="new-manual" class="button button-primary">＋ Nuevo manual</button>
+        </div>
+        <div id="manuals-list" class="manuals-list"></div>
+      </section>
+      <section id="view-settings" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">DATOS EN ESTE DISPOSITIVO</p>
+          <h1>Ajustes y respaldo</h1>
+          <p class="muted">
+            Los datos pertenecen a este navegador. Exporta copias de seguridad
+            regularmente.
+          </p>
+        </div>
+        <div class="settings-grid">
+          <section class="panel">
+            <h2>Penalizaciones</h2>
+            <p class="fine-print">
+              Son unidades editables del juego, no equivalencias de alcohol ni
+              recomendaciones. Beber es opcional.
+            </p>
+            <div id="drinks-list"></div>
+            <form id="drink-form" class="inline-form">
+              <label class="grow"
+                >Nueva bebida o alternativa<input
+                  id="drink-name"
+                  required
+                  maxlength="40"
+                  placeholder="Ej. Agua con gas" /></label
+              ><button class="button">Añadir</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h2>Copia de seguridad</h2>
+            <p class="fine-print">
+              El respaldo incluye participantes, cartas, manuales, bebidas,
+              ajustes, mazos e historial.
+            </p>
+            <button id="backup-export" class="button button-primary">
+              Exportar respaldo JSON</button
+            ><label class="button upload-button"
+              >Importar respaldo<input
+                id="backup-import"
+                type="file"
+                accept="application/json,.json"
+                hidden /></label
+            ><button id="reset-data" class="button button-danger">
+              Restaurar datos iniciales
+            </button>
+          </section>
+          <section class="panel">
+            <h2>Aplicación</h2>
+            <p id="storage-status" class="fine-print">
+              Almacenamiento local del navegador.
+            </p>
+            <button id="install-button" class="button hidden">
+              Instalar aplicación
+            </button>
+            <p class="fine-print">
+              Versión <span id="app-version">1.0.0</span> · Funciona sin cuenta
+              ni servidor remoto después de la primera carga.
+            </p>
+          </section>
+        </div>
+      </section>
+    </main>
+    <dialog id="editor-dialog" class="modal">
+      <form id="card-form" method="dialog">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">EDITOR DE CARTA</p>
+            <h2 id="form-heading">Nueva carta</h2>
+          </div>
+          <button
+            type="button"
+            class="icon-button close-dialog"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >ID<input
+              id="f-id"
+              required
+              pattern="[A-Za-z0-9_-]+"
+              maxlength="64"
+            /><small>Único; al editar se conserva estable.</small></label
+          ><label>Categoría<select id="f-category" required></select></label
+          ><label>Título<input id="f-title" required maxlength="60" /></label
+          ><label
+            >Intensidad<select id="f-spice">
+              <option>0</option>
+              <option>1</option>
+              <option>2</option>
+              <option>3</option>
+              <option>4</option>
+              <option>5</option>
+            </select></label
+          ><label class="full"
+            >Descripción<textarea
+              id="f-description"
+              required
+              maxlength="500"
+              rows="3"
+            ></textarea></label
+          ><label class="full"
+            >Efectos opcionales (JSON)<textarea
+              id="f-effects"
+              rows="2"
+              placeholder='{"trigger":"COMPLETED","action":"PREMIO"}'
+            ></textarea><small>Campo estructurado opcional para futuras dinámicas.</small></label
+          ><label>Asignación<select id="f-target"></select></label
+          ><label
+            >Cantidad participantes<input
+              id="f-count"
+              type="number"
+              min="0"
+              max="20"
+              value="1" /></label
+          ><label>Manual<select id="f-manual"></select></label
+          ><label
+            >Icono local<input
+              id="f-icon"
+              maxlength="40"
+              placeholder="✦" /></label
+          ><label class="check-row"
+            ><input id="f-penalty-enabled" type="checkbox" /> Tiene penalización
+            en shots</label
+          ><label
+            >Shots<input
+              id="f-units"
+              type="number"
+              min="0"
+              max="100"
+              value="1" /></label
+          ><label class="check-row"
+            ><input id="f-enabled" type="checkbox" checked /> Carta
+            habilitada</label
+          >
+          <section class="full preview-wrap">
+            <span class="eyebrow">VISTA PREVIA</span>
+            <div id="card-preview" class="mini-preview"></div>
+          </section>
+        </div>
+        <p id="form-error" class="form-error" role="alert"></p>
+        <div class="button-row modal-actions">
+          <button type="button" class="button close-dialog">Cancelar</button
+          ><button id="save-card" class="button button-primary">
+            Guardar carta
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="manual-dialog" class="modal manual-modal">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">MANUAL DE MINIJUEGO</p>
+          <h2 id="manual-title"></h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="Cerrar">×</button>
       </div>
-    </section>
-    <section id="view-players" class="view"><div class="page-heading"><p class="eyebrow">CONFIGURACIÓN DE PARTIDA</p><h1>Participantes</h1><p class="muted">El orden de la lista define los turnos y posiciones circulares.</p></div><div class="panel"><form id="player-form" class="inline-form"><label class="grow">Nombre<input id="player-name" maxlength="32" required placeholder="Nombre del participante"></label><button class="button button-primary">Añadir</button></form><div id="players-list" class="management-list"></div><hr><label class="check-row"><input id="position-reversed" type="checkbox"> Invertir izquierda y derecha para esta mesa</label><p class="fine-print">La aplicación no deduce género ni orientación. Las preferencias son voluntarias y locales.</p></div></section>
-    <section id="view-editor" class="view"><div class="page-heading"><p class="eyebrow">CATÁLOGO PERSONALIZABLE</p><h1>Editor de cartas</h1><p class="muted">Busca, filtra, crea y ajusta las cartas guardadas en este dispositivo.</p></div><div class="panel editor-panel"><div class="editor-toolbar"><input id="card-search" type="search" placeholder="Buscar por título, texto o ID"><select id="category-filter" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select><button id="new-card" class="button button-primary">＋ Nueva carta</button></div><div class="editor-toolbar compact"><label class="button upload-button">Importar cartas JSON<input id="import-cards" type="file" accept="application/json,.json" hidden></label><button id="export-cards" class="button">Exportar cartas</button></div><div id="cards-list" class="cards-list"></div></div></section>
-    <section id="view-manuals" class="view"><div class="page-heading"><p class="eyebrow">REGLAS DEL GRUPO</p><h1>Manuales</h1><p class="muted">Consulta y edita las instrucciones de los minijuegos.</p></div><div id="manuals-list" class="manuals-list"></div></section>
-    <section id="view-settings" class="view"><div class="page-heading"><p class="eyebrow">DATOS EN ESTE DISPOSITIVO</p><h1>Ajustes y respaldo</h1><p class="muted">Los datos pertenecen a este navegador. Exporta copias de seguridad regularmente.</p></div><div class="settings-grid"><section class="panel"><h2>Penalizaciones</h2><p class="fine-print">Son unidades editables del juego, no equivalencias de alcohol ni recomendaciones. Beber es opcional.</p><div id="drinks-list"></div><form id="drink-form" class="inline-form"><label class="grow">Nueva bebida o alternativa<input id="drink-name" required maxlength="40" placeholder="Ej. Agua con gas"></label><button class="button">Añadir</button></form></section><section class="panel"><h2>Copia de seguridad</h2><p class="fine-print">El respaldo incluye participantes, cartas, manuales, bebidas, ajustes, mazos e historial.</p><button id="backup-export" class="button button-primary">Exportar respaldo JSON</button><label class="button upload-button">Importar respaldo<input id="backup-import" type="file" accept="application/json,.json" hidden></label><button id="reset-data" class="button button-danger">Restaurar datos iniciales</button></section><section class="panel"><h2>Aplicación</h2><p id="storage-status" class="fine-print">Almacenamiento local del navegador.</p><button id="install-button" class="button hidden">Instalar aplicación</button><p class="fine-print">Versión <span id="app-version">1.0.0</span> · Funciona sin cuenta ni servidor remoto después de la primera carga.</p></section></div></section>
-  </main>
-  <dialog id="editor-dialog" class="modal"><form id="card-form" method="dialog"><div class="modal-heading"><div><p class="eyebrow">EDITOR DE CARTA</p><h2 id="form-heading">Nueva carta</h2></div><button type="button" class="icon-button close-dialog" aria-label="Cerrar">×</button></div><div class="form-grid"><label>ID<input id="f-id" required pattern="[A-Za-z0-9_-]+" maxlength="64"><small>Único; al editar se conserva estable.</small></label><label>Categoría<select id="f-category" required></select></label><label>Título<input id="f-title" required maxlength="60"></label><label>Intensidad<select id="f-spice"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><label class="full">Descripción<textarea id="f-description" required maxlength="500" rows="3"></textarea></label><label>Asignación<select id="f-target"></select></label><label>Cantidad participantes<input id="f-count" type="number" min="0" max="20" value="1"></label><label>Manual<select id="f-manual"></select></label><label>Icono local<input id="f-icon" maxlength="40" placeholder="✦"></label><label class="check-row"><input id="f-penalty-enabled" type="checkbox"> Tiene penalización en shots</label><label>Shots<input id="f-units" type="number" min="0" max="100" value="1"></label><label class="check-row"><input id="f-enabled" type="checkbox" checked> Carta habilitada</label><section class="full preview-wrap"><span class="eyebrow">VISTA PREVIA</span><div id="card-preview" class="mini-preview"></div></section></div><p id="form-error" class="form-error" role="alert"></p><div class="button-row modal-actions"><button type="button" class="button close-dialog">Cancelar</button><button id="save-card" class="button button-primary">Guardar carta</button></div></form></dialog>
-  <dialog id="manual-dialog" class="modal manual-modal"><div class="modal-heading"><div><p class="eyebrow">MANUAL DE MINIJUEGO</p><h2 id="manual-title"></h2></div><button class="icon-button close-dialog" aria-label="Cerrar">×</button></div><div id="manual-content" class="manual-content"></div><button id="edit-open-manual" class="button">Editar este manual</button></dialog>
-  <dialog id="confirm-dialog" class="modal confirm-modal"><form method="dialog"><h2 id="confirm-title">¿Confirmar?</h2><p id="confirm-copy"></p><div class="button-row modal-actions"><button class="button">Cancelar</button><button id="confirm-action" class="button button-danger" value="ok">Confirmar</button></div></form></dialog>
-  <dialog id="empty-deck-dialog" class="modal confirm-modal"><h2>Mazo agotado</h2><p>No hay cartas habilitadas en esta categoría. Puedes gestionar el mazo o cancelar la selección; no se elegirá otra categoría automáticamente.</p><div class="button-row"><button id="manage-deck" class="button">Gestionar cartas</button><button id="cancel-draw" class="button button-primary">Cancelar selección</button></div></dialog>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./js/app.js"></script>
-</body>
+      <div id="manual-content" class="manual-content"></div>
+      <button id="edit-open-manual" class="button">Editar este manual</button>
+    </dialog>
+    <dialog id="confirm-dialog" class="modal confirm-modal">
+      <form method="dialog">
+        <h2 id="confirm-title">¿Confirmar?</h2>
+        <p id="confirm-copy"></p>
+        <div class="button-row modal-actions">
+          <button class="button">Cancelar</button
+          ><button id="confirm-action" class="button button-danger" value="ok">
+            Confirmar
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="empty-deck-dialog" class="modal confirm-modal">
+      <h2>Mazo agotado</h2>
+      <p>
+        No hay cartas habilitadas en esta categoría. Puedes gestionar el mazo o
+        cancelar la selección; no se elegirá otra categoría automáticamente.
+      </p>
+      <div class="button-row">
+        <button id="manage-deck" class="button">Gestionar cartas</button
+        ><button id="cancel-draw" class="button button-primary">
+          Cancelar selección
+        </button>
+      </div>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./js/app.js"></script>
+  </body>
 </html>
-
-
