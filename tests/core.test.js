@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { INITIAL_CARDS } from '../data/initial-cards.js';
+import { INITIAL_MANUALS } from '../data/initial-manuals.js';
+import { drawFromDeck } from '../js/decks.js';
+import { nextIndex, assignTargets } from '../js/participants.js';
+import { validateCards, seedState, isValidState } from '../js/storage.js';
+import { gameEngine } from '../js/game.js';
+
+test('catálogo inicial tiene exactamente 50 cartas únicas, 10 por categoría y manuales válidos',()=>{assert.equal(INITIAL_CARDS.length,50);assert.equal(new Set(INITIAL_CARDS.map(c=>c.id)).size,50);for(const category of ['VERDAD','DESAFIO','MINIJUEGO','PREMIO','CASTIGO'])assert.equal(INITIAL_CARDS.filter(c=>c.categoryId===category).length,10);assert.equal(INITIAL_CARDS.filter(c=>c.categoryId==='SHOT').length,0);assert.equal(validateCards(INITIAL_CARDS,INITIAL_MANUALS),true);});
+test('mazos agotan antes de repetirse y separan ciclos evitando última carta previa',()=>{const cards=INITIAL_CARDS.filter(c=>c.categoryId==='VERDAD').slice(0,3);const decks={};const ids=Array.from({length:3},()=>drawFromDeck(cards,'VERDAD',decks,()=>.3).card.id);assert.equal(new Set(ids).size,3);const next=drawFromDeck(cards,'VERDAD',decks,()=>.01).card.id;assert.notEqual(next,ids.at(-1));});
+test('mazo agotado se informa y no selecciona carta',()=>{assert.equal(drawFromDeck([],'VERDAD',{}).reason,'EMPTY');});
+test('avance circular y las parejas se dejan a voluntarios sin asignar por azar',()=>{assert.equal(nextIndex(2,3),0);const p=[{id:'a',active:true},{id:'b',active:true}];assert.deepEqual(assignTargets('PLAYER_PAIR',p,0),[]);});
+test('selección de categoría bloquea acciones duplicadas y solo una resolución avanza turno',()=>{const state=seedState();state.participants=[{id:'p',name:'A',active:true},{id:'q',name:'B',active:true}];const engine=gameEngine(state,()=>.01);const first=engine.draw('MINIJUEGO');assert.ok(first.card);assert.equal(state.game.current.playerId,'p');assert.equal(engine.draw('VERDAD').error,'LOCKED');assert.equal(engine.startShot().error,'LOCKED');assert.equal(engine.resolve('COMPLETED'),true);assert.equal(engine.resolve('COMPLETED'),false);assert.equal(state.game.currentIndex,1);assert.equal(state.game.history.length,1);});
+test('SHOT es una acción independiente y no consume cartas',()=>{const state=seedState();state.participants=[{id:'p',name:'A',active:true}];const before=structuredClone(state.game.decks);const engine=gameEngine(state);assert.deepEqual(engine.startShot(),{shot:true});assert.equal(state.game.current.type,'SHOT');assert.equal(state.game.current.playerId,'p');assert.deepEqual(state.game.decks,before);assert.equal(engine.resolve('ALTERNATIVE_SELECTED'),true);assert.equal(state.game.history[0].title,'Acción SHOT');});
+test('un premio completado se persiste como disponible para uso manual',()=>{const state=seedState();state.participants=[{id:'p',name:'A',active:true}];const engine=gameEngine(state,()=>.5);const result=engine.draw('PREMIO');assert.equal(result.category,'PREMIO');assert.equal(engine.resolve('COMPLETED'),true);assert.equal(state.game.rewards.length,1);assert.equal(state.game.rewards[0].used,false);});
+test('categorías inválidas y partidas sin participantes no inician acciones',()=>{const state=seedState(),engine=gameEngine(state);assert.equal(engine.draw('SHOT').error,'INVALID_CATEGORY');assert.equal(engine.draw('VERDAD').error,'NO_PLAYERS');assert.equal(engine.startShot().error,'NO_PLAYERS');});
+test('validación rechaza IDs duplicados y recuperación valida forma del estado',()=>{assert.throws(()=>validateCards([INITIAL_CARDS[0],INITIAL_CARDS[0]],INITIAL_MANUALS));assert.equal(isValidState(seedState()),true);assert.equal(isValidState({}),false);});
