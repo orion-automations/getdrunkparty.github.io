@@ -9,10 +9,10 @@ import { gameEngine } from '../js/game.js';
 import { DICE_FACES, rollDice, categoryProbabilities, diceRotationTarget } from '../js/dice.js';
 import { validateMinigameRules } from '../js/minigame-results.js';
 
-test('catálogo inicial contiene las 310 cartas del documento y manuales válidos', () => {
-  assert.equal(INITIAL_CARDS.length, 310);
-  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 310);
-  for (const [category, count] of Object.entries({ VERDAD: 107, DESAFIO: 102, MINIJUEGO: 50, PREMIO: 26, CASTIGO: 25 })) assert.equal(INITIAL_CARDS.filter((c) => c.categoryId === category).length, count);
+test('catálogo inicial conserva las 310 cartas del documento, suma 67 desafíos y manuales válidos', () => {
+  assert.equal(INITIAL_CARDS.length, 377);
+  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 377);
+  for (const [category, count] of Object.entries({ VERDAD: 107, DESAFIO: 169, MINIJUEGO: 50, PREMIO: 26, CASTIGO: 25 })) assert.equal(INITIAL_CARDS.filter((c) => c.categoryId === category).length, count);
   assert.equal(validateCards(INITIAL_CARDS, INITIAL_MANUALS), true);
 });
 test('mazos agotan antes de repetirse, conservan ciclos separados y evitan última repetición', () => {

@@ -1,8 +1,9 @@
 import { INITIAL_CARDS } from '../data/initial-cards.js';
 import { INITIAL_MANUALS } from '../data/initial-manuals.js';
 import { REMOVED_LEGACY_CARD_IDS, REMOVED_LEGACY_MANUAL_IDS } from '../data/catalog-migrations.js';
+import { ADDITIONAL_CARDS, ADDITIONAL_CHALLENGE_CATALOG_VERSION } from '../data/additional-challenges.js';
 export const STORAGE_KEY = 'gdpw.data.v1';
-export const seedState = () => ({ version:1, catalogVersion:4, cards:structuredClone(INITIAL_CARDS), manuals:structuredClone(INITIAL_MANUALS), drinks:[{id:'NORMAL',name:'Shots',unitLabel:'shot(s)',enabled:true},{id:'ALTERNATIVE',name:'Alternativa sin alcohol',unitLabel:'opción',enabled:true}], participants:[], settings:{positionReversed:false,gameMode:'digital'}, game:{currentIndex:0,state:'READY',decks:{},current:null,history:[],rewards:[]} });
+export const seedState = () => ({ version:1, catalogVersion:ADDITIONAL_CHALLENGE_CATALOG_VERSION, cards:structuredClone(INITIAL_CARDS), manuals:structuredClone(INITIAL_MANUALS), drinks:[{id:'NORMAL',name:'Shots',unitLabel:'shot(s)',enabled:true},{id:'ALTERNATIVE',name:'Alternativa sin alcohol',unitLabel:'opción',enabled:true}], participants:[], settings:{positionReversed:false,gameMode:'digital'}, game:{currentIndex:0,state:'READY',decks:{},current:null,history:[],rewards:[]} });
 export function isValidState(state) {
   try {
     if (!state || state.version!==1 || !Array.isArray(state.cards) || !Array.isArray(state.manuals) || !Array.isArray(state.participants) || !Array.isArray(state.drinks) || !state.game || !Array.isArray(state.game.history) || !state.game.decks || typeof state.game.decks!=='object') return false;
@@ -49,6 +50,12 @@ export function loadState() {
         const shotsOption=parsed.drinks.find(drink=>drink.id==='NORMAL');
         if (shotsOption) { shotsOption.name='Shots'; shotsOption.unitLabel='shot(s)'; }
         parsed.catalogVersion=4;
+        saveState(parsed);
+      }
+      if ((parsed.catalogVersion ?? 0) < ADDITIONAL_CHALLENGE_CATALOG_VERSION) {
+        const cardIds=new Set(parsed.cards.map(card=>card.id));
+        parsed.cards.push(...structuredClone(ADDITIONAL_CARDS.filter(card=>!cardIds.has(card.id))));
+        parsed.catalogVersion=ADDITIONAL_CHALLENGE_CATALOG_VERSION;
         saveState(parsed);
       }
       return parsed;

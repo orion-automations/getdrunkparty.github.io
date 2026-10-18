@@ -52,7 +52,34 @@ Para editar una existente, busca o filtra la carta y pulsa **Editar**. Cambia lo
 
 También puedes añadir cartas en lote desde JSON: crea un archivo con `{ "version": 1, "cards": [...] }`, agrega solo las cartas nuevas dentro de `cards`, usa IDs nuevos y pulsa **Importar cartas JSON**. Si partes de una exportación completa, conserva en el archivo que vas a importar solo las cartas nuevas, pues la importación añade y rechaza IDs que ya existen; no actualiza ni elimina cartas. Edita o elimina una existente desde el editor de **Cartas**.
 
-Las categorías y colores están en `js/config.js`. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición de 2.5 segundos se configuran en `css/dice.css`; las caras visibles están en `index.html`. Las 310 cartas suministradas con el proyecto están individualizadas en `data/pdf-catalog.js`; `data/initial-cards.js` carga únicamente ese catálogo. Los manuales completos de los 50 minijuegos están en el mismo archivo y se cargan desde `data/initial-manuals.js`. Las instalaciones existentes eliminan una sola vez las 50 cartas iniciales reemplazadas, cargan las 310 nuevas y mantienen sus demás datos.
+### Qué pasa con las cartas JSON y cómo añadirlas al código
+
+Cuando creas o editas una carta desde la app, el cambio se guarda en el `localStorage` de ese navegador y dispositivo. **Exportar cartas JSON** descarga una copia de ese catálogo; no modifica ningún archivo del proyecto. **Importar cartas JSON** agrega las cartas del archivo al catálogo guardado en el navegador actual. Para llevarlas a otro equipo, importa allí el JSON. Mantén ese archivo como respaldo: borrar los datos del sitio puede borrar las cartas locales.
+
+Para que nuevos desafíos formen parte del catálogo incluido en el código:
+
+1. Abre `data/additional-challenges.js` y agrega el texto al final de `challengeTexts`.
+2. En el mismo índice al final de `shotCounts`, agrega `1`, `2` o `3`. Ese número es la penalización que aparece abajo como Shots. No escribas «O toma X shots» en la descripción: la app muestra la cantidad desde `penalty.units`.
+3. Los IDs y títulos se generan en orden desde `DESAFIO_PDF_103` / `Desafío 103`; las 67 entradas actuales llegan hasta el 169. No reordenes ni elimines elementos de estas dos listas, porque su posición determina qué texto, cantidad e ID quedan emparejados.
+4. Incrementa `ADDITIONAL_CHALLENGE_CATALOG_VERSION` en ese archivo (ahora es `5`) para que las instalaciones existentes agreguen las nuevas cartas. La migración inserta solo los IDs faltantes y conserva las cartas y participantes locales.
+5. Incrementa la versión visible en `js/config.js` y el nombre de caché en `sw.js` (actualmente `1.3.8`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
+
+Para añadir por código una carta de otra categoría, agrega el objeto completo a `OTHER_ADDITIONAL_CARDS` en `data/additional-challenges.js` y aumenta la misma versión de catálogo. `data/initial-cards.js` ya combina esa lista con `PDF_CARDS`, y `js/storage.js` añade automáticamente a las instalaciones existentes las cartas adicionales cuyo ID aún no está guardado. Usa un ID único. Ejemplo de formato:
+
+```js
+{
+  id: 'PREMIO_NUEVO_001', categoryId: 'PREMIO',
+  title: 'Premio nuevo', description: 'Elige quién comienza el siguiente turno.',
+  icon: { type: 'glyph', value: '★' }, spiceLevel: 0,
+  target: { mode: 'CURRENT_PLAYER', count: 1, position: null },
+  penalty: { enabled: false, units: 0, drinkTypeId: 'NORMAL' },
+  manualId: null, enabled: true,
+},
+```
+
+No necesitas cambiar `data/pdf-catalog.js` para añadir cartas por este método. Esa lista contiene las 310 cartas originales del PDF; `data/additional-challenges.js` contiene las adiciones posteriores.
+
+Las categorías y colores están en `js/config.js`. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición de 2.5 segundos se configuran en `css/dice.css`; las caras visibles están en `index.html`. El catálogo base contiene 377 cartas: las 310 originales de `data/pdf-catalog.js` y 67 desafíos nuevos de `data/additional-challenges.js`; `data/initial-cards.js` combina ambos archivos. Los manuales completos de los 50 minijuegos están en el mismo archivo base y se cargan desde `data/initial-manuals.js`. Las instalaciones existentes incorporan las 67 cartas mediante una migración que conserva sus demás datos.
 
 ## Manuales, bebidas e iconos
 
@@ -62,7 +89,7 @@ En **Manuales**, usa **＋ Nuevo manual** para crear reglas o **Editar manual** 
 
 El catálogo inicial incorpora los minijuegos del documento Cartas Get Drunk Party.pdf con sus instrucciones completas. Si alguna regla requiere definir resultados o consecuencias, edita el manual correspondiente en **Manuales**; las reglas no se deducen automáticamente del texto.
 
-El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). Para añadir iconos vectoriales locales revisa `assets/icons/icon.svg`; no son necesarios para jugar.
+El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). La marca GDP está en `assets/icons/icon.svg` y se usa como favicon. `icon-192.png` e `icon-512.png` son los iconos instalables de PWA; `favicon-32.png` y `apple-touch-icon.png` cubren favicon pequeño e iOS. La cabecera muestra solo el nombre. La paleta de la web está en `css/brand.css`.
 
 Las cartas pueden incluir opcionalmente `effects`. Es un objeto de datos; por ejemplo `{"onCompleted":[{"type":"DRAW_AUXILIARY","category":"PREMIO"},{"type":"GRANT_REWARD","key":"protection","label":"Protección futura"}]}` permite acceder a un mazo auxiliar tras confirmar el resultado y guardar una ventaja con nombre para usar manualmente. `onNotCompleted` puede declarar de la misma forma una acción auxiliar de castigo. Estos efectos no se derivan del texto de la carta.
 
@@ -118,6 +145,6 @@ No abras el HTML desde un administrador de archivos esperando que funcionen mód
 npm test
 ```
 
-El catálogo inicial contiene las 310 cartas transcritas de Cartas Get Drunk Party.pdf (107 verdades, 102 desafíos, 50 minijuegos, 26 premios y 25 castigos). Las cantidades de shots de los desafíos se muestran en la parte inferior de la carta; si el documento no especificaba una, se configuran 2 Shots. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
+El catálogo base conserva las 310 cartas transcritas de Cartas Get Drunk Party.pdf (107 verdades, 102 desafíos, 50 minijuegos, 26 premios y 25 castigos) y suma los 67 desafíos nuevos, numerados del 103 al 169, para un total de 377 cartas y 169 desafíos. Las cantidades de shots de los desafíos aparecen en la parte inferior de cada carta y no se repiten en la descripción. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
 
 
