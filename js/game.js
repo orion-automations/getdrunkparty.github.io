@@ -1,12 +1,13 @@
 import { drawFromDeck } from './decks.js';
 import { assignTargets, nextIndex } from './participants.js';
 import { rollDice } from './dice.js';
+import { buildMinigameSelectionQueue, validateMinigameOutcomes } from './minigame-results.js';
 
 const MAIN_CATEGORIES = new Set(['VERDAD', 'DESAFIO', 'MINIJUEGO']);
 const AUX_CATEGORIES = new Set(['PREMIO', 'CASTIGO']);
 const VALID_CATEGORIES = new Set([...MAIN_CATEGORIES, ...AUX_CATEGORIES, 'BLOQUEADA']);
 
-function attachCard(state, turn, category, random, auxiliary = false) {
+function attachCard(state, turn, category, random, auxiliary = false, recipientId = null) {
   const draw = drawFromDeck(state.cards, category, state.game.decks, random);
   if (!draw.card) return { category, empty: true };
   const targets = assignTargets(
@@ -16,7 +17,7 @@ function attachCard(state, turn, category, random, auxiliary = false) {
     state.settings.positionReversed,
     random,
   );
-  const item = { cardId: draw.card.id, category, targetIds: targets.map((p) => p.id) };
+  const item = { cardId: draw.card.id, category, targetIds: recipientId ? [recipientId] : targets.map((p) => p.id), ...(recipientId ? { playerId: recipientId } : {}) };
   if (auxiliary) turn.auxiliaryCards.push(item);
   else {
     turn.type = 'CARD';
@@ -24,6 +25,7 @@ function attachCard(state, turn, category, random, auxiliary = false) {
     turn.face = category;
     turn.targetIds = item.targetIds;
     turn.primaryCard = item;
+    if (category === 'MINIJUEGO') turn.participantIds = [...item.targetIds];
     turn.phase = 'RESOLVING';
   }
   return { category, card: draw.card, targets, auxiliary };
@@ -36,6 +38,8 @@ export function gameEngine(state, random = Math.random) {
   if (state.game.current) {
     state.game.current.auxiliaryCards ??= [];
     state.game.current.outcome ??= null;
+    state.game.current.pendingSelections ??= [];
+    state.game.current.participantIds ??= state.game.current.primaryCard?.targetIds ?? [];
     state.game.current.phase ??= state.game.state === 'RESOLVING' ? 'RESOLVING' : 'ROLLING';
     if (state.game.current.type === 'CARD' && state.game.current.cardId) {
       state.game.current.category ??= state.game.current.face;
@@ -66,6 +70,10 @@ export function gameEngine(state, random = Math.random) {
       playerId: currentPlayer()?.id,
       primaryCard: null,
       auxiliaryCards: [],
+      participantIds: [],
+      minigameResult: null,
+      pendingSelections: [],
+      armedSelection: null,
       outcome: null,
       phase,
       startedAt: new Date().toISOString(),
@@ -113,10 +121,73 @@ export function gameEngine(state, random = Math.random) {
       state.game.state = 'RESOLVING';
       return { category: turn.category, awaitingCategory: true };
     },
+    setMinigameParticipants(playerIds) {
+      const turn = state.game.current;
+      const card = turn?.primaryCard && state.cards.find((item) => item.id === turn.primaryCard.cardId);
+      if (!turn || card?.categoryId !== 'MINIJUEGO' || turn.minigameResult) return { error: 'LOCKED' };
+      if (!Array.isArray(playerIds) || new Set(playerIds).size !== playerIds.length) return { error: 'INVALID_PARTICIPANTS' };
+      const eligible = new Set(state.participants.filter((player) => player.active).map((player) => player.id));
+      if (!playerIds.length || playerIds.some((id) => !eligible.has(id))) return { error: 'INVALID_PARTICIPANTS' };
+      if (['PLAYER_PAIR', 'MANUAL_SELECTION'].includes(card.target.mode) && playerIds.length !== card.target.count) return { error: 'INVALID_PARTICIPANT_COUNT' };
+      if (card.target.mode === 'ALL_PLAYERS' && playerIds.length !== eligible.size) return { error: 'INVALID_PARTICIPANT_COUNT' };
+      turn.participantIds = [...playerIds];
+      turn.primaryCard.targetIds = [...playerIds];
+      return { participantIds: turn.participantIds };
+    },
+    recordMinigameResult(outcomes) {
+      const turn = state.game.current;
+      const card = turn?.primaryCard && state.cards.find((item) => item.id === turn.primaryCard.cardId);
+      if (!turn || card?.categoryId !== 'MINIJUEGO' || turn.minigameResult || turn.outcome) return { error: 'LOCKED' };
+      const participants = (turn.participantIds ?? []).map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
+      try {
+        validateMinigameOutcomes(participants, outcomes);
+        const manual = state.manuals.find((item) => item.id === card.manualId);
+        const rules = manual?.details?.consequenceRules ?? [];
+        const pendingSelections = buildMinigameSelectionQueue(rules, participants, outcomes);
+        for (const effect of normalizeEffects(card.effects?.onCompleted)) {
+          if (effect.type === 'DRAW_AUXILIARY' && AUX_CATEGORIES.has(effect.category)) {
+            pendingSelections.push({ category: effect.category, playerId: turn.playerId, eligiblePlayerIds: [turn.playerId], ruleIndex: null });
+          }
+        }
+        turn.pendingEffects = normalizeEffects(card.effects?.onCompleted);
+        const recordedAt = new Date().toISOString();
+        turn.minigameResult = {
+          participantIds: participants.map((player) => player.id),
+          winners: outcomes.filter((item) => item.result === 'WIN').map((item) => item.playerId),
+          losers: outcomes.filter((item) => item.result === 'LOSS').map((item) => item.playerId),
+          neutral: outcomes.filter((item) => item.result === 'NEUTRAL').map((item) => item.playerId),
+          recordedAt,
+        };
+        turn.pendingSelections = pendingSelections;
+        turn.outcome = { result: 'MINIGAME_RECORDED', sourceCardId: turn.primaryCard.cardId, at: recordedAt };
+        turn.phase = 'CONFIRMED';
+        return { result: turn.minigameResult, pendingSelections: pendingSelections.length };
+      } catch (error) {
+        return { error: 'INVALID_MINIGAME_RESULT', message: error.message };
+      }
+    },
+    armMinigameSelection(playerId) {
+      const turn = state.game.current;
+      const next = turn?.pendingSelections?.[0];
+      if (!turn?.minigameResult || !next || turn.armedSelection) return { error: 'LOCKED' };
+      if (!next.eligiblePlayerIds.includes(playerId)) return { error: 'INVALID_RECIPIENT' };
+      turn.armedSelection = { playerId, category: next.category, ruleIndex: next.ruleIndex };
+      return { category: next.category, playerId };
+    },
     draw(category) {
       if (state.game.current && state.game.state === 'RESOLVING') {
         if (state.game.current.type === 'BLOCKED') return { error: 'LOCKED' };
         const turn = state.game.current;
+        if (turn.category === 'MINIJUEGO' && turn.minigameResult) {
+          const next = turn.pendingSelections?.[0];
+          const armed = turn.armedSelection;
+          if (!next || !armed || armed.category !== category || next.category !== category || !next.eligiblePlayerIds.includes(armed.playerId)) return { error: 'SELECTION_NOT_ARMED' };
+          const result = attachCard(state, turn, category, random, true, armed.playerId);
+          if (result.empty) return result;
+          turn.pendingSelections.shift();
+          turn.armedSelection = null;
+          return result;
+        }
         if (turn.phase === 'AWAITING_CATEGORY') {
           if (!MAIN_CATEGORIES.has(category) || category !== turn.category) return { error: 'LOCKED' };
           const result = attachCard(state, turn, category, random);
@@ -124,7 +195,8 @@ export function gameEngine(state, random = Math.random) {
           return result;
         }
         if (!AUX_CATEGORIES.has(category)) return { error: 'LOCKED' };
-        if (!turn.primaryCard || turn.outcome || turn.auxiliaryCards.length > 0) return { error: 'AUXILIARY_ALREADY_DRAWN' };
+        const effectAllowsDraw = (turn.pendingEffects ?? []).some((effect) => effect.type === 'DRAW_AUXILIARY' && effect.category === category);
+        if (!turn.primaryCard || (turn.outcome && !effectAllowsDraw) || turn.auxiliaryCards.length > 0) return { error: 'AUXILIARY_ALREADY_DRAWN' };
         const result = attachCard(state, turn, category, random, true);
         if (!result.empty) turn.phase = 'RESOLVING';
         return result;
@@ -134,7 +206,7 @@ export function gameEngine(state, random = Math.random) {
     },
     resolve(result, sourceCardId = null) {
       const turn = state.game.current;
-      if (!locked || state.game.state !== 'RESOLVING' || !turn || turn.outcome) return false;
+      if (!locked || state.game.state !== 'RESOLVING' || !turn || turn.outcome || turn.category === 'MINIJUEGO') return false;
       turn.outcome = { result, sourceCardId, at: new Date().toISOString() };
       turn.phase = 'CONFIRMED';
       const resolvedItem = sourceCardId
@@ -149,6 +221,7 @@ export function gameEngine(state, random = Math.random) {
       const turn = state.game.current;
       if (!locked || state.game.state !== 'RESOLVING' || !turn) return false;
       if (!turn.outcome && turn.type !== 'BLOCKED' && turn.phase !== 'EMPTY') return false;
+      if (turn.category === 'MINIJUEGO' && turn.pendingSelections?.length) return false;
       const player = state.participants.find((p) => p.id === turn.playerId);
       const chosen = turn.outcome?.sourceCardId
         ? [turn.primaryCard, ...turn.auxiliaryCards].find((item) => item?.cardId === turn.outcome.sourceCardId)
@@ -161,12 +234,28 @@ export function gameEngine(state, random = Math.random) {
         type: blocked ? 'BLOCKED' : card ? 'CARD' : 'TURN',
         title: blocked ? 'Cara bloqueada' : card?.title ?? 'Mazo agotado',
         category: turn.category,
-        result: blocked ? 'NO_ACTION' : turn.outcome?.result ?? 'EMPTY',
+        result: blocked ? 'NO_ACTION' : turn.minigameResult ? 'MINIGAME' : turn.outcome?.result ?? 'EMPTY',
+        ...(turn.minigameResult ? {
+          participants: turn.minigameResult.participantIds,
+          winners: turn.minigameResult.winners,
+          losers: turn.minigameResult.losers,
+          neutral: turn.minigameResult.neutral,
+          consequenceCards: turn.auxiliaryCards.map((item) => ({ cardId: item.cardId, category: item.category, playerId: item.playerId ?? null })),
+        } : {}),
       });
       state.game.history = state.game.history.slice(0, 20);
       if (card?.categoryId === 'PREMIO' && turn.outcome?.result === 'COMPLETED') {
         state.game.rewards ??= [];
         state.game.rewards.unshift({ id: `reward_${Date.now()}_${state.game.rewards.length}`, cardId: card.id, title: card.title, playerId: turn.playerId, used: false, createdAt: new Date().toISOString() });
+      }
+      if (turn.minigameResult) {
+        for (const item of turn.auxiliaryCards) {
+          const consequence = state.cards.find((c) => c.id === item.cardId);
+          if (consequence?.categoryId !== 'PREMIO') continue;
+          state.game.rewards ??= [];
+          const ownerId = item.playerId ?? turn.playerId;
+          state.game.rewards.unshift({ id: `reward_${Date.now()}_${state.game.rewards.length}`, cardId: consequence.id, title: consequence.title, playerId: ownerId, used: false, createdAt: new Date().toISOString() });
+        }
       }
       for (const effect of turn.pendingEffects ?? []) {
         if (effect.type !== 'GRANT_REWARD' || !effect.key || !effect.label) continue;

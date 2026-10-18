@@ -1,7 +1,8 @@
 import { INITIAL_CARDS } from '../data/initial-cards.js';
 import { INITIAL_MANUALS } from '../data/initial-manuals.js';
+import { REMOVED_LEGACY_CARD_IDS, REMOVED_LEGACY_MANUAL_IDS } from '../data/catalog-migrations.js';
 export const STORAGE_KEY = 'gdpw.data.v1';
-export const seedState = () => ({ version:1, cards:structuredClone(INITIAL_CARDS), manuals:structuredClone(INITIAL_MANUALS), drinks:[{id:'NORMAL',name:'Unidad configurable',unitLabel:'unidad',enabled:true},{id:'ALTERNATIVE',name:'Alternativa sin alcohol',unitLabel:'opción',enabled:true}], participants:[], settings:{positionReversed:false,gameMode:'digital'}, game:{currentIndex:0,state:'READY',decks:{},current:null,history:[],rewards:[] } });
+export const seedState = () => ({ version:1, catalogVersion:4, cards:structuredClone(INITIAL_CARDS), manuals:structuredClone(INITIAL_MANUALS), drinks:[{id:'NORMAL',name:'Shots',unitLabel:'shot(s)',enabled:true},{id:'ALTERNATIVE',name:'Alternativa sin alcohol',unitLabel:'opción',enabled:true}], participants:[], settings:{positionReversed:false,gameMode:'digital'}, game:{currentIndex:0,state:'READY',decks:{},current:null,history:[],rewards:[]} });
 export function isValidState(state) {
   try {
     if (!state || state.version!==1 || !Array.isArray(state.cards) || !Array.isArray(state.manuals) || !Array.isArray(state.participants) || !Array.isArray(state.drinks) || !state.game || !Array.isArray(state.game.history) || !state.game.decks || typeof state.game.decks!=='object') return false;
@@ -13,8 +14,46 @@ export function isValidState(state) {
   } catch { return false; }
 }
 export function loadState() {
-  try { const raw=localStorage.getItem(STORAGE_KEY); if (!raw) { const init=seedState(); saveState(init); return init; } const parsed=JSON.parse(raw); if (isValidState(parsed)) return parsed; }
-  catch (error) { console.error('No se pudo leer el almacenamiento local',error); }
+  try {
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if (!raw) { const init=seedState(); saveState(init); return init; }
+    const parsed=JSON.parse(raw);
+    if (isValidState(parsed)) {
+      if ((parsed.catalogVersion ?? 0) < 4) {
+        const removedCards=new Set(REMOVED_LEGACY_CARD_IDS);
+        const current=parsed.game.current;
+        const currentCardIds=[current?.primaryCard?.cardId, ...(current?.auxiliaryCards ?? []).map(card=>card.cardId)];
+        if (currentCardIds.some(id=>removedCards.has(id))) {
+          parsed.game.current=null;
+          parsed.game.state='READY';
+        }
+        parsed.cards=parsed.cards.filter(card=>!removedCards.has(card.id));
+        Object.values(parsed.game.decks).forEach(deck=>{
+          if (Array.isArray(deck?.order)) deck.order=deck.order.filter(id=>!removedCards.has(id));
+        });
+        const removedManuals=new Set(REMOVED_LEGACY_MANUAL_IDS);
+        const referencedManuals=new Set(parsed.cards.map(card=>card.manualId).filter(Boolean));
+        parsed.manuals=parsed.manuals.filter(manual=>!removedManuals.has(manual.id)||referencedManuals.has(manual.id));
+        const cardIds=new Set(parsed.cards.map(card=>card.id));
+        parsed.cards.push(...structuredClone(INITIAL_CARDS.filter(card=>!cardIds.has(card.id))));
+        const manualIds=new Set(parsed.manuals.map(manual=>manual.id));
+        parsed.manuals.push(...structuredClone(INITIAL_MANUALS.filter(manual=>!manualIds.has(manual.id))));
+        const challengeCards=new Map(INITIAL_CARDS.filter(card=>card.categoryId==='DESAFIO').map(card=>[card.id,card]));
+        parsed.cards.forEach(card=>{
+          const source=challengeCards.get(card.id);
+          if (source) {
+            card.description=source.description;
+            card.penalty=structuredClone(source.penalty);
+          }
+        });
+        const shotsOption=parsed.drinks.find(drink=>drink.id==='NORMAL');
+        if (shotsOption) { shotsOption.name='Shots'; shotsOption.unitLabel='shot(s)'; }
+        parsed.catalogVersion=4;
+        saveState(parsed);
+      }
+      return parsed;
+    }
+  } catch (error) { console.error('No se pudo leer el almacenamiento local',error); }
   return seedState();
 }
 export function saveState(state) { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); return true; } catch(error) { console.error('No se pudo guardar',error); return false; } }

@@ -5,6 +5,7 @@ import { makeId, downloadJSON, escapeText } from "./utils.js";
 import { addDrink } from "./drinks.js";
 import { findManual } from "./manuals.js";
 import { DICE_FACES, diceRotationTarget } from "./dice.js";
+import { validateMinigameRules } from "./minigame-results.js";
 
 let state = loadState(),
   engine = gameEngine(state),
@@ -83,8 +84,12 @@ function renderGame() {
     b.classList.toggle("selected-deck", choosingRolledCategory && b.dataset.category === cur.category);
   });
   $("#blocked-choice").disabled = !choosingPhysical;
-  const canDrawAuxiliary = Boolean(cur?.primaryCard && cur.auxiliaryCards?.length === 0 && !cur.outcome && cur.type !== "BLOCKED" && state.game.state === "RESOLVING");
-  $$("#aux-category-choices [data-category]").forEach((b) => (b.disabled = !canDrawAuxiliary));
+  const armedMiniSelection = cur?.category === "MINIJUEGO" ? cur.armedSelection : null;
+  const effectCategories = (cur?.pendingEffects ?? []).filter((effect) => effect.type === "DRAW_AUXILIARY").map((effect) => effect.category);
+  const canDrawAuxiliary = Boolean(cur?.primaryCard && cur.category !== "MINIJUEGO" && cur.auxiliaryCards?.length === 0 && (!cur.outcome || effectCategories.length) && cur.type !== "BLOCKED" && state.game.state === "RESOLVING");
+  $$("#aux-category-choices [data-category]").forEach((b) => {
+    b.disabled = armedMiniSelection ? b.dataset.category !== armedMiniSelection.category : !(canDrawAuxiliary && (!cur?.outcome || effectCategories.includes(b.dataset.category)));
+  });
   $("#game-message").textContent = cur
     ? cur.category === "BLOQUEADA" ? "Cara bloqueada · no hay acción."
       : cur.phase === "AWAITING_CATEGORY" ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · pulsa el mazo iluminado.`
@@ -93,7 +98,7 @@ function renderGame() {
     : "";
   const cardsHost = $("#turn-cards");
   const items = cur ? [cur.primaryCard, ...(cur.auxiliaryCards ?? [])].filter(Boolean) : [];
-  const cardsKey = items.map((item) => item.cardId).join("|");
+  const cardsKey = items.map((item) => `${item.cardId}:${(item.targetIds ?? []).join(",")}`).join("|");
   if (cardsHost.dataset.cardsKey !== cardsKey) {
     cardsHost.replaceChildren();
     for (const [index, item] of items.entries()) {
@@ -107,22 +112,155 @@ function renderGame() {
     }
   }
   cardsHost.classList.toggle("hidden", !items.length);
+  const miniCard = cur?.primaryCard && state.cards.find((card) => card.id === cur.primaryCard.cardId && card.categoryId === "MINIJUEGO");
+  $("#minigame-flow").classList.toggle("hidden", !miniCard || state.game.state !== "RESOLVING");
+  if (miniCard) renderMinigameFlow(cur, miniCard);
   $("#resolve-actions").classList.toggle("hidden", !cur || state.game.state !== "RESOLVING" || cur.phase === "AWAITING_CATEGORY");
   const isChallenge = cur?.category === "DESAFIO";
+  const isMinigame = cur?.category === "MINIJUEGO";
   const hasPenalty = (cur?.auxiliaryCards ?? []).some((item) => item.category === "CASTIGO");
-  $("#confirm-completed").classList.toggle("hidden", !cur || cur.category === "BLOQUEADA" || isChallenge || Boolean(cur.outcome));
-  $("#confirm-challenge").classList.toggle("hidden", !isChallenge || Boolean(cur?.outcome));
-  $("#confirm-penalty").classList.toggle("hidden", !isChallenge || !hasPenalty || Boolean(cur?.outcome));
+  $("#confirm-completed").classList.toggle("hidden", !cur || cur.category === "BLOQUEADA" || isChallenge || isMinigame || Boolean(cur.outcome));
+  $("#confirm-challenge").classList.toggle("hidden", !isChallenge || isMinigame || Boolean(cur?.outcome));
+  $("#confirm-penalty").classList.toggle("hidden", !isChallenge || isMinigame || !hasPenalty || Boolean(cur?.outcome));
   const hasCard = items.length > 0;
-  $("#confirm-alternative").classList.toggle("hidden", !hasCard || Boolean(cur?.outcome));
-  $("#confirm-pass").classList.toggle("hidden", !hasCard || Boolean(cur?.outcome));
-  const canFinish = Boolean(cur && (cur.outcome || cur.type === "BLOCKED" || cur.phase === "EMPTY"));
+  $("#confirm-alternative").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
+  $("#confirm-pass").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
+  const canFinish = Boolean(cur && (cur.type === "BLOCKED" || cur.phase === "EMPTY" || (cur.outcome && (!isMinigame || !(cur.pendingSelections?.length)))));
   $("#finish-turn").classList.toggle("hidden", !canFinish);
   $("#finish-turn").disabled = !canFinish;
   const effectMessages = (cur?.pendingEffects ?? [])
     .filter((effect) => effect.type === "DRAW_AUXILIARY" && ["PREMIO", "CASTIGO"].includes(effect.category))
     .map((effect) => `Efecto disponible: mazo ${CATEGORIES[effect.category].label}.`);
   $("#reward-status").textContent = effectMessages.join(" ");
+}
+
+function renderMinigameFlow(turn, card) {
+  const participantHost = $("#minigame-participant-picker");
+  const outcomeHost = $("#minigame-outcomes");
+  const selectionHost = $("#minigame-selection");
+  const saveParticipants = $("#save-minigame-participants");
+  const recordResult = $("#record-minigame-result");
+  participantHost.replaceChildren();
+  outcomeHost.replaceChildren();
+  selectionHost.replaceChildren();
+  saveParticipants.classList.add("hidden");
+  recordResult.classList.add("hidden");
+
+  const activePlayers = state.participants.filter((player) => player.active);
+  const participants = (turn.participantIds ?? []).map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
+  const needsManualParticipants = ["PLAYER_PAIR", "MANUAL_SELECTION"].includes(card.target.mode) && participants.length !== card.target.count;
+  if (needsManualParticipants && !turn.minigameResult) {
+    const list = document.createElement("div");
+    list.className = "minigame-participant-list";
+    activePlayers.forEach((player) => {
+      const label = document.createElement("label");
+      label.className = "minigame-participant-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "minigame-participant";
+      checkbox.value = player.id;
+      checkbox.checked = (turn.participantIds ?? []).includes(player.id);
+      label.append(checkbox, document.createTextNode(player.name));
+      list.append(label);
+    });
+    participantHost.append(list);
+    saveParticipants.classList.remove("hidden");
+    saveParticipants.disabled = activePlayers.length < card.target.count;
+  } else if (!turn.minigameResult) {
+    const summary = document.createElement("p");
+    summary.className = "fine-print";
+    summary.textContent = participants.length
+      ? `Participantes: ${participants.map((player) => player.name).join(", ")}`
+      : "Agrega participantes activos para registrar este minijuego.";
+    participantHost.append(summary);
+  }
+
+  if (!turn.minigameResult && participants.length && !needsManualParticipants) {
+    const list = document.createElement("div");
+    list.className = "minigame-outcome-list";
+    const selectors = [];
+    participants.forEach((player) => {
+      const row = document.createElement("label");
+      row.className = "minigame-outcome-row";
+      const name = document.createElement("span");
+      name.textContent = player.name;
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", `Resultado de ${player.name}`);
+      select.innerHTML = '<option value="">Seleccionar resultado</option><option value="WIN">Ganó</option><option value="LOSS">Perdió</option><option value="NEUTRAL">Neutral / sin consecuencia</option>';
+      selectors.push({ playerId: player.id, select });
+      row.append(name, select);
+      list.append(row);
+    });
+    outcomeHost.append(list);
+    recordResult.classList.remove("hidden");
+    recordResult.disabled = false;
+    recordResult.onclick = () => {
+      const outcomes = selectors.map(({ playerId, select }) => ({ playerId, result: select.value }));
+      if (outcomes.some((item) => !item.result)) return notify("Registra si cada participante ganó, perdió o quedó neutral.");
+      const result = engine.recordMinigameResult(outcomes);
+      if (result.error) return notify(result.message ?? "No se pudo registrar el resultado.");
+      persist();
+      renderGame();
+    };
+  }
+
+  if (!turn.minigameResult) return;
+  const summary = document.createElement("p");
+  summary.className = "fine-print";
+  const winnerNames = turn.minigameResult.winners.map((id) => state.participants.find((player) => player.id === id)?.name).filter(Boolean);
+  const loserNames = turn.minigameResult.losers.map((id) => state.participants.find((player) => player.id === id)?.name).filter(Boolean);
+  summary.textContent = `Resultado acordado por el grupo · Ganaron: ${winnerNames.join(", ") || "—"} · Perdieron: ${loserNames.join(", ") || "—"}`;
+  selectionHost.append(summary);
+  const next = turn.pendingSelections?.[0];
+  if (!next) {
+    const status = document.createElement("p");
+    status.className = "minigame-selection-status";
+    status.textContent = "No hay selecciones pendientes para este resultado. Puedes finalizar el turno.";
+    selectionHost.append(status);
+    return;
+  }
+  const row = document.createElement("div");
+  row.className = "minigame-selection-row";
+  const categoryName = CATEGORIES[next.category]?.label ?? next.category;
+  const eligible = next.eligiblePlayerIds.map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
+  const label = document.createElement("span");
+  let recipientSelect = null;
+  if (next.playerId) {
+    label.textContent = `Siguiente selección: ${state.participants.find((player) => player.id === next.playerId)?.name ?? "Participante"} · ${categoryName}`;
+  } else {
+    label.textContent = `Asigna una carta de ${categoryName} a:`;
+    recipientSelect = document.createElement("select");
+    recipientSelect.setAttribute("aria-label", "Participante que recibe la carta");
+    recipientSelect.innerHTML = '<option value="">Seleccionar participante</option>';
+    eligible.forEach((player) => {
+      const option = document.createElement("option");
+      option.value = player.id;
+      option.textContent = player.name;
+      recipientSelect.append(option);
+    });
+  }
+  row.append(label);
+  if (recipientSelect) row.append(recipientSelect);
+  const armButton = document.createElement("button");
+  armButton.type = "button";
+  armButton.className = "button button-small button-primary";
+  armButton.textContent = turn.armedSelection ? "Selección preparada" : "Preparar selección individual";
+  armButton.disabled = Boolean(turn.armedSelection) || Boolean(recipientSelect && eligible.length === 0);
+  armButton.onclick = () => {
+    const recipientId = next.playerId ?? recipientSelect?.value;
+    const result = engine.armMinigameSelection(recipientId);
+    if (result.error) return notify("Selecciona un destinatario válido para esta carta.");
+    persist();
+    renderGame();
+  };
+  row.append(armButton);
+  selectionHost.append(row);
+  const status = document.createElement("p");
+  status.className = "minigame-selection-status";
+  status.textContent = turn.armedSelection
+    ? `${state.participants.find((player) => player.id === turn.armedSelection.playerId)?.name ?? "Participante"}, selecciona el mazo de ${categoryName}.`
+    : `${turn.pendingSelections.length} selección${turn.pendingSelections.length === 1 ? "" : "es"} pendiente${turn.pendingSelections.length === 1 ? "" : "s"}.`;
+  selectionHost.append(status);
 }
 
 function makeTurnCard(card, item, primary, animate) {
@@ -442,6 +580,18 @@ function openManual(id) {
     ["victoryCondition", "Condición de victoria"], ["tiebreaker", "Desempate"],
     ["duration", "Duración estimada"], ["resultToRecord", "Resultado a registrar"],
   ];
+  const consequences = manual.details?.consequenceRules;
+  if (Array.isArray(consequences) && consequences.length) {
+    const details = document.createElement("p");
+    details.innerHTML = "<strong>Consecuencias configuradas:</strong> ";
+    const consequenceSummary = consequences.map((rule) => {
+      const when = rule.when === "WIN" ? "ganadores" : rule.when === "LOSS" ? "perdedores" : "participantes";
+      const howMany = rule.cardsPerRecipient ? `${rule.cardsPerRecipient} por persona` : `${rule.totalCards} en total`;
+      return `${when}: ${howMany} del mazo ${CATEGORIES[rule.category]?.label ?? rule.category}`;
+    }).join(" · ");
+    details.append(document.createTextNode(consequenceSummary));
+    host.append(details);
+  }
   for (const [key, label] of manualFields) {
     const value = manual.details?.[key];
     if (value) {
@@ -485,7 +635,7 @@ function dlgManual(manual, isNew = false) {
   );
   if (instructions === null) return;
   const detailsText = prompt(
-    "Detalles opcionales en JSON (objetivo, participants, materials, preparation, victoryCondition, tiebreaker, duration, resultToRecord):",
+    'Detalles opcionales en JSON (objective, participants, materials, preparation, victoryCondition, tiebreaker, duration, resultToRecord y consequenceRules). Ejemplo consequenceRules: [{"when":"LOSS","category":"CASTIGO","recipients":"LOSERS","cardsPerRecipient":1}]:',
     JSON.stringify(manual.details ?? {}, null, 2),
   );
   if (detailsText === null) return;
@@ -493,6 +643,7 @@ function dlgManual(manual, isNew = false) {
   try {
     details = JSON.parse(detailsText || "{}");
     if (!details || typeof details !== "object" || Array.isArray(details)) throw new Error();
+    if (details.consequenceRules !== undefined) validateMinigameRules(details.consequenceRules);
   } catch {
     return notify("Los detalles del manual deben ser un objeto JSON válido.");
   }
@@ -595,6 +746,13 @@ function drawCategory(id) {
   persist();
   renderGame();
 }
+$("#save-minigame-participants").onclick = () => {
+  const playerIds = $$("#minigame-participant-picker input[name='minigame-participant']:checked").map((input) => input.value);
+  const result = engine.setMinigameParticipants(playerIds);
+  if (result.error) return notify(result.error === "INVALID_PARTICIPANT_COUNT" ? "Selecciona la cantidad de participantes indicada en la carta." : "Selecciona participantes activos y sin repetir.");
+  persist();
+  renderGame();
+};
 for (const [id, category] of Object.entries(CATEGORIES)) {
   if (["VERDAD", "DESAFIO", "MINIJUEGO"].includes(id)) $("#category-choices").append(makeCategoryButton(id, category));
   if (["PREMIO", "CASTIGO"].includes(id)) $("#aux-category-choices").append(makeCategoryButton(id, category));

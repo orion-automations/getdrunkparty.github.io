@@ -64,13 +64,22 @@
               <div id="aux-category-choices" class="aux-category-choices"></div>
             </div>
             <div id="turn-cards" class="turn-cards hidden"></div>
+            <section id="minigame-flow" class="minigame-flow hidden" aria-live="polite">
+              <h3>Resultado del minijuego</h3>
+              <p class="fine-print">El grupo decide y registra quién ganó, perdió o quedó neutral. La aplicación no determina el resultado.</p>
+              <div id="minigame-participant-picker"></div>
+              <button id="save-minigame-participants" class="button button-small hidden" type="button">Confirmar participantes</button>
+              <div id="minigame-outcomes"></div>
+              <button id="record-minigame-result" class="button button-primary hidden" type="button">Registrar resultado del grupo</button>
+              <div id="minigame-selection"></div>
+            </section>
             <section id="resolve-actions" class="resolve-actions hidden">
               <p id="reward-status" class="reward-status"></p>
               <div class="button-row">
                 <button id="confirm-completed" class="button button-primary">Cumplió</button>
                 <button id="confirm-challenge" class="button hidden">Cumplió el desafío</button>
                 <button id="confirm-penalty" class="button hidden">Cumplió el castigo</button>
-                <button id="confirm-alternative" class="button hidden">Toma Shot</button>
+                <button id="confirm-alternative" class="button hidden">Alternativa sin alcohol</button>
                 <button id="confirm-pass" class="button button-quiet hidden">Pasar</button>
                 <button id="finish-turn" class="button button-quiet hidden">Finalizar turno</button>
               </div>

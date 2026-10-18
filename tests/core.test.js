@@ -7,11 +7,12 @@ import { nextIndex, assignTargets } from '../js/participants.js';
 import { validateCards, seedState, isValidState, parseCardImport, exportCardCatalog } from '../js/storage.js';
 import { gameEngine } from '../js/game.js';
 import { DICE_FACES, rollDice, categoryProbabilities, diceRotationTarget } from '../js/dice.js';
+import { validateMinigameRules } from '../js/minigame-results.js';
 
-test('catálogo inicial tiene 50 cartas únicas, 10 por categoría y manuales válidos', () => {
-  assert.equal(INITIAL_CARDS.length, 50);
-  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 50);
-  for (const category of ['VERDAD', 'DESAFIO', 'MINIJUEGO', 'PREMIO', 'CASTIGO']) assert.equal(INITIAL_CARDS.filter((c) => c.categoryId === category).length, 10);
+test('catálogo inicial contiene las 310 cartas del documento y manuales válidos', () => {
+  assert.equal(INITIAL_CARDS.length, 310);
+  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 310);
+  for (const [category, count] of Object.entries({ VERDAD: 107, DESAFIO: 102, MINIJUEGO: 50, PREMIO: 26, CASTIGO: 25 })) assert.equal(INITIAL_CARDS.filter((c) => c.categoryId === category).length, count);
   assert.equal(validateCards(INITIAL_CARDS, INITIAL_MANUALS), true);
 });
 test('mazos agotan antes de repetirse, conservan ciclos separados y evitan última repetición', () => {
@@ -185,4 +186,116 @@ test('exportar e importar catálogo conserva opcionales, valida el lote y rechaz
   assert.throws(() => parseCardImport([source[0], source[0]], [], INITIAL_MANUALS), /repetido/);
   assert.throws(() => parseCardImport([{ ...source[1], categoryId: 'INVENTADA' }], [], INITIAL_MANUALS), /Categoría inválida/);
   assert.throws(() => parseCardImport({ version: 2, cards: source }, [], INITIAL_MANUALS), /versión/);
+});
+
+function makeMinigame(count, consequenceRules, mode = 'ALL_PLAYERS', targetCount = 0) {
+  const state = seedState();
+  state.participants = Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}`, name: `Jugador ${index + 1}`, active: true }));
+  const minigame = structuredClone(INITIAL_CARDS.find((card) => card.categoryId === 'MINIJUEGO'));
+  minigame.target = { mode, count: targetCount || (mode === 'ALL_PLAYERS' ? 0 : 1), position: null };
+  state.cards = [minigame, ...INITIAL_CARDS.filter((card) => ['PREMIO', 'CASTIGO'].includes(card.categoryId))];
+  const manual = state.manuals.find((item) => item.id === minigame.manualId);
+  manual.details = { ...(manual.details ?? {}), consequenceRules };
+  const engine = gameEngine(state, () => .37);
+  const draw = engine.draw('MINIJUEGO');
+  assert.ok(draw.card);
+  if (mode !== 'ALL_PLAYERS') assert.equal(engine.setMinigameParticipants(state.participants.slice(0, targetCount).map((player) => player.id)).error, undefined);
+  return { state, engine, draw, record: (statuses) => engine.recordMinigameResult(state.participants.slice(0, statuses.length).map((player, index) => ({ playerId: player.id, result: statuses[index] }))) };
+}
+
+test('minijuego individual: una pérdida crea un castigo para esa persona', () => {
+  const { state, engine, record } = makeMinigame(1, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['LOSS']).pendingSelections, 1);
+  assert.equal(state.game.current.pendingSelections[0].playerId, 'p1');
+  assert.equal(engine.armMinigameSelection('p1').category, 'CASTIGO');
+  assert.ok(engine.draw('CASTIGO').card);
+  assert.equal(state.game.current.auxiliaryCards[0].playerId, 'p1');
+  assert.equal(engine.finishTurn(), true);
+});
+
+test('minijuego individual: una victoria crea un premio para esa persona', () => {
+  const { state, engine, record } = makeMinigame(1, [{ when: 'WIN', category: 'PREMIO', recipients: 'WINNERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['WIN']).pendingSelections, 1);
+  assert.equal(engine.armMinigameSelection('p1').category, 'PREMIO');
+  assert.ok(engine.draw('PREMIO').card);
+  assert.equal(engine.finishTurn(), true);
+  assert.equal(state.game.rewards[0].playerId, 'p1');
+});
+
+test('dos personas pierden y cada una recibe su propia selección de castigo', () => {
+  const { state, engine, record } = makeMinigame(2, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['LOSS', 'LOSS']).pendingSelections, 2);
+  for (const id of ['p1', 'p2']) {
+    assert.equal(engine.armMinigameSelection(id).category, 'CASTIGO');
+    assert.ok(engine.draw('CASTIGO').card);
+  }
+  assert.deepEqual(state.game.current.auxiliaryCards.map((item) => item.playerId), ['p1', 'p2']);
+  assert.equal(engine.finishTurn(), true);
+});
+
+test('dos personas ganan y cada una recibe su propio premio', () => {
+  const { state, engine, record } = makeMinigame(2, [{ when: 'WIN', category: 'PREMIO', recipients: 'WINNERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['WIN', 'WIN']).pendingSelections, 2);
+  for (const id of ['p1', 'p2']) {
+    engine.armMinigameSelection(id);
+    assert.ok(engine.draw('PREMIO').card);
+  }
+  assert.deepEqual(state.game.current.auxiliaryCards.map((item) => item.playerId), ['p1', 'p2']);
+  assert.equal(engine.finishTurn(), true);
+  assert.deepEqual(state.game.rewards.map((reward) => reward.playerId), ['p2', 'p1']);
+});
+
+test('tres participantes con una persona perdedora solo generan un castigo', () => {
+  const { state, record } = makeMinigame(3, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['WIN', 'LOSS', 'WIN']).pendingSelections, 1);
+  assert.equal(state.game.current.pendingSelections[0].playerId, 'p2');
+});
+
+test('cuatro participantes con dos perdedores generan dos castigos individuales', () => {
+  const { state, record } = makeMinigame(4, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  assert.equal(record(['WIN', 'LOSS', 'LOSS', 'WIN']).pendingSelections, 2);
+  assert.deepEqual(state.game.current.pendingSelections.map((item) => item.playerId), ['p2', 'p3']);
+});
+
+test('regla especial de equipo permite una cantidad total y asignar el destinatario entre ganadores', () => {
+  const { state, engine, record } = makeMinigame(4, [{ when: 'WIN', category: 'PREMIO', recipients: 'WINNERS', totalCards: 1 }]);
+  assert.equal(record(['WIN', 'WIN', 'LOSS', 'LOSS']).pendingSelections, 1);
+  assert.deepEqual(state.game.current.pendingSelections[0].eligiblePlayerIds, ['p1', 'p2']);
+  assert.equal(engine.armMinigameSelection('p3').error, 'INVALID_RECIPIENT');
+  assert.equal(engine.armMinigameSelection('p2').category, 'PREMIO');
+  assert.ok(engine.draw('PREMIO').card);
+  assert.equal(state.game.current.auxiliaryCards[0].playerId, 'p2');
+});
+
+test('minijuego sin reglas de premio o castigo termina sin selecciones', () => {
+  const { state, engine, record } = makeMinigame(3, []);
+  assert.equal(record(['NEUTRAL', 'NEUTRAL', 'NEUTRAL']).pendingSelections, 0);
+  assert.equal(engine.finishTurn(), true);
+  assert.equal(state.game.history[0].result, 'MINIGAME');
+  assert.deepEqual(state.game.history[0].neutral, ['p1', 'p2', 'p3']);
+});
+
+test('no permite terminar antes de registrar resultado ni mientras falten selecciones', () => {
+  const { engine, record } = makeMinigame(2, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  assert.equal(engine.finishTurn(), false);
+  assert.equal(record(['LOSS', 'WIN']).pendingSelections, 1);
+  assert.equal(engine.finishTurn(), false);
+});
+
+test('pulsaciones repetidas no duplican una selección del minijuego', () => {
+  const { state, engine, record } = makeMinigame(2, [{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1 }]);
+  record(['LOSS', 'LOSS']);
+  assert.equal(engine.draw('CASTIGO').error, 'SELECTION_NOT_ARMED');
+  assert.equal(engine.armMinigameSelection('p1').category, 'CASTIGO');
+  assert.equal(engine.armMinigameSelection('p1').error, 'LOCKED');
+  assert.ok(engine.draw('CASTIGO').card);
+  assert.equal(engine.draw('CASTIGO').error, 'SELECTION_NOT_ARMED');
+  assert.equal(state.game.current.auxiliaryCards.length, 1);
+  assert.equal(state.game.current.pendingSelections.length, 1);
+});
+
+test('valida configuración de reglas sin aceptar cantidades ambiguas o destinatarios incompatibles', () => {
+  assert.equal(validateMinigameRules([{ when: 'ANY', category: 'CASTIGO', recipients: 'LOSERS', totalCards: 2 }]), true);
+  assert.throws(() => validateMinigameRules([{ when: 'LOSS', category: 'CASTIGO', recipients: 'LOSERS', cardsPerRecipient: 1, totalCards: 2 }]), /solo cardsPerRecipient o totalCards/);
+  assert.throws(() => validateMinigameRules([{ when: 'LOSS', category: 'PREMIO', recipients: 'WINNERS', cardsPerRecipient: 1 }]), /no coincide/);
 });
