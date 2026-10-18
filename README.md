@@ -104,6 +104,8 @@ Ejemplo de participante: `{ id: 'player_abc123', name: 'Ana', active: true, pref
 
 En **Ajustes y respaldo**, exporta el respaldo completo o importa uno válido. El navegador guarda el estado versionado en `localStorage` del dispositivo y origen; borrar los datos del sitio puede eliminarlos. No se sincronizan entre celulares. Mantén respaldos JSON fuera del navegador. La aplicación valida archivos importados y no ejecuta contenido del JSON.
 
+En **Ajustes → Partida → Reiniciar partida**, confirma para iniciar desde el primer participante activo y restaurar el orden completo de los mazos. Se conservan participantes, cartas, manuales y ajustes; se borran el turno actual, historial y premios pendientes. La acción no se ejecuta automáticamente.
+
 ## Ejecutar directamente en Android
 
 No abras el HTML desde un administrador de archivos esperando que funcionen módulos o service workers. Para una instalación PWA usa un origen HTTPS, como se explica arriba. Para una futura ejecución totalmente local, copia los archivos a Android, instala un servidor HTTP local que sirva la carpeta y abre su origen local en Chrome; ese servidor debe soportar módulos JavaScript y tipos MIME correctos. Esta versión no incluye APK ni servidor Android empaquetado.

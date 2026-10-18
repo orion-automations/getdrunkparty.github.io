@@ -907,6 +907,35 @@ $("#drink-form").onsubmit = (e) => {
     notify(err.message);
   }
 };
+$("#reset-game").onclick = () => {
+  if (rolling) return notify("Espera a que termine el dado antes de reiniciar la partida.");
+  confirmAction(
+    "Reiniciar partida",
+    "Se borrarán el turno actual, el historial, los premios guardados y el progreso de los mazos. Se conservarán los participantes y sus estados, las cartas, los manuales y los ajustes.",
+    () => {
+      state.game = {
+        currentIndex: 0,
+        state: "READY",
+        decks: {},
+        current: null,
+        history: [],
+        rewards: [],
+      };
+      engine = gameEngine(state);
+      animateCardNext = false;
+      animateCardId = null;
+      const cube = $("#dice-cube");
+      cube.dataset.rotationX = "0";
+      cube.dataset.rotationY = "0";
+      delete cube.dataset.face;
+      cube.style.transform = "";
+      cube.style.removeProperty("--face-color");
+      persist();
+      setView("game");
+      notify("Partida reiniciada. Las cartas están disponibles de nuevo.");
+    },
+  );
+};
 $("#reset-data").onclick = () =>
   confirmAction(
     "Restaurar instalación",
