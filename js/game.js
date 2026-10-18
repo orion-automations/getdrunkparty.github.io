@@ -39,6 +39,7 @@ export function gameEngine(state, random = Math.random) {
     state.game.current.auxiliaryCards ??= [];
     state.game.current.outcome ??= null;
     state.game.current.pendingSelections ??= [];
+    state.game.current.optionalSelectionsUsed ??= [];
     state.game.current.participantIds ??= state.game.current.primaryCard?.targetIds ?? [];
     state.game.current.phase ??= state.game.state === 'RESOLVING' ? 'RESOLVING' : 'ROLLING';
     if (state.game.current.type === 'CARD' && state.game.current.cardId) {
@@ -73,6 +74,7 @@ export function gameEngine(state, random = Math.random) {
       participantIds: [],
       minigameResult: null,
       pendingSelections: [],
+      optionalSelectionsUsed: [],
       armedSelection: null,
       outcome: null,
       phase,
@@ -174,6 +176,15 @@ export function gameEngine(state, random = Math.random) {
       turn.armedSelection = { playerId, category: next.category, ruleIndex: next.ruleIndex };
       return { category: next.category, playerId };
     },
+    armOptionalMinigameSelection(category, playerId) {
+      const turn = state.game.current;
+      if (!turn?.minigameResult || turn.pendingSelections?.length || turn.armedSelection) return { error: 'LOCKED' };
+      if (!AUX_CATEGORIES.has(category) || !playerId || (category === 'PREMIO' && !turn.minigameResult.winners.includes(playerId)) || (category === 'CASTIGO' && !turn.minigameResult.losers.includes(playerId))) return { error: 'INVALID_RECIPIENT' };
+      turn.optionalSelectionsUsed ??= [];
+      if (turn.optionalSelectionsUsed.includes(category)) return { error: 'ALREADY_USED' };
+      turn.armedSelection = { playerId, category, ruleIndex: null, optional: true };
+      return { category, playerId };
+    },
     draw(category) {
       if (state.game.current && state.game.state === 'RESOLVING') {
         if (state.game.current.type === 'BLOCKED') return { error: 'LOCKED' };
@@ -181,6 +192,17 @@ export function gameEngine(state, random = Math.random) {
         if (turn.category === 'MINIJUEGO' && turn.minigameResult) {
           const next = turn.pendingSelections?.[0];
           const armed = turn.armedSelection;
+          if (armed?.optional) {
+            if (!AUX_CATEGORIES.has(category)) return { error: 'SELECTION_NOT_ARMED' };
+            const eligibleIds = category === 'PREMIO' ? turn.minigameResult.winners : turn.minigameResult.losers;
+            if (next || armed.category !== category || !eligibleIds.includes(armed.playerId) || turn.optionalSelectionsUsed?.includes(category)) return { error: 'SELECTION_NOT_ARMED' };
+            const result = attachCard(state, turn, category, random, true, armed.playerId);
+            if (result.empty) return result;
+            turn.optionalSelectionsUsed ??= [];
+            turn.optionalSelectionsUsed.push(category);
+            turn.armedSelection = null;
+            return result;
+          }
           if (!next || !armed || armed.category !== category || next.category !== category || !next.eligiblePlayerIds.includes(armed.playerId)) return { error: 'SELECTION_NOT_ARMED' };
           const result = attachCard(state, turn, category, random, true, armed.playerId);
           if (result.empty) return result;
@@ -221,7 +243,7 @@ export function gameEngine(state, random = Math.random) {
       const turn = state.game.current;
       if (!locked || state.game.state !== 'RESOLVING' || !turn) return false;
       if (!turn.outcome && turn.type !== 'BLOCKED' && turn.phase !== 'EMPTY') return false;
-      if (turn.category === 'MINIJUEGO' && turn.pendingSelections?.length) return false;
+      if (turn.category === 'MINIJUEGO' && (turn.pendingSelections?.length || turn.armedSelection)) return false;
       const player = state.participants.find((p) => p.id === turn.playerId);
       const chosen = turn.outcome?.sourceCardId
         ? [turn.primaryCard, ...turn.auxiliaryCards].find((item) => item?.cardId === turn.outcome.sourceCardId)

@@ -106,6 +106,8 @@ En **Ajustes y respaldo**, exporta el respaldo completo o importa uno válido. E
 
 En **Ajustes → Partida → Reiniciar partida**, confirma para iniciar desde el primer participante activo y restaurar el orden completo de los mazos. Se conservan participantes, cartas, manuales y ajustes; se borran el turno actual, historial y premios pendientes. La acción no se ejecuta automáticamente.
 
+Al registrar los resultados de un minijuego, las reglas de consecuencias de su manual se procesan primero. Después puedes asignar opcionalmente una carta de **Premio** a un ganador y una de **Castigo** a un perdedor, incluso si el manual no define reglas. Cada mazo auxiliar puede utilizarse una vez por minijuego.
+
 ## Ejecutar directamente en Android
 
 No abras el HTML desde un administrador de archivos esperando que funcionen módulos o service workers. Para una instalación PWA usa un origen HTTPS, como se explica arriba. Para una futura ejecución totalmente local, copia los archivos a Android, instala un servidor HTTP local que sirva la carpeta y abre su origen local en Chrome; ese servidor debe soportar módulos JavaScript y tipos MIME correctos. Esta versión no incluye APK ni servidor Android empaquetado.

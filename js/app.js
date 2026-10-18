@@ -125,7 +125,7 @@ function renderGame() {
   const hasCard = items.length > 0;
   $("#confirm-alternative").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
   $("#confirm-pass").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
-  const canFinish = Boolean(cur && (cur.type === "BLOCKED" || cur.phase === "EMPTY" || (cur.outcome && (!isMinigame || !(cur.pendingSelections?.length)))));
+  const canFinish = Boolean(cur && (cur.type === "BLOCKED" || cur.phase === "EMPTY" || (cur.outcome && (!isMinigame || (!(cur.pendingSelections?.length) && !cur.armedSelection)))));
   $("#finish-turn").classList.toggle("hidden", !canFinish);
   $("#finish-turn").disabled = !canFinish;
   const effectMessages = (cur?.pendingEffects ?? [])
@@ -213,9 +213,46 @@ function renderMinigameFlow(turn, card) {
   selectionHost.append(summary);
   const next = turn.pendingSelections?.[0];
   if (!next) {
+    const used = new Set(turn.optionalSelectionsUsed ?? []);
+    const optionalGroups = [
+      { category: "PREMIO", label: "Premiar a un ganador", eligibleIds: turn.minigameResult.winners },
+      { category: "CASTIGO", label: "Castigar a un perdedor", eligibleIds: turn.minigameResult.losers },
+    ];
+    optionalGroups.forEach(({ category, label, eligibleIds }) => {
+      const eligible = eligibleIds.map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
+      if (!eligible.length || used.has(category)) return;
+      const row = document.createElement("div");
+      row.className = "minigame-selection-row";
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", label);
+      select.innerHTML = '<option value="">Seleccionar participante</option>';
+      eligible.forEach((player) => {
+        const option = document.createElement("option");
+        option.value = player.id;
+        option.textContent = player.name;
+        select.append(option);
+      });
+      const prepare = document.createElement("button");
+      prepare.type = "button";
+      prepare.className = "button button-small button-primary";
+      prepare.textContent = `Preparar ${CATEGORIES[category].label.toLowerCase()}`;
+      prepare.disabled = Boolean(turn.armedSelection);
+      prepare.onclick = () => {
+        const result = engine.armOptionalMinigameSelection(category, select.value);
+        if (result.error) return notify("Selecciona un ganador o perdedor válido.");
+        persist();
+        renderGame();
+      };
+      row.append(select, prepare);
+      selectionHost.append(row);
+    });
     const status = document.createElement("p");
     status.className = "minigame-selection-status";
-    status.textContent = "No hay selecciones pendientes para este resultado. Puedes finalizar el turno.";
+    status.textContent = turn.armedSelection
+      ? `${state.participants.find((player) => player.id === turn.armedSelection.playerId)?.name ?? "Participante"}, selecciona el mazo de ${CATEGORIES[turn.armedSelection.category]?.label ?? "consecuencia"}.`
+      : used.size
+        ? "Puedes finalizar el turno o usar la otra consecuencia disponible."
+        : "Las consecuencias son opcionales. Puedes asignar un Premio a un ganador o un Castigo a un perdedor, o finalizar el turno.";
     selectionHost.append(status);
     return;
   }
