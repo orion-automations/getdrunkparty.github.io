@@ -62,7 +62,7 @@ Para que nuevos desafíos formen parte del catálogo incluido en el código:
 2. En el mismo índice al final de `shotCounts`, agrega `1`, `2` o `3`. Ese número es la penalización que aparece abajo como Shots. No escribas «O toma X shots» en la descripción: la app muestra la cantidad desde `penalty.units`.
 3. Los IDs y títulos se generan en orden desde `DESAFIO_PDF_103` / `Desafío 103`; las 67 entradas actuales llegan hasta el 169. No reordenes ni elimines elementos de estas dos listas, porque su posición determina qué texto, cantidad e ID quedan emparejados.
 4. Incrementa `ADDITIONAL_CHALLENGE_CATALOG_VERSION` en ese archivo (ahora es `5`) para que las instalaciones existentes agreguen las nuevas cartas. La migración inserta solo los IDs faltantes y conserva las cartas y participantes locales.
-5. Incrementa la versión visible en `js/config.js` y el nombre de caché en `sw.js` (actualmente `1.3.8`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
+5. Incrementa la versión visible en `js/config.js` y el nombre de caché en `sw.js` (actualmente `1.3.9`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
 
 Para añadir por código una carta de otra categoría, agrega el objeto completo a `OTHER_ADDITIONAL_CARDS` en `data/additional-challenges.js` y aumenta la misma versión de catálogo. `data/initial-cards.js` ya combina esa lista con `PDF_CARDS`, y `js/storage.js` añade automáticamente a las instalaciones existentes las cartas adicionales cuyo ID aún no está guardado. Usa un ID único. Ejemplo de formato:
 

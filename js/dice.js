@@ -24,8 +24,8 @@ export function diceRotationTarget(currentAngle, desiredAngle) {
   const currentOrientation = ((current % 360) + 360) % 360;
   const desiredOrientation = ((desiredAngle % 360) + 360) % 360;
   const adjustment = ((desiredOrientation - currentOrientation + 540) % 360) - 180;
-  // Three full spins plus the shortest correction leave the requested face up.
-  return current + 1080 + adjustment;
+  // Five full spins plus the shortest correction leave the requested face up.
+  return current + 1800 + adjustment;
 }
 
 export function categoryProbabilities() {

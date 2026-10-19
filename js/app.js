@@ -64,13 +64,18 @@ function render() {
 }
 function renderGame() {
   const active = state.participants.filter((p) => p.active);
+  const hasPlayers = active.length > 0;
   const cur = state.game.current;
   const current = cur ? state.participants.find((p) => p.id === cur.playerId) : state.participants[state.game.currentIndex];
+  $("#empty-game").classList.toggle("hidden", hasPlayers);
+  $("#game-layout").classList.toggle("hidden", !hasPlayers);
   $("#current-player").textContent = current?.active ? current.name : "Agrega participantes";
-  const ready = state.game.state === "READY" && active.length > 0 && !rolling;
+  const ready = state.game.state === "READY" && hasPlayers && !rolling;
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
-  $("#dice-stage").classList.toggle("hidden", !digital || !ready);
+  const showDice = digital && (ready || Boolean(cur?.diceFace));
+  $("#dice-stage").classList.toggle("hidden", !showDice);
+  $("#roll-button").classList.toggle("hidden", !ready);
   $("#roll-button").disabled = !ready;
   const choosingPhysical = !digital && ready;
   const choosingRolledCategory = digital && cur?.phase === "AWAITING_CATEGORY";
@@ -752,6 +757,7 @@ $("#nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
   if (btn) setView(btn.dataset.view);
 });
+$("#start-adding-players").onclick = () => setView("players");
 $("#menu-toggle").onclick = () => $("#nav").classList.toggle("open");
 $$(".close-dialog").forEach(
   (b) => (b.onclick = () => b.closest("dialog").close()),
@@ -831,7 +837,7 @@ $("#roll-button").onclick = () => {
     rolling = false;
     persist();
     renderGame();
-  }, reducedMotion ? 120 : 2500);
+  }, reducedMotion ? 120 : 3500);
 };
 function confirmResult(result, sourceCardId) {
   if (!engine.resolve(result, sourceCardId)) return notify("El resultado de este turno ya fue confirmado.");

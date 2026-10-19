@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="./css/dashboard-categories.css" />
     <link rel="stylesheet" href="./css/dice.css" />
     <link rel="stylesheet" href="./css/brand.css" />
-    <title>Get Drunk Party Web</title>
+    <title>Get Drunk Party</title>
   </head>
   <body>
     <header class="topbar">
@@ -40,7 +40,29 @@
     </nav>
     <main>
       <section id="view-game" class="view active">
-        <div class="game-layout">
+        <section id="empty-game" class="empty-game hidden" aria-labelledby="empty-game-title">
+          <div class="empty-game-content">
+            <p class="eyebrow">GDP · GET DRUNK PARTY</p>
+            <h1 id="empty-game-title">GET DRUNK <span>PARTY</span></h1>
+            <div class="empty-card-stage" aria-hidden="true">
+              <div class="empty-card empty-card-one">
+                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>G</b></div>
+                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>G</b></div>
+              </div>
+              <div class="empty-card empty-card-two">
+                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>D</b></div>
+                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>D</b></div>
+              </div>
+              <div class="empty-card empty-card-three">
+                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>P</b></div>
+                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>P</b></div>
+              </div>
+            </div>
+            <p class="empty-game-prompt">Añade participantes para empezar partida</p>
+            <button id="start-adding-players" class="button button-primary" type="button">Añadir participantes</button>
+          </div>
+        </section>
+        <div id="game-layout" class="game-layout">
           <section class="panel game-panel">
             <div class="turn-line">
               <div>
@@ -81,7 +103,7 @@
                 <button id="confirm-completed" class="button button-primary">Cumplió</button>
                 <button id="confirm-challenge" class="button hidden">Cumplió el desafío</button>
                 <button id="confirm-penalty" class="button hidden">Cumplió el castigo</button>
-                <button id="confirm-alternative" class="button hidden">Toma Shot</button>
+                <button id="confirm-alternative" class="button hidden">Tomar Shot</button>
                 <button id="confirm-pass" class="button button-quiet hidden">Pasar</button>
                 <button id="finish-turn" class="button button-quiet hidden">Finalizar turno</button>
               </div>

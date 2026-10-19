@@ -78,3 +78,150 @@ select:focus {
   border-color: #7b2cff;
 }
 
+.empty-game {
+  min-height: min(74svh, 720px);
+  display: grid;
+  place-items: center;
+  padding: 28px 10px 48px;
+}
+
+.empty-game-content {
+  width: min(100%, 480px);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.empty-game-content > .eyebrow {
+  margin-bottom: 9px;
+  color: #ff2daa;
+}
+
+.empty-game-content h1 {
+  margin: 0;
+  font-size: clamp(2rem, 9vw, 3.15rem);
+  line-height: .98;
+  letter-spacing: -.07em;
+  font-weight: 950;
+}
+
+.empty-game-content h1 span {
+  color: transparent;
+  background: linear-gradient(100deg, #ff2daa, #7b2cff);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.empty-card-stage {
+  position: relative;
+  width: min(84vw, 330px);
+  height: 214px;
+  margin: 16px 0 6px;
+  perspective: 900px;
+}
+
+.empty-card {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  width: 118px;
+  height: 164px;
+  transform-style: preserve-3d;
+  animation: empty-card-flip 14s cubic-bezier(.45, 0, .35, 1) infinite,
+    empty-card-shuffle 14s cubic-bezier(.45, 0, .35, 1) infinite;
+}
+
+.empty-card-one { left: calc(50% - 135px); --card-tilt: -12deg; animation-delay: -9.3s, -9.3s; }
+.empty-card-two { left: calc(50% - 59px); --card-tilt: 0deg; animation-delay: -4.6s, -4.6s; }
+.empty-card-three { left: calc(50% + 17px); --card-tilt: 12deg; animation-delay: 0s, 0s; }
+
+.empty-card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #ff2daa99;
+  border-radius: 17px;
+  background: radial-gradient(ellipse at 50% 35%, #28152b, #111015 72%);
+  color: #ff2daa;
+  backface-visibility: hidden;
+  box-shadow: 0 15px 40px #0008, inset 0 0 26px #ff2daa12;
+}
+
+.empty-card-face b {
+  z-index: 1;
+  font-size: 3.5rem;
+  line-height: 1;
+  text-shadow: 0 0 23px #ff2daa88;
+}
+
+.empty-card-front { transform: rotateY(0deg); }
+.empty-card-back { transform: rotateY(180deg); border-color: #7b2cff99; color: #a16bff; }
+.empty-card-back b { text-shadow: 0 0 23px #7b2cff88; }
+
+.empty-card-ribbon {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 170%;
+  height: 40px;
+  transform: rotate(39deg);
+  border-block: 1px solid #a82cff88;
+  background: #7b2cff20;
+  color: transparent;
+  font-size: 0;
+}
+
+.empty-game-prompt {
+  max-width: 300px;
+  margin: 7px 0 18px;
+  color: #ded9e3;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.empty-game-content .button-primary {
+  min-height: 48px;
+  padding-inline: 22px;
+}
+
+@keyframes empty-card-flip {
+  0%, 42% { transform: rotateZ(var(--card-tilt)) rotateY(0deg); }
+  49% { transform: rotateZ(var(--card-tilt)) rotateY(180deg); }
+  56%, 100% { transform: rotateZ(var(--card-tilt)) rotateY(360deg); }
+}
+
+@keyframes empty-card-shuffle {
+  0%, 100% { translate: 0 0; }
+  25% { translate: 76px 0; }
+  50% { translate: 152px 0; }
+  75% { translate: 76px 0; }
+}
+
+.empty-card-two { animation-name: empty-card-flip, empty-card-shuffle-two; }
+.empty-card-three { animation-name: empty-card-flip, empty-card-shuffle-three; }
+
+@keyframes empty-card-shuffle-two {
+  0%, 100% { translate: 0 0; }
+  25%, 75% { translate: 76px 0; }
+  50% { translate: -76px 0; }
+}
+
+@keyframes empty-card-shuffle-three {
+  0%, 100% { translate: 0 0; }
+  25%, 75% { translate: -152px 0; }
+  50% { translate: -76px 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dice-cube { transition-duration: 3.5s; }
+}
+
+@media (min-width: 700px) {
+  .empty-game { min-height: min(72vh, 760px); }
+  .empty-card-stage { margin-top: 22px; margin-bottom: 12px; }
+}
+
