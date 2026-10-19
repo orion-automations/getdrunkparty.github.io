@@ -6,7 +6,7 @@ export const DICE_FACES = Object.freeze([
   { id: 3, surface: 'right', category: 'DESAFIO', label: 'DESAFÍO', weight: 17.5, x: 0, y: -90 },
   { id: 4, surface: 'left', category: 'DESAFIO', label: 'DESAFÍO', weight: 17.5, x: 0, y: 90 },
   { id: 5, surface: 'top', category: 'MINIJUEGO', label: 'MINIJUEGO', weight: 15, x: -90, y: 0 },
-  { id: 6, surface: 'bottom', category: 'BLOQUEADA', label: 'BLOQUEADA', weight: 15, x: 90, y: 0 },
+  { id: 6, surface: 'bottom', category: 'BLOQUEADA', label: '⊘ NULO', weight: 15, x: 90, y: 0 },
 ]);
 
 export function rollDice(random = Math.random) {
@@ -24,8 +24,8 @@ export function diceRotationTarget(currentAngle, desiredAngle) {
   const currentOrientation = ((current % 360) + 360) % 360;
   const desiredOrientation = ((desiredAngle % 360) + 360) % 360;
   const adjustment = ((desiredOrientation - currentOrientation + 540) % 360) - 180;
-  // Five full spins plus the shortest correction leave the requested face up.
-  return current + 1800 + adjustment;
+  // Six full spins plus the shortest correction leave the requested face up.
+  return current + 2160 + adjustment;
 }
 
 export function categoryProbabilities() {

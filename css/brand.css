@@ -128,12 +128,12 @@ select:focus {
   width: 118px;
   height: 164px;
   transform-style: preserve-3d;
-  animation: empty-card-flip 14s cubic-bezier(.45, 0, .35, 1) infinite,
-    empty-card-shuffle 14s cubic-bezier(.45, 0, .35, 1) infinite;
+  animation: empty-card-flip 9.33s cubic-bezier(.45, 0, .35, 1) infinite,
+    empty-card-shuffle 9.33s cubic-bezier(.45, 0, .35, 1) infinite;
 }
 
-.empty-card-one { left: calc(50% - 135px); --card-tilt: -12deg; animation-delay: -9.3s, -9.3s; }
-.empty-card-two { left: calc(50% - 59px); --card-tilt: 0deg; animation-delay: -4.6s, -4.6s; }
+.empty-card-one { left: calc(50% - 135px); --card-tilt: -12deg; animation-delay: -6.2s, -6.2s; }
+.empty-card-two { left: calc(50% - 59px); --card-tilt: 0deg; animation-delay: -3.07s, -3.07s; }
 .empty-card-three { left: calc(50% + 17px); --card-tilt: 12deg; animation-delay: 0s, 0s; }
 
 .empty-card-face {
@@ -217,7 +217,23 @@ select:focus {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .dice-cube { transition-duration: 3.5s; }
+  .dice-cube { transition-duration: 4s; }
+}
+
+.dice-face {
+  border-color: color-mix(in srgb, var(--face-color, #39e58c), #fff 25%);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--face-color, #39e58c), #25252f 82%),
+    #111116 72%
+  );
+  box-shadow:
+    inset 0 0 26px color-mix(in srgb, var(--face-color, #39e58c), transparent 70%),
+    inset 2px 2px 5px #fff2;
+}
+
+.dice-cube[data-face] .dice-face {
+  border-color: color-mix(in srgb, var(--face-color, #39e58c), #fff 25%);
 }
 
 @media (min-width: 700px) {

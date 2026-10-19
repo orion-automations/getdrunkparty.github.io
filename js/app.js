@@ -73,10 +73,27 @@ function renderGame() {
   const ready = state.game.state === "READY" && hasPlayers && !rolling;
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
-  const showDice = digital && (ready || Boolean(cur?.diceFace));
+  const showDice = digital && hasPlayers;
   $("#dice-stage").classList.toggle("hidden", !showDice);
   $("#roll-button").classList.toggle("hidden", !ready);
   $("#roll-button").disabled = !ready;
+  const cube = $("#dice-cube");
+  const selectedFace = DICE_FACES.find((face) => face.id === Number(cur?.diceFace))
+    ?? DICE_FACES.find((face) => face.category === cur?.category);
+  if (selectedFace && cube.dataset.resultFaceId !== String(selectedFace.id)) {
+    const settledFace = DICE_FACES.find((face) => face.category === selectedFace.category) ?? selectedFace;
+    cube.dataset.face = selectedFace.category;
+    cube.dataset.resultFaceId = String(selectedFace.id);
+    cube.style.setProperty("--face-color", CATEGORIES[selectedFace.category]?.color ?? "#a5a5b4");
+    if (!rolling) {
+      cube.dataset.rotationX = String(settledFace.x);
+      cube.dataset.rotationY = String(settledFace.y);
+      cube.style.transition = "none";
+      cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
+      cube.offsetWidth;
+      cube.style.removeProperty("transition");
+    }
+  }
   const choosingPhysical = !digital && ready;
   const choosingRolledCategory = digital && cur?.phase === "AWAITING_CATEGORY";
   const mainDecksVisible = digital ? active.length > 0 : choosingPhysical || Boolean(cur);
@@ -823,6 +840,7 @@ $("#roll-button").onclick = () => {
   const { face } = result;
   const cube = $("#dice-cube");
   cube.dataset.face = face.category;
+  cube.dataset.resultFaceId = String(face.id);
   cube.style.setProperty("--face-color", CATEGORIES[face.category]?.color ?? "#fff");
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
@@ -834,10 +852,17 @@ $("#roll-button").onclick = () => {
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   setTimeout(() => {
     const resolved = engine.completeRoll();
+    const settledFace = DICE_FACES.find((item) => item.category === face.category) ?? face;
+    cube.style.transition = "none";
+    cube.dataset.rotationX = String(settledFace.x);
+    cube.dataset.rotationY = String(settledFace.y);
+    cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
+    cube.offsetWidth;
+    cube.style.removeProperty("transition");
     rolling = false;
     persist();
     renderGame();
-  }, reducedMotion ? 120 : 3500);
+  }, reducedMotion ? 120 : 4000);
 };
 function confirmResult(result, sourceCardId) {
   if (!engine.resolve(result, sourceCardId)) return notify("El resultado de este turno ya fue confirmado.");
