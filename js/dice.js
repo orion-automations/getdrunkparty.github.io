@@ -19,13 +19,13 @@ export function rollDice(random = Math.random) {
   return DICE_FACES.at(-1);
 }
 
-export function diceRotationTarget(currentAngle, desiredAngle) {
+export function diceRotationTarget(currentAngle, desiredAngle, fullSpins = 6) {
   const current = Number(currentAngle) || 0;
   const currentOrientation = ((current % 360) + 360) % 360;
   const desiredOrientation = ((desiredAngle % 360) + 360) % 360;
   const adjustment = ((desiredOrientation - currentOrientation + 540) % 360) - 180;
-  // Six full spins plus the shortest correction leave the requested face up.
-  return current + 2160 + adjustment;
+  // The caller can vary spins per axis while preserving the selected orientation.
+  return current + (360 * fullSpins) + adjustment;
 }
 
 export function categoryProbabilities() {

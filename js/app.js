@@ -844,16 +844,25 @@ $("#roll-button").onclick = () => {
   cube.style.setProperty("--face-color", CATEGORIES[face.category]?.color ?? "#fff");
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  const targetX = diceRotationTarget(currentX, face.x);
-  const targetY = diceRotationTarget(currentY, face.y);
-  cube.dataset.rotationX = String(targetX);
-  cube.dataset.rotationY = String(targetY);
-  cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  setTimeout(() => {
+  const duration = reducedMotion ? 120 : 4000;
+  const targetX = diceRotationTarget(currentX, face.x, reducedMotion ? 0 : 6);
+  const targetY = diceRotationTarget(currentY, face.y, reducedMotion ? 0 : 8);
+  cube.style.transition = "none";
+  let animationStart = null;
+  const animateRoll = (timestamp) => {
+    animationStart ??= timestamp;
+    const progress = Math.min((timestamp - animationStart) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const x = currentX + (targetX - currentX) * eased;
+    const y = currentY + (targetY - currentY) * eased;
+    cube.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
+    if (progress < 1) {
+      requestAnimationFrame(animateRoll);
+      return;
+    }
     const resolved = engine.completeRoll();
     const settledFace = DICE_FACES.find((item) => item.category === face.category) ?? face;
-    cube.style.transition = "none";
     cube.dataset.rotationX = String(settledFace.x);
     cube.dataset.rotationY = String(settledFace.y);
     cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
@@ -862,7 +871,8 @@ $("#roll-button").onclick = () => {
     rolling = false;
     persist();
     renderGame();
-  }, reducedMotion ? 120 : 4000);
+  };
+  requestAnimationFrame(animateRoll);
 };
 function confirmResult(result, sourceCardId) {
   if (!engine.resolve(result, sourceCardId)) return notify("El resultado de este turno ya fue confirmado.");
