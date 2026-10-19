@@ -220,6 +220,18 @@ select:focus {
   .dice-cube { transition-duration: 4s; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .empty-card {
+    animation-duration: 9.33s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .category-back-button.selected-deck {
+    animation-duration: 1.15s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 .dice-face {
   border-color: color-mix(in srgb, var(--face-color, #39e58c), #fff 25%);
   background: linear-gradient(
@@ -230,6 +242,12 @@ select:focus {
   box-shadow:
     inset 0 0 26px color-mix(in srgb, var(--face-color, #39e58c), transparent 70%),
     inset 2px 2px 5px #fff2;
+}
+
+.dice-cube {
+  /* A filter on the transformed element flattens its 3D children. */
+  filter: none;
+  will-change: transform;
 }
 
 .dice-cube[data-face] .dice-face {

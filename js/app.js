@@ -15,10 +15,12 @@ let animateCardId = null;
 let rolling = false;
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
+const diceFaceColor = (category) =>
+  CATEGORIES[category]?.color ?? (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
 for (const face of DICE_FACES) {
   const side = document.createElement("div");
   side.className = `dice-face face-${face.surface}`;
-  side.style.setProperty("--face-color", CATEGORIES[face.category]?.color ?? "#fff");
+  side.style.setProperty("--face-color", diceFaceColor(face.category));
   side.textContent = face.label;
   $("#dice-cube").append(side);
 }
@@ -84,7 +86,7 @@ function renderGame() {
     const settledFace = DICE_FACES.find((face) => face.category === selectedFace.category) ?? selectedFace;
     cube.dataset.face = selectedFace.category;
     cube.dataset.resultFaceId = String(selectedFace.id);
-    cube.style.setProperty("--face-color", CATEGORIES[selectedFace.category]?.color ?? "#a5a5b4");
+    cube.style.setProperty("--face-color", diceFaceColor(selectedFace.category));
     if (!rolling) {
       cube.dataset.rotationX = String(settledFace.x);
       cube.dataset.rotationY = String(settledFace.y);
@@ -841,13 +843,13 @@ $("#roll-button").onclick = () => {
   const cube = $("#dice-cube");
   cube.dataset.face = face.category;
   cube.dataset.resultFaceId = String(face.id);
-  cube.style.setProperty("--face-color", CATEGORIES[face.category]?.color ?? "#fff");
+  cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const duration = reducedMotion ? 120 : 4000;
-  const targetX = diceRotationTarget(currentX, face.x, reducedMotion ? 0 : 6);
-  const targetY = diceRotationTarget(currentY, face.y, reducedMotion ? 0 : 8);
+  // The roll is part of the core game feedback: always show the full four-second roll.
+  const duration = 4000;
+  const targetX = diceRotationTarget(currentX, face.x, 6);
+  const targetY = diceRotationTarget(currentY, face.y, 8);
   cube.style.transition = "none";
   let animationStart = null;
   const animateRoll = (timestamp) => {
