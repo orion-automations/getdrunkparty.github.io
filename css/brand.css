@@ -9,8 +9,7 @@
 body {
   background:
     radial-gradient(ellipse at 14% -10%, #241126 0, transparent 34%),
-    radial-gradient(ellipse at 90% 8%, #17102b 0, transparent 30%),
-    #0b0b10;
+    radial-gradient(ellipse at 90% 8%, #17102b 0, transparent 30%), #0b0b10;
 }
 
 .topbar {
@@ -101,8 +100,8 @@ select:focus {
 .empty-game-content h1 {
   margin: 0;
   font-size: clamp(2rem, 9vw, 3.15rem);
-  line-height: .98;
-  letter-spacing: -.07em;
+  line-height: 0.98;
+  letter-spacing: -0.07em;
   font-weight: 950;
 }
 
@@ -128,13 +127,30 @@ select:focus {
   width: 118px;
   height: 164px;
   transform-style: preserve-3d;
-  animation: empty-card-flip 9.33s cubic-bezier(.45, 0, .35, 1) infinite,
-    empty-card-shuffle 9.33s cubic-bezier(.45, 0, .35, 1) infinite;
+  animation:
+    empty-card-flip 9.33s cubic-bezier(0.45, 0, 0.35, 1) infinite,
+    empty-card-shuffle 9.33s cubic-bezier(0.45, 0, 0.35, 1) infinite;
 }
 
-.empty-card-one { left: calc(50% - 135px); --card-tilt: -12deg; animation-delay: -6.2s, -6.2s; }
-.empty-card-two { left: calc(50% - 59px); --card-tilt: 0deg; animation-delay: -3.07s, -3.07s; }
-.empty-card-three { left: calc(50% + 17px); --card-tilt: 12deg; animation-delay: 0s, 0s; }
+.empty-card-one {
+  left: calc(50% - 135px);
+  --card-tilt: -12deg;
+  animation-delay:
+    -6.2s,
+    -6.2s;
+}
+.empty-card-two {
+  left: calc(50% - 59px);
+  --card-tilt: 0deg;
+  animation-delay:
+    -3.07s,
+    -3.07s;
+}
+.empty-card-three {
+  left: calc(50% + 17px);
+  --card-tilt: 12deg;
+  animation-delay: 0s, 0s;
+}
 
 .empty-card-face {
   position: absolute;
@@ -147,7 +163,9 @@ select:focus {
   background: radial-gradient(ellipse at 50% 35%, #28152b, #111015 72%);
   color: #ff2daa;
   backface-visibility: hidden;
-  box-shadow: 0 15px 40px #0008, inset 0 0 26px #ff2daa12;
+  box-shadow:
+    0 15px 40px #0008,
+    inset 0 0 26px #ff2daa12;
 }
 
 .empty-card-face b {
@@ -157,9 +175,17 @@ select:focus {
   text-shadow: 0 0 23px #ff2daa88;
 }
 
-.empty-card-front { transform: rotateY(0deg); }
-.empty-card-back { transform: rotateY(180deg); border-color: #7b2cff99; color: #a16bff; }
-.empty-card-back b { text-shadow: 0 0 23px #7b2cff88; }
+.empty-card-front {
+  transform: rotateY(0deg);
+}
+.empty-card-back {
+  transform: rotateY(180deg);
+  border-color: #7b2cff99;
+  color: #a16bff;
+}
+.empty-card-back b {
+  text-shadow: 0 0 23px #7b2cff88;
+}
 
 .empty-card-ribbon {
   position: absolute;
@@ -189,35 +215,74 @@ select:focus {
 }
 
 @keyframes empty-card-flip {
-  0%, 42% { transform: rotateZ(var(--card-tilt)) rotateY(0deg); }
-  49% { transform: rotateZ(var(--card-tilt)) rotateY(180deg); }
-  56%, 100% { transform: rotateZ(var(--card-tilt)) rotateY(360deg); }
+  0%,
+  42% {
+    transform: rotateZ(var(--card-tilt)) rotateY(0deg);
+  }
+  49% {
+    transform: rotateZ(var(--card-tilt)) rotateY(180deg);
+  }
+  56%,
+  100% {
+    transform: rotateZ(var(--card-tilt)) rotateY(360deg);
+  }
 }
 
 @keyframes empty-card-shuffle {
-  0%, 100% { translate: 0 0; }
-  25% { translate: 76px 0; }
-  50% { translate: 152px 0; }
-  75% { translate: 76px 0; }
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 76px 0;
+  }
+  50% {
+    translate: 152px 0;
+  }
+  75% {
+    translate: 76px 0;
+  }
 }
 
-.empty-card-two { animation-name: empty-card-flip, empty-card-shuffle-two; }
-.empty-card-three { animation-name: empty-card-flip, empty-card-shuffle-three; }
+.empty-card-two {
+  animation-name: empty-card-flip, empty-card-shuffle-two;
+}
+.empty-card-three {
+  animation-name: empty-card-flip, empty-card-shuffle-three;
+}
 
 @keyframes empty-card-shuffle-two {
-  0%, 100% { translate: 0 0; }
-  25%, 75% { translate: 76px 0; }
-  50% { translate: -76px 0; }
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25%,
+  75% {
+    translate: 76px 0;
+  }
+  50% {
+    translate: -76px 0;
+  }
 }
 
 @keyframes empty-card-shuffle-three {
-  0%, 100% { translate: 0 0; }
-  25%, 75% { translate: -152px 0; }
-  50% { translate: -76px 0; }
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25%,
+  75% {
+    translate: -152px 0;
+  }
+  50% {
+    translate: -76px 0;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .dice-cube { transition-duration: 4s; }
+  .dice-cube {
+    transition-duration: 4s;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -240,7 +305,8 @@ select:focus {
     #111116 72%
   );
   box-shadow:
-    inset 0 0 26px color-mix(in srgb, var(--face-color, #39e58c), transparent 70%),
+    inset 0 0 26px
+      color-mix(in srgb, var(--face-color, #39e58c), transparent 70%),
     inset 2px 2px 5px #fff2;
 }
 
@@ -255,7 +321,11 @@ select:focus {
 }
 
 @media (min-width: 700px) {
-  .empty-game { min-height: min(72vh, 760px); }
-  .empty-card-stage { margin-top: 22px; margin-bottom: 12px; }
+  .empty-game {
+    min-height: min(72vh, 760px);
+  }
+  .empty-card-stage {
+    margin-top: 22px;
+    margin-bottom: 12px;
+  }
 }
-

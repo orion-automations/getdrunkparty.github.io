@@ -1,5 +1,12 @@
 import { CATEGORIES, TARGETS, VERSION } from "./config.js";
-import { loadState, saveState, validateCards, seedState, parseCardImport, exportCardCatalog } from "./storage.js";
+import {
+  loadState,
+  saveState,
+  validateCards,
+  seedState,
+  parseCardImport,
+  exportCardCatalog,
+} from "./storage.js";
 import { gameEngine } from "./game.js";
 import { makeId, downloadJSON, escapeText } from "./utils.js";
 import { addDrink } from "./drinks.js";
@@ -13,10 +20,12 @@ let state = loadState(),
 let animateCardNext = false;
 let animateCardId = null;
 let rolling = false;
+let timerState = { remainingMs: 30000, totalMs: 30000, endsAt: null, interval: null };
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 const diceFaceColor = (category) =>
-  CATEGORIES[category]?.color ?? (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
+  CATEGORIES[category]?.color ??
+  (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
 for (const face of DICE_FACES) {
   const side = document.createElement("div");
   side.className = `dice-face face-${face.surface}`;
@@ -36,6 +45,125 @@ function notify(text) {
   el.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+function formatTimer(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours
+    ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+function renderDigitalDigits(value) {
+  const patterns = {
+    "0": "abcdef", "1": "bc", "2": "abdeg", "3": "abcdg", "4": "bcfg",
+    "5": "acdfg", "6": "acdefg", "7": "abc", "8": "abcdefg", "9": "abcdfg",
+  };
+  const host = $("#timer-display");
+  host.replaceChildren();
+  for (const character of value) {
+    if (character === ":") {
+      const colon = document.createElement("span");
+      colon.className = "timer-colon";
+      colon.textContent = ":";
+      host.append(colon);
+      continue;
+    }
+    const digit = document.createElement("span");
+    digit.className = "timer-digit";
+    for (const segmentName of "abcdefg") {
+      const segment = document.createElement("i");
+      segment.className = `segment-${segmentName}${patterns[character]?.includes(segmentName) ? " on" : ""}`;
+      digit.append(segment);
+    }
+    host.append(digit);
+  }
+}
+function playTimerSound() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return notify("Este navegador no permite el sonido del temporizador.");
+  const context = new AudioContextClass();
+  [0, 0.18, 0.36].forEach((offset) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.08, context.currentTime + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + offset + 0.14);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(context.currentTime + offset);
+    oscillator.stop(context.currentTime + offset + 0.15);
+  });
+}
+function renderTimer() {
+  const remaining = timerState.endsAt ? timerState.endsAt - Date.now() : timerState.remainingMs;
+  const formatted = formatTimer(remaining);
+  renderDigitalDigits(formatted);
+  $("#timer-face").style.setProperty(
+    "--timer-progress",
+    String(timerState.totalMs ? Math.max(0, Math.min(1, remaining / timerState.totalMs)) * 100 : 0),
+  );
+  $("#timer-inline-display").textContent = formatted;
+  $("#timer-inline").classList.toggle("is-running", Boolean(timerState.endsAt));
+  $("#timer-inline").classList.toggle("is-paused", !timerState.endsAt && timerState.remainingMs < timerState.totalMs);
+  $("#timer-inline").setAttribute(
+    "aria-label",
+    `${timerState.endsAt ? "Temporizador en marcha" : "Abrir temporizador"}: ${formatted}`,
+  );
+  $("#timer-inline").style.setProperty(
+    "--timer-inline-progress",
+    String(timerState.totalMs ? Math.max(0, Math.min(1, remaining / timerState.totalMs)) * 100 : 0),
+  );
+  $("#timer-start").disabled = Boolean(timerState.endsAt);
+  $("#timer-pause").disabled = !timerState.endsAt;
+  $("#timer-start").setAttribute("aria-label", "Iniciar temporizador");
+  $("#timer-pause").setAttribute("aria-label", "Pausar temporizador");
+}
+function stopTimer(finished = false) {
+  clearInterval(timerState.interval);
+  timerState.interval = null;
+  if (timerState.endsAt) timerState.remainingMs = Math.max(0, timerState.endsAt - Date.now());
+  timerState.endsAt = null;
+  if (finished) {
+    timerState.remainingMs = 0;
+    playTimerSound();
+    notify("Tiempo terminado.");
+  }
+  renderTimer();
+}
+function startTimer() {
+  if (!timerState.remainingMs) return notify("Indica un tiempo mayor que cero.");
+  timerState.endsAt = Date.now() + timerState.remainingMs;
+  clearInterval(timerState.interval);
+  timerState.interval = setInterval(() => {
+    if (Date.now() >= timerState.endsAt) stopTimer(true);
+    else renderTimer();
+  }, 250);
+  renderTimer();
+}
+function setTimer(milliseconds) {
+  stopTimer();
+  timerState.totalMs = Math.max(0, milliseconds);
+  timerState.remainingMs = timerState.totalMs;
+  setPickerFromMilliseconds(timerState.totalMs);
+  renderTimer();
+}
+function setPickerFromMilliseconds(milliseconds) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  $("#timer-hours").value = String(Math.min(23, Math.floor(totalSeconds / 3600)));
+  $("#timer-minutes").value = String(Math.floor((totalSeconds % 3600) / 60));
+  $("#timer-seconds").value = String(totalSeconds % 60);
+}
+function syncTimerFromPicker() {
+  if (timerState.endsAt) return;
+  const duration = (
+    Number($("#timer-hours").value) * 3600 +
+    Number($("#timer-minutes").value) * 60 +
+    Number($("#timer-seconds").value)
+  ) * 1000;
+  timerState.totalMs = duration;
+  timerState.remainingMs = duration;
+  renderTimer();
 }
 function setView(view) {
   $$(".view").forEach((el) =>
@@ -68,25 +196,34 @@ function renderGame() {
   const active = state.participants.filter((p) => p.active);
   const hasPlayers = active.length > 0;
   const cur = state.game.current;
-  const current = cur ? state.participants.find((p) => p.id === cur.playerId) : state.participants[state.game.currentIndex];
+  const current = cur
+    ? state.participants.find((p) => p.id === cur.playerId)
+    : state.participants[state.game.currentIndex];
   $("#empty-game").classList.toggle("hidden", hasPlayers);
   $("#game-layout").classList.toggle("hidden", !hasPlayers);
-  $("#current-player").textContent = current?.active ? current.name : "Agrega participantes";
+  $("#current-player").textContent = current?.active
+    ? current.name
+    : "Agrega participantes";
   const ready = state.game.state === "READY" && hasPlayers && !rolling;
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
   const showDice = digital && hasPlayers;
   $("#dice-stage").classList.toggle("hidden", !showDice);
-  $("#roll-button").classList.toggle("hidden", !ready);
-  $("#roll-button").disabled = !ready;
+  cubeIsInteractive(cur, ready, digital);
   const cube = $("#dice-cube");
-  const selectedFace = DICE_FACES.find((face) => face.id === Number(cur?.diceFace))
-    ?? DICE_FACES.find((face) => face.category === cur?.category);
+  const selectedFace =
+    DICE_FACES.find((face) => face.id === Number(cur?.diceFace)) ??
+    DICE_FACES.find((face) => face.category === cur?.category);
   if (selectedFace && cube.dataset.resultFaceId !== String(selectedFace.id)) {
-    const settledFace = DICE_FACES.find((face) => face.category === selectedFace.category) ?? selectedFace;
+    const settledFace =
+      DICE_FACES.find((face) => face.category === selectedFace.category) ??
+      selectedFace;
     cube.dataset.face = selectedFace.category;
     cube.dataset.resultFaceId = String(selectedFace.id);
-    cube.style.setProperty("--face-color", diceFaceColor(selectedFace.category));
+    cube.style.setProperty(
+      "--face-color",
+      diceFaceColor(selectedFace.category),
+    );
     if (!rolling) {
       cube.dataset.rotationX = String(settledFace.x);
       cube.dataset.rotationY = String(settledFace.y);
@@ -98,64 +235,247 @@ function renderGame() {
   }
   const choosingPhysical = !digital && ready;
   const choosingRolledCategory = digital && cur?.phase === "AWAITING_CATEGORY";
-  const mainDecksVisible = digital ? active.length > 0 : choosingPhysical || Boolean(cur);
+  const mainDecksVisible = digital
+    ? active.length > 0
+    : choosingPhysical || Boolean(cur);
   $("#category-choices").classList.toggle("hidden", !mainDecksVisible);
   $("#blocked-choice").classList.toggle("hidden", !choosingPhysical);
-  $("#aux-decks").classList.toggle("disabled-decks", !cur || cur.type === "BLOCKED" || state.game.state !== "RESOLVING" || Boolean(cur.outcome));
+  $("#aux-decks").classList.toggle(
+    "disabled-decks",
+    !cur ||
+      cur.type === "BLOCKED" ||
+      state.game.state !== "RESOLVING" ||
+      Boolean(cur.outcome),
+  );
   $$("#category-choices [data-category]").forEach((b) => {
-    const enabled = choosingPhysical || (choosingRolledCategory && b.dataset.category === cur.category);
+    const enabled =
+      choosingPhysical ||
+      (choosingRolledCategory && b.dataset.category === cur.category);
     b.disabled = !enabled;
-    b.classList.toggle("selected-deck", choosingRolledCategory && b.dataset.category === cur.category);
+    b.classList.toggle(
+      "selected-deck",
+      choosingRolledCategory && b.dataset.category === cur.category,
+    );
   });
   $("#blocked-choice").disabled = !choosingPhysical;
-  const armedMiniSelection = cur?.category === "MINIJUEGO" ? cur.armedSelection : null;
-  const effectCategories = (cur?.pendingEffects ?? []).filter((effect) => effect.type === "DRAW_AUXILIARY").map((effect) => effect.category);
-  const canDrawAuxiliary = Boolean(cur?.primaryCard && cur.category !== "MINIJUEGO" && cur.auxiliaryCards?.length === 0 && (!cur.outcome || effectCategories.length) && cur.type !== "BLOCKED" && state.game.state === "RESOLVING");
+  const armedMiniSelection =
+    cur?.category === "MINIJUEGO" ? cur.armedSelection : null;
+  const effectCategories = (cur?.pendingEffects ?? [])
+    .filter((effect) => effect.type === "DRAW_AUXILIARY")
+    .map((effect) => effect.category);
+  const canDrawAuxiliary = Boolean(
+    cur?.primaryCard &&
+    cur.category !== "MINIJUEGO" &&
+    cur.auxiliaryCards?.length === 0 &&
+    (!cur.outcome || effectCategories.length) &&
+    cur.type !== "BLOCKED" &&
+    state.game.state === "RESOLVING",
+  );
   $$("#aux-category-choices [data-category]").forEach((b) => {
-    b.disabled = armedMiniSelection ? b.dataset.category !== armedMiniSelection.category : !(canDrawAuxiliary && (!cur?.outcome || effectCategories.includes(b.dataset.category)));
+    b.disabled = armedMiniSelection
+      ? b.dataset.category !== armedMiniSelection.category
+      : !(
+          canDrawAuxiliary &&
+          (!cur?.outcome || effectCategories.includes(b.dataset.category))
+        );
   });
   $("#game-message").textContent = cur
-    ? cur.category === "BLOQUEADA" ? "Cara bloqueada · no hay acción."
-      : cur.phase === "AWAITING_CATEGORY" ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · pulsa el mazo iluminado.`
-      : cur.phase === "EMPTY" ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · mazo agotado.`
-        : `${CATEGORIES[cur.category]?.label ?? cur.category} · turno en curso.`
+    ? cur.category === "BLOQUEADA"
+      ? "Cara bloqueada · no hay acción."
+      : cur.phase === "AWAITING_CATEGORY"
+        ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · pulsa el mazo iluminado.`
+        : cur.phase === "EMPTY"
+          ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · mazo agotado.`
+          : `${CATEGORIES[cur.category]?.label ?? cur.category} · turno en curso.`
     : "";
   const cardsHost = $("#turn-cards");
-  const items = cur ? [cur.primaryCard, ...(cur.auxiliaryCards ?? [])].filter(Boolean) : [];
-  const cardsKey = items.map((item) => `${item.cardId}:${(item.targetIds ?? []).join(",")}`).join("|");
+  const items = cur
+    ? [cur.primaryCard, ...(cur.auxiliaryCards ?? [])].filter(Boolean)
+    : [];
+  const cardsKey = items
+    .map((item) => `${item.cardId}:${(item.targetIds ?? []).join(",")}`)
+    .join("|");
   if (cardsHost.dataset.cardsKey !== cardsKey) {
+    const animateActiveCard = animateCardNext && cardsKey.includes(animateCardId ?? "\0");
     cardsHost.replaceChildren();
     for (const [index, item] of items.entries()) {
       const card = state.cards.find((c) => c.id === item.cardId);
-      if (card) cardsHost.append(makeTurnCard(card, item, index === 0, animateCardNext && item.cardId === animateCardId));
+      if (card)
+        cardsHost.append(
+          makeTurnCard(
+            card,
+            item,
+            index === 0,
+            animateCardNext && item.cardId === animateCardId,
+          ),
+        );
     }
     cardsHost.dataset.cardsKey = cardsKey;
-    if (animateCardNext && cardsKey.includes(animateCardId ?? "\0")) {
+    if (animateActiveCard) {
       animateCardNext = false;
       animateCardId = null;
     }
+    const activeCardId = animateActiveCard
+      ? animateCardId
+      : state.game.current?.auxiliaryCards?.at(-1)?.cardId ?? state.game.current?.primaryCard?.cardId;
+    requestAnimationFrame(() => {
+      const active = cardsHost.querySelector(`[data-card-id="${CSS.escape(activeCardId ?? "")}"]`);
+      if (active) {
+        const hostRect = cardsHost.getBoundingClientRect();
+        const activeRect = active.getBoundingClientRect();
+        const centerOffset = activeRect.left + activeRect.width / 2 - (hostRect.left + hostRect.width / 2);
+        cardsHost.scrollTo({
+          left: cardsHost.scrollLeft + centerOffset,
+          behavior: animateActiveCard ? "smooth" : "auto",
+        });
+      }
+      updateSliderActive(cardsHost);
+    });
+  }
+  if (cardsHost.dataset.sliderBound !== "true") {
+    cardsHost.dataset.sliderBound = "true";
+    cardsHost.addEventListener("scroll", () => updateSliderActive(cardsHost), { passive: true });
   }
   cardsHost.classList.toggle("hidden", !items.length);
-  const miniCard = cur?.primaryCard && state.cards.find((card) => card.id === cur.primaryCard.cardId && card.categoryId === "MINIJUEGO");
-  $("#minigame-flow").classList.toggle("hidden", !miniCard || state.game.state !== "RESOLVING");
+  const miniCard =
+    cur?.primaryCard &&
+    state.cards.find(
+      (card) =>
+        card.id === cur.primaryCard.cardId && card.categoryId === "MINIJUEGO",
+    );
+  $("#minigame-flow").classList.toggle(
+    "hidden",
+    !miniCard || state.game.state !== "RESOLVING",
+  );
   if (miniCard) renderMinigameFlow(cur, miniCard);
-  $("#resolve-actions").classList.toggle("hidden", !cur || state.game.state !== "RESOLVING" || cur.phase === "AWAITING_CATEGORY");
+  $("#resolve-actions").classList.toggle(
+    "hidden",
+    !cur ||
+      state.game.state !== "RESOLVING" ||
+      cur.phase === "AWAITING_CATEGORY",
+  );
   const isChallenge = cur?.category === "DESAFIO";
   const isMinigame = cur?.category === "MINIJUEGO";
-  const hasPenalty = (cur?.auxiliaryCards ?? []).some((item) => item.category === "CASTIGO");
-  $("#confirm-completed").classList.toggle("hidden", !cur || cur.category === "BLOQUEADA" || isChallenge || isMinigame || Boolean(cur.outcome));
-  $("#confirm-challenge").classList.toggle("hidden", !isChallenge || isMinigame || Boolean(cur?.outcome));
-  $("#confirm-penalty").classList.toggle("hidden", !isChallenge || isMinigame || !hasPenalty || Boolean(cur?.outcome));
+  const hasPenalty = (cur?.auxiliaryCards ?? []).some(
+    (item) => item.category === "CASTIGO",
+  );
+  $("#confirm-completed").classList.toggle(
+    "hidden",
+    !cur ||
+      cur.category === "BLOQUEADA" ||
+      isChallenge ||
+      isMinigame ||
+      Boolean(cur.outcome),
+  );
+  $("#confirm-challenge").classList.toggle(
+    "hidden",
+    !isChallenge || isMinigame || Boolean(cur?.outcome),
+  );
+  $("#confirm-penalty").classList.toggle(
+    "hidden",
+    !isChallenge || isMinigame || !hasPenalty || Boolean(cur?.outcome),
+  );
   const hasCard = items.length > 0;
-  $("#confirm-alternative").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
-  $("#confirm-pass").classList.toggle("hidden", !hasCard || isMinigame || Boolean(cur?.outcome));
-  const canFinish = Boolean(cur && (cur.type === "BLOCKED" || cur.phase === "EMPTY" || (cur.outcome && (!isMinigame || (!(cur.pendingSelections?.length) && !cur.armedSelection)))));
+  $("#confirm-alternative").classList.toggle(
+    "hidden",
+    !hasCard || isMinigame || Boolean(cur?.outcome),
+  );
+  const canFinish = Boolean(
+    cur &&
+    (cur.type === "BLOCKED" ||
+      cur.phase === "EMPTY" ||
+      (cur.outcome &&
+        (!isMinigame ||
+          (!cur.pendingSelections?.length && !cur.armedSelection)))),
+  );
   $("#finish-turn").classList.toggle("hidden", !canFinish);
   $("#finish-turn").disabled = !canFinish;
   const effectMessages = (cur?.pendingEffects ?? [])
-    .filter((effect) => effect.type === "DRAW_AUXILIARY" && ["PREMIO", "CASTIGO"].includes(effect.category))
-    .map((effect) => `Efecto disponible: mazo ${CATEGORIES[effect.category].label}.`);
+    .filter(
+      (effect) =>
+        effect.type === "DRAW_AUXILIARY" &&
+        ["PREMIO", "CASTIGO"].includes(effect.category),
+    )
+    .map(
+      (effect) =>
+        `Efecto disponible: mazo ${CATEGORIES[effect.category].label}.`,
+    );
   $("#reward-status").textContent = effectMessages.join(" ");
+}
+
+function updateSliderActive(host) {
+  if (!host.children.length) return;
+  const center = host.getBoundingClientRect().left + host.clientWidth / 2;
+  let nearest = null;
+  let nearestDistance = Infinity;
+  for (const card of host.children) {
+    const rect = card.getBoundingClientRect();
+    const distance = Math.abs(rect.left + rect.width / 2 - center);
+    if (distance < nearestDistance) {
+      nearest = card;
+      nearestDistance = distance;
+    }
+  }
+  for (const card of host.children) card.classList.toggle("is-active", card === nearest);
+}
+
+function cubeIsInteractive(turn, ready, digital) {
+  const cube = $("#dice-cube");
+  const canRepeatRoll = digital && turn && !turn.primaryCard && (["ROLLING", "AWAITING_CATEGORY"].includes(turn.phase) || (turn.type === "BLOCKED" && turn.phase === "RESOLVING"));
+  const canReplaceMain = digital && turn?.primaryCard && ["VERDAD", "DESAFIO", "MINIJUEGO"].includes(turn.category) && !turn.outcome && !turn.minigameResult;
+  cube.setAttribute("role", "button");
+  cube.setAttribute("tabindex", digital && (ready || canRepeatRoll || canReplaceMain) ? "0" : "-1");
+  cube.setAttribute("aria-label", canReplaceMain ? `Tirar el dado para extraer otra carta de ${CATEGORIES[turn.category].label}` : "Pulsa para tirar el dado");
+  cube.classList.toggle("dice-clickable", digital && (ready || canRepeatRoll || canReplaceMain));
+  $("#dice-hint").textContent = canReplaceMain
+    ? `Pulsa el dado para extraer otra carta de ${CATEGORIES[turn.category].label}.`
+    : canRepeatRoll
+      ? "Pulsa el dado para volver a tirar."
+      : ready && digital
+        ? "Pulsa el dado para tirar."
+        : "";
+}
+
+function makeSwipeRow(player, { leftLabel, rightLabel, leftAction, rightAction, status = "Desliza" }) {
+  const row = document.createElement("div");
+  row.className = "minigame-swipe-row";
+  row.tabIndex = 0;
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", `${player.name}: ${status}`);
+  const left = document.createElement("span");
+  left.className = "minigame-swipe-label is-left";
+  left.textContent = leftLabel;
+  const name = document.createElement("strong");
+  name.className = "minigame-swipe-name";
+  name.textContent = player.name;
+  const value = document.createElement("span");
+  value.className = "minigame-swipe-value";
+  value.textContent = status;
+  const right = document.createElement("span");
+  right.className = "minigame-swipe-label is-right";
+  right.textContent = rightLabel;
+  row.append(left, name, value, right);
+  let startX = null;
+  row.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    startX = event.clientX;
+    row.setPointerCapture(event.pointerId);
+  });
+  row.addEventListener("pointerup", (event) => {
+    if (startX === null) return;
+    const delta = event.clientX - startX;
+    startX = null;
+    if (Math.abs(delta) < 48) return;
+    const action = delta < 0 ? leftAction : rightAction;
+    if (action) action();
+  });
+  row.addEventListener("pointercancel", () => { startX = null; });
+  row.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    (event.key === "ArrowLeft" ? leftAction : rightAction)?.();
+  });
+  return row;
 }
 
 function renderMinigameFlow(turn, card) {
@@ -164,15 +484,23 @@ function renderMinigameFlow(turn, card) {
   const selectionHost = $("#minigame-selection");
   const saveParticipants = $("#save-minigame-participants");
   const recordResult = $("#record-minigame-result");
+  const heading = $("#minigame-heading");
+  const instructions = $("#minigame-instructions");
   participantHost.replaceChildren();
   outcomeHost.replaceChildren();
   selectionHost.replaceChildren();
   saveParticipants.classList.add("hidden");
   recordResult.classList.add("hidden");
+  heading.classList.toggle("hidden", Boolean(turn.minigameResult));
+  instructions.classList.toggle("hidden", Boolean(turn.minigameResult));
 
   const activePlayers = state.participants.filter((player) => player.active);
-  const participants = (turn.participantIds ?? []).map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
-  const needsManualParticipants = ["PLAYER_PAIR", "MANUAL_SELECTION"].includes(card.target.mode) && participants.length !== card.target.count;
+  const participants = (turn.participantIds ?? [])
+    .map((id) => state.participants.find((player) => player.id === id))
+    .filter(Boolean);
+  const needsManualParticipants =
+    ["PLAYER_PAIR", "MANUAL_SELECTION"].includes(card.target.mode) &&
+    participants.length !== card.target.count;
   if (needsManualParticipants && !turn.minigameResult) {
     const list = document.createElement("div");
     list.className = "minigame-participant-list";
@@ -202,73 +530,84 @@ function renderMinigameFlow(turn, card) {
   if (!turn.minigameResult && participants.length && !needsManualParticipants) {
     const list = document.createElement("div");
     list.className = "minigame-outcome-list";
-    const selectors = [];
+    const outcomes = new Map(participants.map((player) => [player.id, "NEUTRAL"]));
     participants.forEach((player) => {
-      const row = document.createElement("label");
-      row.className = "minigame-outcome-row";
-      const name = document.createElement("span");
-      name.textContent = player.name;
-      const select = document.createElement("select");
-      select.setAttribute("aria-label", `Resultado de ${player.name}`);
-      select.innerHTML = '<option value="">Seleccionar resultado</option><option value="WIN">Ganó</option><option value="LOSS">Perdió</option><option value="NEUTRAL">Neutral / sin consecuencia</option>';
-      selectors.push({ playerId: player.id, select });
-      row.append(name, select);
+      const row = makeSwipeRow(player, {
+        leftLabel: "← Perdió",
+        rightLabel: "Ganó →",
+        status: "Sin resultado",
+        leftAction: () => setOutcome(player.id, "LOSS"),
+        rightAction: () => setOutcome(player.id, "WIN"),
+      });
+      row.dataset.result = "NEUTRAL";
+      row.dataset.playerId = player.id;
       list.append(row);
     });
+    function setOutcome(playerId, result) {
+      outcomes.set(playerId, result);
+      const row = [...list.children].find((item) => item.dataset.playerId === playerId);
+      if (row) {
+        row.dataset.result = result;
+        row.querySelector(".minigame-swipe-value").textContent =
+          result === "WIN" ? "Ganó · Premio" : result === "LOSS" ? "Perdió · Castigo" : "Sin resultado";
+        row.setAttribute("aria-label", `${state.participants.find((player) => player.id === playerId)?.name}: ${row.querySelector(".minigame-swipe-value").textContent}`);
+      }
+    }
     outcomeHost.append(list);
     recordResult.classList.remove("hidden");
     recordResult.disabled = false;
     recordResult.onclick = () => {
-      const outcomes = selectors.map(({ playerId, select }) => ({ playerId, result: select.value }));
-      if (outcomes.some((item) => !item.result)) return notify("Registra si cada participante ganó, perdió o quedó neutral.");
-      const result = engine.recordMinigameResult(outcomes);
-      if (result.error) return notify(result.message ?? "No se pudo registrar el resultado.");
+      const resultList = participants.map(({ id: playerId }) => ({
+        playerId,
+        result: outcomes.get(playerId),
+      }));
+      const result = engine.recordMinigameResult(resultList);
+      if (result.error)
+        return notify(result.message ?? "No se pudo registrar el resultado.");
       persist();
       renderGame();
     };
   }
 
   if (!turn.minigameResult) return;
-  const summary = document.createElement("p");
-  summary.className = "fine-print";
-  const winnerNames = turn.minigameResult.winners.map((id) => state.participants.find((player) => player.id === id)?.name).filter(Boolean);
-  const loserNames = turn.minigameResult.losers.map((id) => state.participants.find((player) => player.id === id)?.name).filter(Boolean);
-  summary.textContent = `Resultado acordado por el grupo · Ganaron: ${winnerNames.join(", ") || "—"} · Perdieron: ${loserNames.join(", ") || "—"}`;
-  selectionHost.append(summary);
   const next = turn.pendingSelections?.[0];
   if (!next) {
     const used = new Set(turn.optionalSelectionsUsed ?? []);
     const optionalGroups = [
-      { category: "PREMIO", label: "Premiar a un ganador", eligibleIds: turn.minigameResult.winners },
-      { category: "CASTIGO", label: "Castigar a un perdedor", eligibleIds: turn.minigameResult.losers },
+      {
+        category: "PREMIO",
+        label: "Premiar a un ganador",
+        eligibleIds: turn.minigameResult.winners,
+      },
+      {
+        category: "CASTIGO",
+        label: "Castigar a un perdedor",
+        eligibleIds: turn.minigameResult.losers,
+      },
     ];
     optionalGroups.forEach(({ category, label, eligibleIds }) => {
-      const eligible = eligibleIds.map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
+      const eligible = eligibleIds
+        .map((id) => state.participants.find((player) => player.id === id))
+        .filter(Boolean);
       if (!eligible.length || used.has(category)) return;
-      const row = document.createElement("div");
-      row.className = "minigame-selection-row";
-      const select = document.createElement("select");
-      select.setAttribute("aria-label", label);
-      select.innerHTML = '<option value="">Seleccionar participante</option>';
+      const group = document.createElement("div");
+      group.className = "minigame-swipe-group";
+      const title = document.createElement("h4");
+      title.textContent = label;
+      group.append(title);
       eligible.forEach((player) => {
-        const option = document.createElement("option");
-        option.value = player.id;
-        option.textContent = player.name;
-        select.append(option);
+        const isWinner = category === "PREMIO";
+        const row = makeSwipeRow(player, {
+          leftLabel: "← Castigo",
+          rightLabel: "Premio →",
+          status: "Desliza para asignar",
+          leftAction: isWinner ? null : () => armOptional(category, player.id),
+          rightAction: isWinner ? () => armOptional(category, player.id) : null,
+        });
+        row.classList.toggle("is-disabled", Boolean(turn.armedSelection));
+        group.append(row);
       });
-      const prepare = document.createElement("button");
-      prepare.type = "button";
-      prepare.className = "button button-small button-primary";
-      prepare.textContent = `Preparar ${CATEGORIES[category].label.toLowerCase()}`;
-      prepare.disabled = Boolean(turn.armedSelection);
-      prepare.onclick = () => {
-        const result = engine.armOptionalMinigameSelection(category, select.value);
-        if (result.error) return notify("Selecciona un ganador o perdedor válido.");
-        persist();
-        renderGame();
-      };
-      row.append(select, prepare);
-      selectionHost.append(row);
+      selectionHost.append(group);
     });
     const status = document.createElement("p");
     status.className = "minigame-selection-status";
@@ -280,48 +619,50 @@ function renderMinigameFlow(turn, card) {
     selectionHost.append(status);
     return;
   }
-  const row = document.createElement("div");
-  row.className = "minigame-selection-row";
   const categoryName = CATEGORIES[next.category]?.label ?? next.category;
-  const eligible = next.eligiblePlayerIds.map((id) => state.participants.find((player) => player.id === id)).filter(Boolean);
-  const label = document.createElement("span");
-  let recipientSelect = null;
-  if (next.playerId) {
-    label.textContent = `Siguiente selección: ${state.participants.find((player) => player.id === next.playerId)?.name ?? "Participante"} · ${categoryName}`;
-  } else {
-    label.textContent = `Asigna una carta de ${categoryName} a:`;
-    recipientSelect = document.createElement("select");
-    recipientSelect.setAttribute("aria-label", "Participante que recibe la carta");
-    recipientSelect.innerHTML = '<option value="">Seleccionar participante</option>';
-    eligible.forEach((player) => {
-      const option = document.createElement("option");
-      option.value = player.id;
-      option.textContent = player.name;
-      recipientSelect.append(option);
+  const eligible = next.eligiblePlayerIds
+    .map((id) => state.participants.find((player) => player.id === id))
+    .filter(Boolean);
+  const title = document.createElement("h4");
+  title.className = "minigame-selection-title";
+  title.textContent = next.playerId
+    ? `Desliza para asignar ${categoryName.toLowerCase()} a ${state.participants.find((player) => player.id === next.playerId)?.name ?? "Participante"}`
+    : `Desliza para asignar ${categoryName.toLowerCase()}`;
+  selectionHost.append(title);
+  const targets = next.playerId
+    ? eligible.filter((player) => player.id === next.playerId)
+    : eligible;
+  targets.forEach((player) => {
+    const isPrize = next.category === "PREMIO";
+    const swipeRow = makeSwipeRow(player, {
+      leftLabel: "← Castigo",
+      rightLabel: "Premio →",
+      status: turn.armedSelection ? "Selección preparada" : "Desliza para asignar",
+      leftAction: isPrize || turn.armedSelection ? null : () => armQueued(player.id),
+      rightAction: isPrize && !turn.armedSelection ? () => armQueued(player.id) : null,
     });
-  }
-  row.append(label);
-  if (recipientSelect) row.append(recipientSelect);
-  const armButton = document.createElement("button");
-  armButton.type = "button";
-  armButton.className = "button button-small button-primary";
-  armButton.textContent = turn.armedSelection ? "Selección preparada" : "Preparar selección individual";
-  armButton.disabled = Boolean(turn.armedSelection) || Boolean(recipientSelect && eligible.length === 0);
-  armButton.onclick = () => {
-    const recipientId = next.playerId ?? recipientSelect?.value;
-    const result = engine.armMinigameSelection(recipientId);
-    if (result.error) return notify("Selecciona un destinatario válido para esta carta.");
-    persist();
-    renderGame();
-  };
-  row.append(armButton);
-  selectionHost.append(row);
+    swipeRow.classList.toggle("is-disabled", Boolean(turn.armedSelection));
+    selectionHost.append(swipeRow);
+  });
   const status = document.createElement("p");
   status.className = "minigame-selection-status";
   status.textContent = turn.armedSelection
     ? `${state.participants.find((player) => player.id === turn.armedSelection.playerId)?.name ?? "Participante"}, selecciona el mazo de ${categoryName}.`
     : `${turn.pendingSelections.length} selección${turn.pendingSelections.length === 1 ? "" : "es"} pendiente${turn.pendingSelections.length === 1 ? "" : "s"}.`;
   selectionHost.append(status);
+
+  function armOptional(category, playerId) {
+    const result = engine.armOptionalMinigameSelection(category, playerId);
+    if (result.error) return notify("No se pudo preparar esa consecuencia.");
+    persist();
+    renderGame();
+  }
+  function armQueued(playerId) {
+    const result = engine.armMinigameSelection(playerId);
+    if (result.error) return notify("No se pudo preparar esa consecuencia.");
+    persist();
+    renderGame();
+  }
 }
 
 function makeTurnCard(card, item, primary, animate) {
@@ -340,20 +681,29 @@ function makeTurnCard(card, item, primary, animate) {
   area.className = "card-area";
   const playing = document.createElement("div");
   playing.className = "playing-card";
-  playing.style.setProperty("--card-color", CATEGORIES[card.categoryId]?.color ?? "#39e58c");
+  playing.style.setProperty(
+    "--card-color",
+    CATEGORIES[card.categoryId]?.color ?? "#39e58c",
+  );
   const back = document.createElement("div");
   back.className = "card-back";
   back.innerHTML = '<div class="cross-ribbon"><span></span></div><b>GDP</b>';
-  back.querySelector("span").textContent = CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
+  back.querySelector("span").textContent =
+    CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
   const front = document.createElement("article");
   front.className = "card-front";
   const category = document.createElement("div");
   category.className = "card-category";
-  category.textContent = CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
+  category.textContent =
+    CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
   const players = document.createElement("div");
   players.className = "card-players";
-  const assigned = (item.targetIds ?? []).map((id) => state.participants.find((p) => p.id === id)?.name).filter(Boolean);
-  players.textContent = assigned.length ? `Participantes asignados: ${assigned.join(" · ")}` : (TARGETS[card.target.mode] ?? "Participación voluntaria");
+  const assigned = (item.targetIds ?? [])
+    .map((id) => state.participants.find((p) => p.id === id)?.name)
+    .filter(Boolean);
+  players.textContent = assigned.length
+    ? `Participantes asignados: ${assigned.join(" · ")}`
+    : (TARGETS[card.target.mode] ?? "Participación voluntaria");
   const copy = document.createElement("div");
   copy.className = "card-copy";
   const title = document.createElement("h3");
@@ -364,7 +714,10 @@ function makeTurnCard(card, item, primary, animate) {
   const footer = document.createElement("div");
   footer.className = "card-footer";
   const penalty = document.createElement("span");
-  penalty.textContent = card.penalty.enabled && card.penalty.units > 0 ? shotLabel(card.penalty.units) : "";
+  penalty.textContent =
+    card.penalty.enabled && card.penalty.units > 0
+      ? shotLabel(card.penalty.units)
+      : "";
   const fires = document.createElement("span");
   fires.setAttribute("aria-label", "Intensidad");
   fires.textContent = "🔥".repeat(card.spiceLevel);
@@ -374,6 +727,21 @@ function makeTurnCard(card, item, primary, animate) {
   area.append(playing);
   if (help) slot.append(help);
   slot.append(area);
+  slot.dataset.cardId = card.id;
+  if (card.durationSeconds) {
+    const actions = document.createElement("div");
+    actions.className = "card-inline-actions";
+    const timer = document.createElement("button");
+    timer.type = "button";
+    timer.className = "button button-small";
+    timer.textContent = `Iniciar ${card.durationSeconds}s`;
+    timer.onclick = () => {
+      setTimer(card.durationSeconds * 1000);
+      $("#timer-dialog").showModal();
+    };
+    actions.append(timer);
+    slot.append(actions);
+  }
   const reveal = () => playing.classList.add("revealed");
   if (animate) {
     animateCardNext = false;
@@ -381,6 +749,18 @@ function makeTurnCard(card, item, primary, animate) {
     requestAnimationFrame(() => setTimeout(reveal, 360));
   } else reveal();
   return slot;
+}
+function redrawCard(cardId) {
+  const active = state.cards.find((card) => card.id === cardId);
+  if (!active || !["VERDAD", "DESAFIO", "MINIJUEGO"].includes(active.categoryId))
+    return notify("Solo puedes repetir una carta principal.");
+  const result = engine.redraw(cardId);
+  if (result.error) return notify("Esta carta ya no se puede reemplazar.");
+  if (result.empty) return notify("No hay otra carta habilitada en este mazo.");
+  animateCardNext = true;
+  animateCardId = result.card.id;
+  persist();
+  renderGame();
 }
 function renderRewards() {
   const host = $("#effects-list");
@@ -420,15 +800,17 @@ function renderPlayers() {
   state.participants.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "manage-row";
-    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small" data-action="save-player">Guardar</button><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
-    row.querySelector("[data-action=save-player]").onclick = () => {
+    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
+    const saveName = () => {
       const v = row.querySelector("input").value.trim();
       if (!v) return notify("El nombre no puede quedar vacío.");
+      if (v === p.name) return;
       p.name = v;
       persist();
       render();
-      notify("Participante actualizado.");
     };
+    row.querySelector("input").onchange = saveName;
+    row.querySelector("input").onblur = saveName;
     row.querySelector("[data-action=delete-player]").onclick = () =>
       confirmAction("Eliminar participante", `¿Eliminar a ${p.name}?`, () => {
         const wasCurrent = i === state.game.currentIndex;
@@ -486,6 +868,7 @@ function populateForm(card) {
   $("#f-penalty-enabled").checked = c.penalty.enabled;
   $("#f-units").value = c.penalty.units;
   $("#f-enabled").checked = c.enabled;
+  $("#f-duration").value = c.durationSeconds ?? "";
   updatePreview();
   $("#editor-dialog").showModal();
 }
@@ -505,10 +888,19 @@ function saveCard(event) {
     old = state.cards.find((c) => c.id === id);
   let effects = null;
   try {
-    effects = $("#f-effects").value.trim() ? JSON.parse($("#f-effects").value) : null;
-    if (effects !== null && (typeof effects !== "object" || Array.isArray(effects))) throw new Error("Los efectos deben ser un objeto JSON.");
+    effects = $("#f-effects").value.trim()
+      ? JSON.parse($("#f-effects").value)
+      : null;
+    if (
+      effects !== null &&
+      (typeof effects !== "object" || Array.isArray(effects))
+    )
+      throw new Error("Los efectos deben ser un objeto JSON.");
   } catch (error) {
-    $("#form-error").textContent = error instanceof SyntaxError ? "El JSON de efectos no es válido." : error.message;
+    $("#form-error").textContent =
+      error instanceof SyntaxError
+        ? "El JSON de efectos no es válido."
+        : error.message;
     return;
   }
   const card = {
@@ -531,6 +923,7 @@ function saveCard(event) {
       units: Number($("#f-units").value),
     },
     manualId: $("#f-manual").value || null,
+    ...($("#f-duration").value ? { durationSeconds: Number($("#f-duration").value) } : {}),
     ...(effects ? { effects } : {}),
     enabled: $("#f-enabled").checked,
   };
@@ -583,7 +976,8 @@ function renderCards() {
     const row = document.createElement("article");
     row.className = `editor-card ${card.enabled ? "" : "disabled"}`;
     row.style.setProperty("--card-color", CATEGORIES[card.categoryId].color);
-    row.innerHTML = `<div class="editor-card-icon">${esc(card.icon?.value ?? "✦")}</div><div class="editor-card-copy"><div class="editor-card-meta"><span>${CATEGORIES[card.categoryId].label}</span><code>${esc(card.id)}</code></div><h3>${esc(card.title)} ${card.enabled ? "" : "<small>(desactivada)</small>"}</h3><p>${esc(card.description)}</p></div><div class="editor-card-actions"><button class="button button-small" data-action="edit">Editar</button><button class="button button-small" data-action="duplicate">Duplicar</button><button class="button button-small" data-action="toggle">${card.enabled ? "Desactivar" : "Activar"}</button><button class="button button-small button-danger" data-action="delete">Eliminar</button></div>`;
+    row.innerHTML = `<div class="editor-card-icon">${esc(card.icon?.value ?? "✦")}</div><div class="editor-card-copy"><div class="editor-card-meta"><span>${CATEGORIES[card.categoryId].label}</span><code>${esc(card.id)}</code></div><h3>${esc(card.title)} ${card.enabled ? "" : "<small>(desactivada)</small>"}</h3><p>${esc(card.description)}</p></div><div class="card-menu"><button class="icon-button" data-action="menu" aria-label="Acciones de ${esc(card.title)}" title="Acciones">⋮</button><div class="card-menu-popover hidden"><button data-action="edit">Editar</button><button data-action="duplicate">Duplicar</button><button data-action="toggle">${card.enabled ? "Desactivar" : "Activar"}</button><button data-action="delete" class="danger">Eliminar</button></div></div>`;
+    row.querySelector("[data-action=menu]").onclick = () => row.querySelector(".card-menu-popover").classList.toggle("hidden");
     row.querySelector("[data-action=edit]").onclick = () => populateForm(card);
     row.querySelector("[data-action=duplicate]").onclick = () => {
       const copy = structuredClone(card);
@@ -636,20 +1030,33 @@ function openManual(id) {
   p.textContent = manual.summary;
   host.append(p);
   const manualFields = [
-    ["objective", "Objetivo"], ["participants", "Participantes"],
-    ["materials", "Materiales"], ["preparation", "Preparación"],
-    ["victoryCondition", "Condición de victoria"], ["tiebreaker", "Desempate"],
-    ["duration", "Duración estimada"], ["resultToRecord", "Resultado a registrar"],
+    ["objective", "Objetivo"],
+    ["participants", "Participantes"],
+    ["materials", "Materiales"],
+    ["preparation", "Preparación"],
+    ["victoryCondition", "Condición de victoria"],
+    ["tiebreaker", "Desempate"],
+    ["duration", "Duración estimada"],
+    ["resultToRecord", "Resultado a registrar"],
   ];
   const consequences = manual.details?.consequenceRules;
   if (Array.isArray(consequences) && consequences.length) {
     const details = document.createElement("p");
     details.innerHTML = "<strong>Consecuencias configuradas:</strong> ";
-    const consequenceSummary = consequences.map((rule) => {
-      const when = rule.when === "WIN" ? "ganadores" : rule.when === "LOSS" ? "perdedores" : "participantes";
-      const howMany = rule.cardsPerRecipient ? `${rule.cardsPerRecipient} por persona` : `${rule.totalCards} en total`;
-      return `${when}: ${howMany} del mazo ${CATEGORIES[rule.category]?.label ?? rule.category}`;
-    }).join(" · ");
+    const consequenceSummary = consequences
+      .map((rule) => {
+        const when =
+          rule.when === "WIN"
+            ? "ganadores"
+            : rule.when === "LOSS"
+              ? "perdedores"
+              : "participantes";
+        const howMany = rule.cardsPerRecipient
+          ? `${rule.cardsPerRecipient} por persona`
+          : `${rule.totalCards} en total`;
+        return `${when}: ${howMany} del mazo ${CATEGORIES[rule.category]?.label ?? rule.category}`;
+      })
+      .join(" · ");
     details.append(document.createTextNode(consequenceSummary));
     host.append(details);
   }
@@ -686,43 +1093,38 @@ function openManual(id) {
 }
 function dlgManual(manual, isNew = false) {
   $("#manual-dialog").close();
-  const name = prompt("Título del manual:", manual.title);
-  if (name === null) return;
-  const summary = prompt("Resumen:", manual.summary);
-  if (summary === null) return;
-  const instructions = prompt(
-    "Instrucciones (cada línea es un paso):",
-    manual.instructions.join("\n"),
-  );
-  if (instructions === null) return;
-  const detailsText = prompt(
-    'Detalles opcionales en JSON (objective, participants, materials, preparation, victoryCondition, tiebreaker, duration, resultToRecord y consequenceRules). Ejemplo consequenceRules: [{"when":"LOSS","category":"CASTIGO","recipients":"LOSERS","cardsPerRecipient":1}]:',
-    JSON.stringify(manual.details ?? {}, null, 2),
-  );
-  if (detailsText === null) return;
-  let details;
-  try {
-    details = JSON.parse(detailsText || "{}");
-    if (!details || typeof details !== "object" || Array.isArray(details)) throw new Error();
-    if (details.consequenceRules !== undefined) validateMinigameRules(details.consequenceRules);
-  } catch {
-    return notify("Los detalles del manual deben ser un objeto JSON válido.");
-  }
-  manual.title = name.trim() || manual.title;
-  manual.summary = summary.trim();
-  manual.instructions = instructions
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  manual.details = details;
-  manual.pending = manual.instructions.length === 0;
-  manual.notes = manual.pending
-    ? "Reglas pendientes de completar."
-    : manual.notes;
-  if (isNew) state.manuals.push(manual);
-  persist();
-  renderManuals();
-  notify(isNew ? "Manual creado." : "Manual actualizado.");
+  $("#manual-editor-heading").textContent = isNew ? "Nuevo manual" : "Editar manual";
+  $("#m-title").value = manual.title ?? "";
+  $("#m-summary").value = manual.summary ?? "";
+  $("#m-instructions").value = (manual.instructions ?? []).join("\n");
+  $("#m-notes").value = manual.notes ?? "";
+  $("#m-details").value = JSON.stringify(manual.details ?? {}, null, 2);
+  $("#manual-form-error").textContent = "";
+  const form = $("#manual-editor-form");
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    try {
+      const details = JSON.parse($("#m-details").value || "{}");
+      if (!details || typeof details !== "object" || Array.isArray(details)) throw new Error("Los detalles deben ser un objeto JSON.");
+      if (details.consequenceRules !== undefined) validateMinigameRules(details.consequenceRules);
+      const title = $("#m-title").value.trim();
+      if (!title) throw new Error("El título es obligatorio.");
+      manual.title = title;
+      manual.summary = $("#m-summary").value.trim();
+      manual.instructions = $("#m-instructions").value.split("\n").map((line) => line.trim()).filter(Boolean);
+      manual.notes = $("#m-notes").value.trim();
+      manual.details = details;
+      manual.pending = manual.instructions.length === 0;
+      if (isNew) state.manuals.push(manual);
+      persist();
+      $("#manual-editor-dialog").close();
+      renderManuals();
+      notify(isNew ? "Manual creado." : "Manual actualizado.");
+    } catch (error) {
+      $("#manual-form-error").textContent = error.message || "No se pudo guardar el manual.";
+    }
+  };
+  $("#manual-editor-dialog").showModal();
 }
 function renderManuals() {
   const host = $("#manuals-list");
@@ -781,24 +1183,76 @@ $("#menu-toggle").onclick = () => $("#nav").classList.toggle("open");
 $$(".close-dialog").forEach(
   (b) => (b.onclick = () => b.closest("dialog").close()),
 );
+const TIMER_PRESETS = [10, 15, 20, 30, 45, 60, 120, 180, 300, 420];
+for (const [id, max, selected] of [
+  ["timer-hours", 23, 0],
+  ["timer-minutes", 59, 0],
+  ["timer-seconds", 59, 30],
+]) {
+  const select = $(`#${id}`);
+  for (let value = 0; value <= max; value++) {
+    const option = document.createElement("option");
+    option.value = String(value);
+    option.textContent = String(value).padStart(2, "0");
+    option.selected = value === selected;
+    select.append(option);
+  }
+  select.onchange = syncTimerFromPicker;
+}
+renderTimer();
+TIMER_PRESETS.forEach((seconds) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "button button-small";
+  button.textContent = seconds < 60 ? `${seconds} s` : `${seconds / 60} min`;
+  button.onclick = () => setTimer(seconds * 1000);
+  $("#timer-presets").append(button);
+});
+$("#timer-open").onclick = () => {
+  renderTimer();
+  $("#timer-dialog").showModal();
+};
+$("#timer-inline").onclick = () => {
+  renderTimer();
+  $("#timer-dialog").showModal();
+};
+$("#timer-close").onclick = () => $("#timer-dialog").close();
+$("#timer-start").onclick = startTimer;
+$("#timer-pause").onclick = () => stopTimer();
+$("#timer-reset").onclick = () => {
+  stopTimer();
+  timerState.remainingMs = timerState.totalMs;
+  renderTimer();
+};
+$("#timer-test-sound").onclick = playTimerSound;
 function makeCategoryButton(id, category) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "category-back-button";
   button.dataset.category = id;
   button.style.setProperty("--category-color", category.color);
-  button.innerHTML = '<span class="category-cross"></span><span class="category-name"></span>';
+  button.innerHTML =
+    '<span class="category-cross"></span><span class="category-name"></span>';
   button.querySelector(".category-name").textContent = category.label;
   button.onclick = () => drawCategory(id);
   return button;
 }
 function drawCategory(id) {
   const result = engine.draw(id);
-  if (result.error) return notify(result.error === "NO_PLAYERS" ? "Agrega participantes primero." : result.error === "AUXILIARY_ALREADY_DRAWN" ? "Ya elegiste un mazo auxiliar en este turno." : "Espera a que termine la acción actual.");
+  if (result.error)
+    return notify(
+      result.error === "NO_PLAYERS"
+        ? "Agrega participantes primero."
+        : result.error === "AUXILIARY_ALREADY_DRAWN"
+          ? "Ya elegiste un mazo auxiliar en este turno."
+          : "Espera a que termine la acción actual.",
+    );
   if (result.empty) {
     persist();
     renderGame();
-    notify(`El mazo ${CATEGORIES[id]?.label ?? id} no tiene cartas habilitadas.`);
+    notify(
+      `El mazo ${CATEGORIES[id]?.label ?? id} no tiene cartas habilitadas.`,
+    );
     return;
   }
   if (result.card) {
@@ -809,17 +1263,27 @@ function drawCategory(id) {
   renderGame();
 }
 $("#save-minigame-participants").onclick = () => {
-  const playerIds = $$("#minigame-participant-picker input[name='minigame-participant']:checked").map((input) => input.value);
+  const playerIds = $$(
+    "#minigame-participant-picker input[name='minigame-participant']:checked",
+  ).map((input) => input.value);
   const result = engine.setMinigameParticipants(playerIds);
-  if (result.error) return notify(result.error === "INVALID_PARTICIPANT_COUNT" ? "Selecciona la cantidad de participantes indicada en la carta." : "Selecciona participantes activos y sin repetir.");
+  if (result.error)
+    return notify(
+      result.error === "INVALID_PARTICIPANT_COUNT"
+        ? "Selecciona la cantidad de participantes indicada en la carta."
+        : "Selecciona participantes activos y sin repetir.",
+    );
   persist();
   renderGame();
 };
 for (const [id, category] of Object.entries(CATEGORIES)) {
-  if (["VERDAD", "DESAFIO", "MINIJUEGO"].includes(id)) $("#category-choices").append(makeCategoryButton(id, category));
-  if (["PREMIO", "CASTIGO"].includes(id)) $("#aux-category-choices").append(makeCategoryButton(id, category));
+  if (["VERDAD", "DESAFIO", "MINIJUEGO"].includes(id))
+    $("#category-choices").append(makeCategoryButton(id, category));
+  if (["PREMIO", "CASTIGO"].includes(id))
+    $("#aux-category-choices").append(makeCategoryButton(id, category));
 }
-$("#blocked-choice").innerHTML = '<span class="category-cross"></span><span class="category-name">BLOQUEADA</span>';
+$("#blocked-choice").innerHTML =
+  '<span class="category-cross"></span><span class="category-name">BLOQUEADA</span>';
 $("#blocked-choice").style.setProperty("--category-color", "#a5a5b4");
 $("#blocked-choice").onclick = () => drawCategory("BLOQUEADA");
 $("#game-mode").onchange = (event) => {
@@ -831,10 +1295,15 @@ $("#game-mode").onchange = (event) => {
   persist();
   renderGame();
 };
-$("#roll-button").onclick = () => {
+function startDigitalRoll(repeat = false) {
   if (rolling) return;
-  const result = engine.rollDigital();
-  if (result.error) return notify(result.error === "NO_PLAYERS" ? "Agrega participantes primero." : "Espera a que termine la acción actual.");
+  const result = repeat ? engine.rerollDigital() : engine.rollDigital();
+  if (result.error)
+    return notify(
+      result.error === "NO_PLAYERS"
+        ? "Agrega participantes primero."
+        : "Espera a que termine la acción actual.",
+    );
   rolling = true;
   renderGame();
   $("#dice-stage").classList.remove("hidden");
@@ -864,7 +1333,8 @@ $("#roll-button").onclick = () => {
       return;
     }
     const resolved = engine.completeRoll();
-    const settledFace = DICE_FACES.find((item) => item.category === face.category) ?? face;
+    const settledFace =
+      DICE_FACES.find((item) => item.category === face.category) ?? face;
     cube.dataset.rotationX = String(settledFace.x);
     cube.dataset.rotationY = String(settledFace.y);
     cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
@@ -875,26 +1345,59 @@ $("#roll-button").onclick = () => {
     renderGame();
   };
   requestAnimationFrame(animateRoll);
+}
+function activateDice() {
+  if (rolling || state.settings.gameMode !== "digital") return;
+  const turn = state.game.current;
+  if (!turn) return startDigitalRoll();
+  if (!turn.primaryCard && (["ROLLING", "AWAITING_CATEGORY"].includes(turn.phase) || (turn.type === "BLOCKED" && turn.phase === "RESOLVING")))
+    return startDigitalRoll(true);
+  if (turn.primaryCard && ["VERDAD", "DESAFIO", "MINIJUEGO"].includes(turn.category) && !turn.outcome && !turn.minigameResult)
+    return redrawCard(turn.primaryCard.cardId);
+}
+$("#dice-cube").onclick = activateDice;
+$("#dice-cube").onkeydown = (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    activateDice();
+  }
 };
 function confirmResult(result, sourceCardId) {
-  if (!engine.resolve(result, sourceCardId)) return notify("El resultado de este turno ya fue confirmado.");
+  if (!engine.resolve(result, sourceCardId))
+    return notify("El resultado de este turno ya fue confirmado.");
   persist();
   renderGame();
+  if (state.game.current?.category === "DESAFIO") {
+    const finished = engine.finishTurn();
+    if (finished) {
+      persist();
+      render();
+    }
+  }
 }
-$("#confirm-completed").onclick = () => confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);
-$("#confirm-challenge").onclick = () => confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);
-$("#confirm-alternative").onclick = () => confirmResult("ALTERNATIVE_SELECTED", state.game.current?.primaryCard?.cardId ?? null);
-$("#confirm-pass").onclick = () => confirmResult("PASSED", state.game.current?.primaryCard?.cardId ?? null);
+$("#confirm-completed").onclick = () =>
+  confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);
+$("#confirm-challenge").onclick = () =>
+  confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);
+$("#confirm-alternative").onclick = () =>
+  confirmResult(
+    "ALTERNATIVE_SELECTED",
+    state.game.current?.primaryCard?.cardId ?? null,
+  );
 $("#confirm-penalty").onclick = () => {
-  const punishment = [...(state.game.current?.auxiliaryCards ?? [])].reverse().find((item) => item.category === "CASTIGO");
+  const punishment = [...(state.game.current?.auxiliaryCards ?? [])]
+    .reverse()
+    .find((item) => item.category === "CASTIGO");
   confirmResult("COMPLETED", punishment?.cardId ?? null);
 };
 $("#finish-turn").onclick = () => {
-  if (!engine.finishTurn()) return notify("Confirma primero el resultado del turno.");
+  if (!engine.finishTurn())
+    return notify("Confirma primero el resultado del turno.");
   persist();
   renderGame();
   renderRewards();
-};$("#player-form").onsubmit = (e) => {
+};
+$("#player-form").onsubmit = (e) => {
   e.preventDefault();
   const input = $("#player-name"),
     name = input.value.trim();
@@ -918,7 +1421,18 @@ $("#card-search").oninput = renderCards;
 $("#category-filter").onchange = renderCards;
 $("#new-card").onclick = () => populateForm(null);
 $("#new-manual").onclick = () => {
-  dlgManual({ id: makeId("MANUAL"), title: "", summary: "", instructions: [], notes: "", pending: true, details: {} }, true);
+  dlgManual(
+    {
+      id: makeId("MANUAL"),
+      title: "",
+      summary: "",
+      instructions: [],
+      notes: "",
+      pending: true,
+      details: {},
+    },
+    true,
+  );
 };
 [
   "#f-title",
@@ -927,6 +1441,7 @@ $("#new-manual").onclick = () => {
   "#f-spice",
   "#f-units",
   "#f-penalty-enabled",
+  "#f-duration",
 ].forEach((id) => $(id).addEventListener("input", updatePreview));
 $("#card-form").onsubmit = saveCard;
 $("#import-cards").onchange = async (e) => {
@@ -988,17 +1503,24 @@ $("#drink-form").onsubmit = (e) => {
   }
 };
 $("#reset-game").onclick = () => {
-  if (rolling) return notify("Espera a que termine el dado antes de reiniciar la partida.");
+  if (rolling)
+    return notify(
+      "Espera a que termine el dado antes de reiniciar la partida.",
+    );
   confirmAction(
     "Reiniciar partida",
-    "Se borrarán el turno actual, el historial, los premios guardados y el progreso de los mazos. Se conservarán los participantes y sus estados, las cartas, los manuales y los ajustes.",
+    "Se archivará el historial de la partida actual y se reiniciarán turno, mazos y premios. Se conservarán participantes, cartas, manuales y ajustes.",
     () => {
+      const archive = state.game.history?.length
+        ? { endedAt: new Date().toISOString(), history: structuredClone(state.game.history) }
+        : null;
       state.game = {
         currentIndex: 0,
         state: "READY",
         decks: {},
         current: null,
         history: [],
+        archives: [...(state.game.archives ?? []), ...(archive ? [archive] : [])].slice(-10),
         rewards: [],
       };
       engine = gameEngine(state);

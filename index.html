@@ -12,54 +12,86 @@
       content="Juego de cartas de fiesta instalable y disponible sin conexión."
     />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" href="./assets/icons/favicon-32.png" type="image/png" sizes="32x32" />
+    <link
+      rel="icon"
+      href="./assets/icons/favicon-32.png"
+      type="image/png"
+      sizes="32x32"
+    />
     <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" sizes="180x180" />
+    <link
+      rel="apple-touch-icon"
+      href="./assets/icons/apple-touch-icon.png"
+      sizes="180x180"
+    />
     <link rel="stylesheet" href="./css/styles.css" />
     <link rel="stylesheet" href="./css/dashboard-categories.css" />
     <link rel="stylesheet" href="./css/dice.css" />
     <link rel="stylesheet" href="./css/brand.css" />
     <title>Get Drunk Party</title>
   </head>
+
   <body>
     <header class="topbar">
       <a class="brand" href="#inicio" aria-label="Get Drunk Party inicio"
         ><span
           >GET DRUNK <b>PARTY</b><small>WEB · OFFLINE EDITION</small></span
         ></a
-      ><button id="menu-toggle" class="icon-button" aria-label="Abrir menú">
-        ☰
-      </button>
+      ><div class="topbar-actions"><button id="timer-open" class="icon-button" aria-label="Abrir temporizador" title="Temporizador">◷</button><button id="menu-toggle" class="icon-button" aria-label="Abrir menú" title="Menú">☰</button></div>
     </header>
     <nav id="nav" class="nav">
-      <button data-view="game" class="nav-link active">🎲 Partida</button
-      ><button data-view="players" class="nav-link">👥 Participantes</button
-      ><button data-view="editor" class="nav-link">🃏 Cartas</button
-      ><button data-view="manuals" class="nav-link">❔ Manuales</button
-      ><button data-view="settings" class="nav-link">⚙ Ajustes</button>
+      <button data-view="game" class="nav-link active">Partida</button
+      ><button data-view="players" class="nav-link">Participantes</button
+      ><button data-view="editor" class="nav-link">Cartas</button
+      ><button data-view="manuals" class="nav-link">Manuales</button
+      ><button data-view="settings" class="nav-link">Ajustes</button>
     </nav>
     <main>
       <section id="view-game" class="view active">
-        <section id="empty-game" class="empty-game hidden" aria-labelledby="empty-game-title">
+        <section
+          id="empty-game"
+          class="empty-game hidden"
+          aria-labelledby="empty-game-title"
+        >
           <div class="empty-game-content">
             <p class="eyebrow">GDP · GET DRUNK PARTY</p>
             <h1 id="empty-game-title">GET DRUNK <span>PARTY</span></h1>
             <div class="empty-card-stage" aria-hidden="true">
               <div class="empty-card empty-card-one">
-                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>G</b></div>
-                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>G</b></div>
+                <div class="empty-card-face empty-card-front">
+                  <span class="empty-card-ribbon"></span><b>G</b>
+                </div>
+                <div class="empty-card-face empty-card-back">
+                  <span class="empty-card-ribbon"></span><b>G</b>
+                </div>
               </div>
               <div class="empty-card empty-card-two">
-                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>D</b></div>
-                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>D</b></div>
+                <div class="empty-card-face empty-card-front">
+                  <span class="empty-card-ribbon"></span><b>D</b>
+                </div>
+                <div class="empty-card-face empty-card-back">
+                  <span class="empty-card-ribbon"></span><b>D</b>
+                </div>
               </div>
               <div class="empty-card empty-card-three">
-                <div class="empty-card-face empty-card-front"><span class="empty-card-ribbon"></span><b>P</b></div>
-                <div class="empty-card-face empty-card-back"><span class="empty-card-ribbon"></span><b>P</b></div>
+                <div class="empty-card-face empty-card-front">
+                  <span class="empty-card-ribbon"></span><b>P</b>
+                </div>
+                <div class="empty-card-face empty-card-back">
+                  <span class="empty-card-ribbon"></span><b>P</b>
+                </div>
               </div>
             </div>
-            <p class="empty-game-prompt">Añade participantes para empezar partida</p>
-            <button id="start-adding-players" class="button button-primary" type="button">Añadir participantes</button>
+            <p class="empty-game-prompt">
+              Añade participantes para empezar partida
+            </p>
+            <button
+              id="start-adding-players"
+              class="button button-primary"
+              type="button"
+            >
+              Añadir participantes
+            </button>
           </div>
         </section>
         <div id="game-layout" class="game-layout">
@@ -70,42 +102,87 @@
                 <h2 id="current-player">Agrega participantes</h2>
               </div>
             </div>
-            <label class="mode-picker">Modo de juego
+            <button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador">
+              <span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span>
+            </button>
+            <label class="mode-picker"
+              >Modo de juego
               <select id="game-mode" aria-label="Modo de juego">
                 <option value="digital">Dado digital</option>
                 <option value="physical">Dado físico</option>
               </select>
             </label>
             <div id="dice-stage" class="dice-stage">
-              <div id="dice-cube" class="dice-cube" aria-label="Dado de seis caras"></div>
-              <button id="roll-button" class="button button-primary">LANZAR DADO</button>
+              <div
+                id="dice-cube"
+                class="dice-cube"
+                aria-label="Dado de seis caras"
+              ></div>
+              <p id="dice-hint" class="fine-print">Pulsa el dado para tirar o repetir.</p>
             </div>
             <p id="game-message" class="game-message" aria-live="polite"></p>
-            <div id="category-choices" class="category-choices" aria-label="Mazos principales"></div>
-            <button id="blocked-choice" class="category-back-button blocked-choice hidden" type="button">BLOQUEADA</button>
+            <div
+              id="category-choices"
+              class="category-choices"
+              aria-label="Mazos principales"
+            ></div>
+            <button
+              id="blocked-choice"
+              class="category-back-button blocked-choice hidden"
+              type="button"
+            >
+              BLOQUEADA
+            </button>
             <div id="aux-decks" class="aux-decks">
               <span class="eyebrow">MAZOS AUXILIARES</span>
               <div id="aux-category-choices" class="aux-category-choices"></div>
             </div>
             <div id="turn-cards" class="turn-cards hidden"></div>
-            <section id="minigame-flow" class="minigame-flow hidden" aria-live="polite">
-              <h3>Resultado del minijuego</h3>
-              <p class="fine-print">El grupo decide y registra quién ganó, perdió o quedó neutral. La aplicación no determina el resultado.</p>
+            <section
+              id="minigame-flow"
+              class="minigame-flow hidden"
+              aria-live="polite"
+            >
+              <h3 id="minigame-heading">Resultado del minijuego</h3>
+              <p id="minigame-instructions" class="fine-print">
+                Desliza a la derecha para marcar ganador y a la izquierda para marcar perdedor. También puedes usar las flechas del teclado.
+              </p>
               <div id="minigame-participant-picker"></div>
-              <button id="save-minigame-participants" class="button button-small hidden" type="button">Confirmar participantes</button>
+              <button
+                id="save-minigame-participants"
+                class="button button-small hidden"
+                type="button"
+              >
+                Confirmar participantes
+              </button>
               <div id="minigame-outcomes"></div>
-              <button id="record-minigame-result" class="button button-primary hidden" type="button">Registrar resultado del grupo</button>
+              <button
+                id="record-minigame-result"
+                class="button button-primary hidden"
+                type="button"
+              >
+                Registrar resultado del grupo
+              </button>
               <div id="minigame-selection"></div>
             </section>
             <section id="resolve-actions" class="resolve-actions hidden">
               <p id="reward-status" class="reward-status"></p>
               <div class="button-row">
-                <button id="confirm-completed" class="button button-primary">Cumplió</button>
-                <button id="confirm-challenge" class="button hidden">Cumplió el desafío</button>
-                <button id="confirm-penalty" class="button hidden">Cumplió el castigo</button>
-                <button id="confirm-alternative" class="button hidden">Toma Shot</button>
-                <button id="confirm-pass" class="button button-quiet hidden">Pasar</button>
-                <button id="finish-turn" class="button button-quiet hidden">Finalizar turno</button>
+                <button id="confirm-completed" class="button button-primary">
+                  Cumplió
+                </button>
+                <button id="confirm-challenge" class="button hidden">
+                  Cumplió el desafío
+                </button>
+                <button id="confirm-penalty" class="button hidden">
+                  Cumplió el castigo
+                </button>
+                <button id="confirm-alternative" class="button hidden">
+                  Toma Shot
+                </button>
+                <button id="finish-turn" class="button button-quiet hidden">
+                  Finalizar turno
+                </button>
               </div>
             </section>
           </section>
@@ -181,7 +258,9 @@
           <p class="muted">
             Consulta y edita las instrucciones de los minijuegos.
           </p>
-          <button id="new-manual" class="button button-primary">＋ Nuevo manual</button>
+          <button id="new-manual" class="button button-primary">
+            ＋ Nuevo manual
+          </button>
         </div>
         <div id="manuals-list" class="manuals-list"></div>
       </section>
@@ -304,7 +383,10 @@
               id="f-effects"
               rows="2"
               placeholder='{"trigger":"COMPLETED","action":"PREMIO"}'
-            ></textarea><small>Campo estructurado opcional para futuras dinámicas.</small></label
+            ></textarea
+            ><small
+              >Campo estructurado opcional para futuras dinámicas.</small
+            ></label
           ><label>Asignación<select id="f-target"></select></label
           ><label
             >Cantidad participantes<input
@@ -313,6 +395,7 @@
               min="0"
               max="20"
               value="1" /></label
+          ><label>Duración opcional (segundos)<input id="f-duration" type="number" min="1" max="3600" placeholder="Ej. 30" /><small>Permite iniciar el temporizador desde la carta.</small></label
           ><label>Manual<select id="f-manual"></select></label
           ><label
             >Icono local<input
@@ -357,6 +440,37 @@
       </div>
       <div id="manual-content" class="manual-content"></div>
       <button id="edit-open-manual" class="button">Editar este manual</button>
+    </dialog>
+    <dialog id="manual-editor-dialog" class="modal">
+      <form id="manual-editor-form">
+        <div class="modal-heading"><p class="eyebrow">EDITOR DE MANUAL</p><h2 id="manual-editor-heading">Editar manual</h2></div>
+        <label>Título<input id="m-title" required maxlength="100" /></label>
+        <label>Resumen<textarea id="m-summary" rows="2" maxlength="500"></textarea></label>
+        <label>Instrucciones (un paso por línea)<textarea id="m-instructions" rows="8"></textarea></label>
+        <label>Notas<textarea id="m-notes" rows="3"></textarea></label>
+        <label>Detalles y reglas (JSON opcional)<textarea id="m-details" rows="6"></textarea></label>
+        <p id="manual-form-error" class="form-error" role="alert"></p>
+        <div class="button-row modal-actions"><button type="button" class="button close-dialog">Cancelar</button><button class="button button-primary">Guardar manual</button></div>
+      </form>
+    </dialog>
+    <dialog id="timer-dialog" class="modal timer-modal">
+      <div class="modal-heading timer-heading"><div><p class="eyebrow">HERRAMIENTA INDEPENDIENTE</p><h2>Temporizador</h2></div><button id="timer-close" type="button" class="icon-button" aria-label="Cerrar temporizador" title="Cerrar">×</button></div>
+      <div id="timer-face" class="timer-face" style="--timer-progress:100"><div class="timer-ring" aria-hidden="true"></div><div id="timer-display" class="timer-display" aria-live="polite"></div></div>
+      <div class="timer-presets" id="timer-presets"></div>
+      <div class="timer-picker" aria-label="Ajustar duración">
+        <label>Horas<select id="timer-hours" aria-label="Horas"></select></label>
+        <span class="timer-picker-separator">:</span>
+        <label>Minutos<select id="timer-minutes" aria-label="Minutos"></select></label>
+        <span class="timer-picker-separator">:</span>
+        <label>Segundos<select id="timer-seconds" aria-label="Segundos"></select></label>
+      </div>
+      <div class="timer-controls">
+        <button id="timer-start" class="timer-control timer-control-primary" type="button" aria-label="Iniciar temporizador" title="Iniciar">▶</button>
+        <button id="timer-pause" class="timer-control" type="button" aria-label="Pausar temporizador" title="Pausar">Ⅱ</button>
+        <button id="timer-reset" class="timer-control" type="button" aria-label="Reiniciar temporizador" title="Reiniciar">↺</button>
+        <button id="timer-test-sound" class="timer-control" type="button" aria-label="Probar sonido" title="Probar sonido">♪</button>
+      </div>
+      <p class="fine-print timer-help">El temporizador sigue contando al cambiar de sección.</p>
     </dialog>
     <dialog id="confirm-dialog" class="modal confirm-modal">
       <form method="dialog">

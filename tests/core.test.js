@@ -46,6 +46,29 @@ test('cada lanzamiento suma giros completos y termina en la orientación de la c
     assert.equal(((angle % 360) + 360) % 360, ((target % 360) + 360) % 360);
   }
 });
+test('permite volver a tirar antes de revelar una carta y descarta el resultado anterior', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }];
+  const values = [.01, .99];
+  const engine = gameEngine(state, () => values.shift());
+  assert.equal(engine.rollDigital().face.category, 'VERDAD');
+  const reroll = engine.rerollDigital();
+  assert.equal(reroll.face.category, 'BLOQUEADA');
+  assert.equal(state.game.current.primaryCard, null);
+  assert.equal(engine.completeRoll().blocked, true);
+});
+test('sustituir una carta conserva la categoría y consume otra carta del mismo ciclo', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }];
+  state.cards = state.cards.filter((card) => card.categoryId === 'VERDAD').slice(0, 3);
+  const engine = gameEngine(state, () => .2);
+  const first = engine.draw('VERDAD').card;
+  const replacement = engine.redraw(first.id);
+  assert.ok(replacement.card);
+  assert.equal(replacement.card.categoryId, 'VERDAD');
+  assert.notEqual(replacement.card.id, first.id);
+  assert.equal(state.game.current.primaryCard.cardId, replacement.card.id);
+});
 test('verdad registra resultado y el turno avanza una sola vez al finalizar explícitamente', () => {
   const state = seedState();
   state.participants = [{ id: 'p', name: 'A', active: true }, { id: 'q', name: 'B', active: true }];
