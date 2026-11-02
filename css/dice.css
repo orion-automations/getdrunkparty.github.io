@@ -34,7 +34,7 @@
   filter: drop-shadow(0 14px 20px #0009);
 }
 .dice-cube.dice-clickable { cursor: pointer; }
-.dice-cube.dice-clickable:hover { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--face-color), transparent 50%)); }
+.dice-cube.dice-clickable:hover { filter: none; box-shadow: 0 0 22px color-mix(in srgb, var(--face-color), transparent 62%); }
 .dice-face {
   position: absolute;
   inset: 0;
