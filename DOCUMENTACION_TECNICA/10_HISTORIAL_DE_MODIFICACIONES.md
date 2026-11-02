@@ -74,3 +74,10 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - En la selección de participantes, deslizar a la derecha marca ganador/premio y a la izquierda perdedor/castigo; las flechas del teclado ofrecen el mismo control. El botón de registro conserva la validación del motor (`js/app.js`, `js/game.js`, `js/minigame-results.js`).
 - Después de registrar, se quitó el resumen de nombres ganadores/perdedores. Los destinatarios de consecuencias configuradas y opcionales se eligen con el mismo gesto en sus filas, y luego se toca el mazo auxiliar correspondiente (`js/app.js`).
 - Los textos de orientación solo aparecen antes del registro; la interacción táctil conserva el desplazamiento vertical (`index.html`, `css/dice.css`).
+
+## 2026-11-02 — Temporizador y dado digital
+
+- La cápsula del temporizador se trasladó desde el panel de partida a la cabecera y sustituye el icono pequeño. Su apertura sigue usando `#timer-inline` y `renderTimer()` en `js/app.js`; se eliminó el antiguo controlador `#timer-open`, que habría detenido la carga del resto de los eventos al no existir ya ese elemento.
+- El dado conserva la orientación de la cara exacta sorteada, incluidas ambas caras de VERDAD y DESAFÍO. `startDigitalRoll()` inicia el estado de giro antes de renderizar, calcula varias vueltas 3D y finaliza en la cara que corresponde al resultado (`js/app.js`, `js/dice.js`, `css/dice.css`).
+- Al elegir Cumplió o Toma Shot se cierra automáticamente un turno sin efectos auxiliares pendientes; por eso el botón Finalizar turno ya no aparece como segundo paso para ese flujo (`js/app.js: confirmResult`).
+- Cuando el dado no puede actuar, ahora indica el motivo en vez de ignorar el toque. La versión visible, paquete y caché PWA se actualizaron a `1.4.7`.

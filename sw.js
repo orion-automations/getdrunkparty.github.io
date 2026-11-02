@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "gdpw-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}1.4.6`;
+const CACHE_NAME = `${CACHE_PREFIX}1.4.7`;
 const SHELL = [
   "./",
   "./index.html",

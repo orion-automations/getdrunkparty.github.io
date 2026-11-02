@@ -37,7 +37,7 @@
         ><span
           >GET DRUNK <b>PARTY</b><small>WEB · OFFLINE EDITION</small></span
         ></a
-      ><div class="topbar-actions"><button id="timer-open" class="icon-button" aria-label="Abrir temporizador" title="Temporizador">◷</button><button id="menu-toggle" class="icon-button" aria-label="Abrir menú" title="Menú">☰</button></div>
+      ><div class="topbar-actions"><button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador"><span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span></button><button id="menu-toggle" class="icon-button" aria-label="Abrir menú" title="Menú">☰</button></div>
     </header>
     <nav id="nav" class="nav">
       <button data-view="game" class="nav-link active">Partida</button
@@ -102,9 +102,6 @@
                 <h2 id="current-player">Agrega participantes</h2>
               </div>
             </div>
-            <button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador">
-              <span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span>
-            </button>
             <label class="mode-picker"
               >Modo de juego
               <select id="game-mode" aria-label="Modo de juego">

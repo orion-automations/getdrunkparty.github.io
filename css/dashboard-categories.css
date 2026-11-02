@@ -162,7 +162,7 @@
   justify-content: center;
   text-align: center;
 }
-.timer-inline {
+.game-panel > .timer-inline {
   position: absolute;
   top: 14px;
   right: 16px;
@@ -201,18 +201,18 @@
   }
 }
 @media (max-width: 580px) {
-  .timer-inline {
+  .game-panel > .timer-inline {
     top: 10px;
     right: 10px;
     gap: 6px;
     padding: 5px 8px 5px 5px;
     font-size: .8rem;
   }
-  .timer-inline-ring {
+  .game-panel > .timer-inline .timer-inline-ring {
     width: 23px;
     height: 23px;
   }
-  .timer-inline-ring span {
+  .game-panel > .timer-inline .timer-inline-ring span {
     width: 16px;
     height: 16px;
   }

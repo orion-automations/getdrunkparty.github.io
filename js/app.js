@@ -215,9 +215,6 @@ function renderGame() {
     DICE_FACES.find((face) => face.id === Number(cur?.diceFace)) ??
     DICE_FACES.find((face) => face.category === cur?.category);
   if (selectedFace && cube.dataset.resultFaceId !== String(selectedFace.id)) {
-    const settledFace =
-      DICE_FACES.find((face) => face.category === selectedFace.category) ??
-      selectedFace;
     cube.dataset.face = selectedFace.category;
     cube.dataset.resultFaceId = String(selectedFace.id);
     cube.style.setProperty(
@@ -225,10 +222,10 @@ function renderGame() {
       diceFaceColor(selectedFace.category),
     );
     if (!rolling) {
-      cube.dataset.rotationX = String(settledFace.x);
-      cube.dataset.rotationY = String(settledFace.y);
+      cube.dataset.rotationX = String(selectedFace.x);
+      cube.dataset.rotationY = String(selectedFace.y);
       cube.style.transition = "none";
-      cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
+      cube.style.transform = `rotateX(${selectedFace.x}deg) rotateY(${selectedFace.y}deg)`;
       cube.offsetWidth;
       cube.style.removeProperty("transition");
     }
@@ -1208,10 +1205,6 @@ TIMER_PRESETS.forEach((seconds) => {
   button.onclick = () => setTimer(seconds * 1000);
   $("#timer-presets").append(button);
 });
-$("#timer-open").onclick = () => {
-  renderTimer();
-  $("#timer-dialog").showModal();
-};
 $("#timer-inline").onclick = () => {
   renderTimer();
   $("#timer-dialog").showModal();
@@ -1315,8 +1308,8 @@ function startDigitalRoll(repeat = false) {
   cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  // The roll is part of the core game feedback: always show the full four-second roll.
-  const duration = 4000;
+  // Mantiene las seis caras visibles durante un giro 3D breve y reactivo.
+  const duration = 1350;
   const targetX = diceRotationTarget(currentX, face.x, 6);
   const targetY = diceRotationTarget(currentY, face.y, 8);
   cube.style.transition = "none";
@@ -1333,11 +1326,9 @@ function startDigitalRoll(repeat = false) {
       return;
     }
     const resolved = engine.completeRoll();
-    const settledFace =
-      DICE_FACES.find((item) => item.category === face.category) ?? face;
-    cube.dataset.rotationX = String(settledFace.x);
-    cube.dataset.rotationY = String(settledFace.y);
-    cube.style.transform = `rotateX(${settledFace.x}deg) rotateY(${settledFace.y}deg)`;
+    cube.dataset.rotationX = String(face.x);
+    cube.dataset.rotationY = String(face.y);
+    cube.style.transform = `rotateX(${face.x}deg) rotateY(${face.y}deg)`;
     cube.offsetWidth;
     cube.style.removeProperty("transition");
     rolling = false;
@@ -1347,13 +1338,16 @@ function startDigitalRoll(repeat = false) {
   requestAnimationFrame(animateRoll);
 }
 function activateDice() {
-  if (rolling || state.settings.gameMode !== "digital") return;
+  if (rolling) return notify("El dado está girando.");
+  if (state.settings.gameMode !== "digital")
+    return notify("Cambia al modo Dado digital para tirar.");
   const turn = state.game.current;
   if (!turn) return startDigitalRoll();
   if (!turn.primaryCard && (["ROLLING", "AWAITING_CATEGORY"].includes(turn.phase) || (turn.type === "BLOCKED" && turn.phase === "RESOLVING")))
     return startDigitalRoll(true);
   if (turn.primaryCard && ["VERDAD", "DESAFIO", "MINIJUEGO"].includes(turn.category) && !turn.outcome && !turn.minigameResult)
     return redrawCard(turn.primaryCard.cardId);
+  notify("Termina las acciones de la carta actual antes de volver a tirar.");
 }
 $("#dice-cube").onclick = activateDice;
 $("#dice-cube").onkeydown = (event) => {
@@ -1366,14 +1360,18 @@ function confirmResult(result, sourceCardId) {
   if (!engine.resolve(result, sourceCardId))
     return notify("El resultado de este turno ya fue confirmado.");
   persist();
-  renderGame();
-  if (state.game.current?.category === "DESAFIO") {
+  const hasAuxiliaryEffect = (state.game.current?.pendingEffects ?? []).some(
+    (effect) => effect.type === "DRAW_AUXILIARY",
+  );
+  if (!hasAuxiliaryEffect) {
     const finished = engine.finishTurn();
     if (finished) {
       persist();
       render();
+      return;
     }
   }
+  renderGame();
 }
 $("#confirm-completed").onclick = () =>
   confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);

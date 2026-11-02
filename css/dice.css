@@ -29,6 +29,7 @@
   width: var(--die-size);
   height: var(--die-size);
   transform-style: preserve-3d;
+  will-change: transform;
   transition: transform 2.5s cubic-bezier(0.12, 0.74, 0.18, 1);
   filter: drop-shadow(0 14px 20px #0009);
 }
@@ -55,6 +56,7 @@
   text-shadow: 0 0 12px
     color-mix(in srgb, var(--face-color, #39e58c), transparent 45%);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .face-front {
   transform: rotateY(0deg) translateZ(52px);

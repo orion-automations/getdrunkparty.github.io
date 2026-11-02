@@ -60,7 +60,7 @@ button:disabled {
   z-index: 15;
   backdrop-filter: blur(14px);
 }
-.topbar-actions { display: flex; gap: 6px; }
+.topbar-actions { display: flex; align-items: center; gap: 6px; }
 .brand {
   display: flex;
   align-items: center;
@@ -126,7 +126,7 @@ button:disabled {
 .topbar .icon-button {
   display: none;
 }
-#timer-open { display: block !important; font-size: 1.15rem; }
+.topbar .timer-inline { flex: 0 0 auto; }
 main {
   max-width: 1220px;
   margin: 0 auto;
