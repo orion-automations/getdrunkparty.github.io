@@ -1,15 +1,15 @@
 {
   "id": "./",
-  "name": "Get Drunk Party",
-  "short_name": "GDP Party",
-  "description": "Juego de cartas de fiesta para instalar y jugar sin conexión.",
+  "name": "ZEVYRA Games",
+  "short_name": "ZEVYRA",
+  "description": "ZEVYRA Games — THE DARK PLAYGROUND. Un universo de juegos sociales.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0B0B10",
-  "theme_color": "#0B0B10",
+  "theme_color": "#7B2CFF",
   "icons": [
     {
       "src": "./assets/icons/icon-192.png",
@@ -21,12 +21,6 @@
       "src": "./assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./assets/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]

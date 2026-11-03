@@ -66,9 +66,11 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 | `supabase/sql/003_multiplayer_functions.sql` | RPC transaccionales de crear/unirse/iniciar/guardar/heartbeat/salir/transferir/cerrar sala. |
 | `supabase/sql/004_multiplayer_realtime.sql` | Replica identity y publicación de tablas de sala/estado. |
 | `supabase/README.md` | Orden de despliegue SQL, requisitos del proyecto, comprobaciones y límites. |
-| `assets/icons/icon.svg` | Marca vectorial, favicon/manifiesto y shell SW. |
-| `assets/icons/icon-192.png`, `icon-512.png` | Iconos PWA, listados en manifest y SW. |
-| `assets/icons/favicon-32.png`, `apple-touch-icon.png` | Iconos de navegador/iOS enlazados por HTML y precacheados. |
+| `assets/brand/zevyra-emblem.png` | Imagen fuente original del logo proporcionado por el usuario, usada en encabezado, hero y catálogo. |
+| `assets/icons/icon.svg`, `favicon.svg` | Contenedores SVG livianos que muestran la imagen raster original; no vectorizan ni reinterpretan la ilustración. El favicon se enlaza en HTML y ambos SVG se precachean. |
+| `assets/icons/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon-32x32.png` | Variantes raster para PWA, iOS y navegador; listadas en manifest/HTML y SW. |
+| `js/games-catalog.js` | Datos del catálogo ZEVYRA (juego disponible y experiencias próximas), importados por `app.js`. |
+| `css/platform.css` | Estilos de marca y vistas Inicio/Juegos, selector de modalidad, lobby y responsive. Enlazado desde `index.html`. |
 
 ## Árbol observado
 

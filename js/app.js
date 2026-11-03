@@ -1,4 +1,5 @@
 import { CATEGORIES, TARGETS, VERSION } from "./config.js";
+import { GAMES_CATALOG, getAvailableGame } from "./games-catalog.js";
 import {
   loadState,
   saveState,
@@ -32,6 +33,7 @@ let animateCardId = null;
 let rolling = false;
 let timerState = { remainingMs: 30000, totalMs: 30000, endsAt: null, interval: null };
 let onlineMode = false;
+let playMode = "choose";
 let applyingRemoteState = false;
 let localModeBackup = null;
 let roomPresence = [];
@@ -124,6 +126,7 @@ function handleRoomSaveError(error) {
   notify(multiplayerErrorMessage(error));
 }
 function enterOnlineMode() {
+  playMode = "online";
   if (onlineMode) return;
   const timerRemaining = timerState.endsAt ? Math.max(0, timerState.endsAt - Date.now()) : timerState.remainingMs;
   localModeBackup = {
@@ -163,7 +166,8 @@ function renderMultiplayerRoom(details = null) {
   $("#multiplayer-join-form").classList.toggle("hidden", Boolean(session));
   if (!session) return;
   $("#multiplayer-room-code").textContent = session.code;
-  $("#multiplayer-room-status").textContent = details?.room?.status ?? session.status;
+  const roomStatus = details?.room?.status ?? session.status;
+  $("#multiplayer-room-status").textContent = roomStatus === "waiting" ? "Esperando jugadores" : roomStatus === "playing" ? "Partida en curso" : "Sala cerrada";
   $("#multiplayer-start").classList.toggle("hidden", session.role !== "host" || session.status !== "waiting");
   $("#multiplayer-claim-host").classList.toggle("hidden", session.role === "host" || session.status === "closed");
   $("#multiplayer-close").classList.toggle("hidden", session.role !== "host" || session.status === "closed");
@@ -173,6 +177,8 @@ function renderMultiplayerRoom(details = null) {
   const players = details?.players ?? state.participants.map((player) => ({
     user_id: player.id, username_snapshot: player.name, role: player.id === session.user.id ? session.role : "player", status: "joined",
   }));
+  $("#multiplayer-player-count").textContent = players.length + (players.length === 1 ? " jugador" : " jugadores");
+  $("#multiplayer-start").disabled = players.length < 2;
   for (const player of players) {
     const item = document.createElement("li");
     const isOnline = roomPresence.some((presence) => presence.userId === player.user_id);
@@ -270,7 +276,8 @@ async function connectOnlineRoom(mode, code = "") {
       },
     });
     $("#multiplayer-name").value = connection.session.profile.username;
-    renderMultiplayerRoom();
+    renderMultiplayerRoom(connection.snapshot);
+    setView(connection.session.status === "playing" ? "game" : "multiplayer");
     return true;
   } catch (error) {
     leaveOnlineMode();
@@ -287,6 +294,7 @@ async function leaveOnlineRoom() {
     notify(multiplayerErrorMessage(error));
   }
   leaveOnlineMode();
+  playMode = "choose";
   $("#multiplayer-connection").textContent = "Desconectado";
   renderMultiplayerRoom();
 }
@@ -320,6 +328,20 @@ $("#multiplayer-claim-host").onclick = async () => {
     notify("Ahora tienes el control de la partida.");
   } catch (error) {
     notify(multiplayerErrorMessage(error));
+  }
+};
+$("#multiplayer-copy-code").onclick = async () => {
+  const code = getMultiplayerSession()?.code;
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    notify("Código copiado.");
+  } catch {
+    const field = $("#multiplayer-code");
+    field.value = code;
+    field.focus();
+    field.select();
+    notify("Seleccionamos el código para que puedas copiarlo.");
   }
 };
 $("#multiplayer-leave").onclick = leaveOnlineRoom;
@@ -481,15 +503,84 @@ function publishSharedTimer() {
   }
 }
 function setView(view) {
-  $$(".view").forEach((el) =>
-    el.classList.toggle("active", el.id === `view-${view}`),
-  );
-  $$(".nav-link").forEach((el) =>
-    el.classList.toggle("active", el.dataset.view === view),
-  );
-  $("#nav").classList.remove("open");
+  $$(".view").forEach((el) => el.classList.toggle("active", el.id === `view-${view}`));
+  $$("#nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === (view === "home" ? "home" : "games")));
+  $$("#tools-nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === view));
+  $("#tools-nav").classList.remove("open");
+  $("#tools-nav").hidden = true;
+  $("#timer-inline").classList.toggle("is-hidden", !["game", "players", "editor", "manuals", "settings", "multiplayer"].includes(view));
+  if (view === "game" && playMode === "online" && getMultiplayerSession()?.status === "playing") playMode = "online";
+  history.replaceState(null, "", view === "home" ? "#inicio" : view === "games" ? "#juegos" : `#${view}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
   render();
+}
+function renderGameLibrary() {
+  const host = $("#games-library");
+  if (!host) return;
+  host.replaceChildren();
+  for (const game of GAMES_CATALOG) {
+    const card = document.createElement("article");
+    card.className = `game-card ${game.available ? "is-available" : "is-coming-soon"}`;
+    const cover = document.createElement("div");
+    cover.className = "game-card-cover-wrap";
+    const image = document.createElement("img");
+    image.className = "game-card-cover";
+    image.src = game.cover;
+    image.alt = "";
+    cover.append(image);
+    if (!game.available) {
+      const lock = document.createElement("span");
+      lock.className = "game-card-lock";
+      lock.setAttribute("aria-hidden", "true");
+      lock.textContent = "▣";
+      cover.append(lock);
+    }
+    const content = document.createElement("div");
+    content.className = "game-card-content";
+    const status = document.createElement("span");
+    status.className = "game-status";
+    status.textContent = game.status;
+    const title = document.createElement("h2");
+    title.textContent = game.name;
+    const description = document.createElement("p");
+    description.textContent = game.description;
+    const action = document.createElement("button");
+    action.className = `button${game.available ? " button-primary" : ""}`;
+    action.type = "button";
+    action.textContent = game.available ? "Jugar" : "Próximamente";
+    action.disabled = !game.available;
+    if (game.available) action.onclick = () => { playMode = "choose"; setView(game.route); };
+    content.append(status, title, description, action);
+    card.append(cover, content);
+    host.append(card);
+  }
+}
+function renderFeaturedGame() {
+  const game = getAvailableGame("get-drunk-party");
+  const host = $("#featured-game");
+  if (!host || !game) return;
+  host.replaceChildren();
+  const image = document.createElement("img");
+  image.className = "featured-game-cover";
+  image.src = game.cover;
+  image.alt = "Emblema de ZEVYRA Games";
+  const copy = document.createElement("div");
+  copy.className = "featured-game-copy";
+  const status = document.createElement("span");
+  status.className = "game-status";
+  status.textContent = game.status;
+  const title = document.createElement("h3");
+  title.textContent = game.name;
+  const description = document.createElement("p");
+  description.className = "muted";
+  description.textContent = game.description;
+  const button = document.createElement("button");
+  button.className = "button button-primary";
+  button.type = "button";
+  button.textContent = "Jugar";
+  button.onclick = () => { playMode = "choose"; setView("game"); };
+  copy.append(status, title, description, button);
+  host.append(image, copy);
 }
 function esc(text) {
   return escapeText(text);
@@ -499,6 +590,8 @@ function shotLabel(count) {
   return `${shots} ${shots === 1 ? "Shot" : "Shots"}`;
 }
 function render() {
+  $("#play-mode-screen").classList.toggle("hidden", playMode !== "choose");
+  $("#gameplay-screen").classList.toggle("hidden", playMode === "choose");
   renderGame();
   renderRewards();
   renderPlayers();
@@ -1522,8 +1615,23 @@ $("#nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
   if (btn) setView(btn.dataset.view);
 });
-$("#start-adding-players").onclick = () => setView("players");
-$("#menu-toggle").onclick = () => $("#nav").classList.toggle("open");
+$("#tools-nav").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-view]");
+  if (btn) setView(btn.dataset.view);
+});
+$("#menu-toggle").onclick = () => {
+  const menu = $("#tools-nav");
+  menu.hidden = false;
+  menu.classList.toggle("open");
+};
+$("#home-browse-games").onclick = $("#home-all-games").onclick = () => setView("games");
+$("#back-to-games").onclick = () => setView("games");
+$("#back-to-mode-select").onclick = () => { playMode = "choose"; setView("game"); };
+$("#start-local-game").onclick = () => { playMode = "local"; setView("game"); };
+$("#open-online-game").onclick = () => setView("multiplayer");
+$("#multiplayer-back").onclick = () => { playMode = "choose"; setView("game"); };
+renderGameLibrary();
+renderFeaturedGame();
 $$(".close-dialog").forEach(
   (b) => (b.onclick = () => b.closest("dialog").close()),
 );
@@ -1544,6 +1652,7 @@ for (const [id, max, selected] of [
   select.onchange = syncTimerFromPicker;
 }
 renderTimer();
+setView("home");
 TIMER_PRESETS.forEach((seconds) => {
   const button = document.createElement("button");
   button.type = "button";

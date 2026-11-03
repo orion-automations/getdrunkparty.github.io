@@ -95,3 +95,11 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - Se añadieron tablas, políticas RLS, funciones SQL transaccionales y publicación Realtime en `supabase/sql/001`–`004`; guía de instalación en `supabase/README.md`.
 - La integración requiere que el operador habilite Anonymous Sign-Ins y ejecute los cuatro scripts en Dashboard. No se han ejecutado esos cambios externos ni se ha completado prueba de dos dispositivos; por eso queda pendiente la aceptación online.
 - La versión visible, paquete y caché PWA pasan a `1.5.0`. Se revisó sintaxis JavaScript; las pruebas automatizadas y el navegador se documentan según su resultado real al finalizar esta fase.
+
+## 2026-11-02 — Plataforma ZEVYRA Games, fase 1
+
+- Se incorporaron vistas Inicio y Juegos, catálogo desde `js/games-catalog.js`, selector de modalidad y acceso al lobby ya conectado a Supabase (`index.html`, `js/app.js`).
+- Se instaló como logo el emblema proporcionado por el usuario y se regeneraron los tamaños PNG; `manifest.json`, `index.html` y `sw.js` apuntan a la identidad ZEVYRA.
+- La versión declarada y caché del shell pasan a 1.6.0.
+- `npm test` pasó (1 suite); `node --check js/app.js` pasó. El navegador no pudo recargar la ruta `file://` y el entorno bloqueó el servidor local.
+- Sigue pendiente habilitar acciones de invitados mediante RPC validada y probar Supabase/Realtime entre dispositivos. Ver [`11_FASE_1_ZEVYRA_GAMES.md`](11_FASE_1_ZEVYRA_GAMES.md).
