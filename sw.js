@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}1.6.1`;
+const CACHE_NAME = `${CACHE_PREFIX}1.8.0`;
 const SHELL = [
   "./",
   "./index.html",
@@ -11,6 +11,10 @@ const SHELL = [
   "./css/platform.css",
   "./js/app.js",
   "./js/games-catalog.js",
+  "./data/midnight-catalog.js",
+  "./data/round-events.js",
+  "./data/power-catalog.js",
+  "./data/chain-challenges.js",
   "./js/supabase.js",
   "./js/multiplayer.js",
   "./js/multiplayer-auth.js",

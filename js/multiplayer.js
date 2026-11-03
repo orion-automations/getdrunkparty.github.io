@@ -37,6 +37,12 @@ export function getMultiplayerSession() {
   return session;
 }
 
+export async function getSavedProfile() {
+  const { auth } = await services();
+  const user = await auth.ensureAnonymousIdentity();
+  return auth.getProfile(user.id);
+}
+
 export async function connectRoom({ mode, code, username, avatar = null, maxPlayers = 8, initialState, onSnapshot, onPresence, onStatus }) {
   await waitForSdk();
   const { auth, rooms, sync } = await services();
@@ -130,20 +136,46 @@ export async function closeCurrentRoom() {
   return result;
 }
 
-export function scheduleRoomState(state, timer = null, onError = () => {}) {
+export function scheduleRoomTimer(timer = null, onError = () => {}) {
   if (!session || session.role !== "host" || session.status !== "playing") return;
-  clearTimeout(session.saveTimeout);
-  session.saveTimeout = setTimeout(async () => {
+  clearTimeout(session.timerTimeout);
+  session.timerTimeout = setTimeout(async () => {
     const expected = session.version;
     try {
       const { rooms } = await services();
-      const result = await rooms.saveRoomGame(session.roomId, expected, state, timer);
+      const result = await rooms.saveSharedTimer(session.roomId, expected, timer);
       session.version = Number(result.version ?? expected + 1);
     } catch (error) {
       onError(error);
       session.handlers.onStatus?.("reconnecting", error);
     }
   }, 180);
+}
+
+export function scheduleRoomAction(state, timer = null, onError = () => {}) {
+  if (!session || session.status !== "playing") return;
+  clearTimeout(session.saveTimeout);
+  session.saveTimeout = setTimeout(async () => {
+    const expected = session.version;
+    try {
+      const { rooms } = await services();
+      const result = await rooms.actRoomTurn(session.roomId, expected, state, timer);
+      session.version = Number(result.version ?? expected + 1);
+    } catch (error) {
+      onError(error);
+      session.handlers.onStatus?.("reconnecting", error);
+    }
+  }, 180);
+}
+
+export async function saveConnectedProfile(username, avatar = null) {
+  if (!session) throw new Error("Conéctate a una sala para guardar el perfil online.");
+  const { auth, rooms } = await services();
+  const profile = await auth.saveProfile(session.user.id, username, avatar);
+  await rooms.refreshRoomProfile(profile.username, profile.avatar);
+  session.profile = profile;
+  await refreshRoom();
+  return profile;
 }
 
 export async function refreshRoom() {
@@ -161,6 +193,7 @@ export async function disconnectRoom({ voluntary = true } = {}) {
   if (!session) return;
   const current = session;
   clearTimeout(current.saveTimeout);
+  clearTimeout(current.timerTimeout);
   clearInterval(current.heartbeat);
   session = null;
   let leaveError = null;

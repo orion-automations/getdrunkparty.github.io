@@ -1,6 +1,9 @@
 import { drawFromDeck } from "./decks.js";
 import { assignTargets, nextIndex } from "./participants.js";
 import { rollDice } from "./dice.js";
+import { ROUND_EVENTS } from "../data/round-events.js";
+import { CHAIN_CHALLENGES } from "../data/chain-challenges.js";
+import { POWER_CATALOG } from "../data/power-catalog.js";
 import {
   buildMinigameSelectionQueue,
   validateMinigameOutcomes,
@@ -54,6 +57,11 @@ export function gameEngine(state, random = Math.random) {
   if (!["digital", "physical"].includes(state.settings.gameMode))
     state.settings.gameMode = "digital";
   state.game.auxiliaryCards ??= [];
+  state.game.completedTurns ??= 0;
+  state.game.roundEventHistory ??= [];
+  state.game.powers ??= [];
+  state.game.usedPowers ??= [];
+  state.game.chain ??= null;
   // Migrate el turno de la versión anterior sin descartar la carta que estaba abierta.
   if (state.game.current) {
     state.game.current.auxiliaryCards ??= [];
@@ -312,6 +320,13 @@ export function gameEngine(state, random = Math.random) {
       if (state.game.current && state.game.state === "RESOLVING") {
         if (state.game.current.type === "BLOCKED") return { error: "LOCKED" };
         const turn = state.game.current;
+        if (category === "CASTIGO" && turn.shieldArmed) {
+          turn.shieldArmed = false;
+          turn.powerMessage = "El Escudo violeta canceló el castigo.";
+          state.game.powers = state.game.powers.filter((power) => power.id !== turn.shieldPowerId);
+          state.game.usedPowers.unshift({ key: "shield", playerId: turn.playerId, at: new Date().toISOString() });
+          return { category, blocked: true, shielded: true };
+        }
         if (turn.category === "MINIJUEGO" && turn.minigameResult) {
           const next = turn.pendingSelections?.[0];
           const armed = turn.armedSelection;
@@ -424,6 +439,76 @@ export function gameEngine(state, random = Math.random) {
       }
       return { category: item.category, card: draw.card, item };
     },
+    activatePower(powerId) {
+      const turn = state.game.current;
+      if (!turn || turn.playerId !== currentPlayer()?.id) return { error: "NOT_ACTIVE_TURN" };
+      const power = state.game.powers.find((item) => item.id === powerId && item.playerId === turn.playerId);
+      const definition = power && POWER_CATALOG.find((item) => item.id === power.key);
+      if (!power || !definition) return { error: "POWER_NOT_FOUND" };
+      if (power.key === "shield") {
+        if (turn.outcome || turn.auxiliaryCards?.some((item) => item.category === "CASTIGO")) return { error: "POWER_TIMING" };
+        turn.shieldArmed = true;
+        turn.shieldPowerId = power.id;
+      } else if (power.key === "redraw") {
+        if (!turn.primaryCard || turn.outcome) return { error: "POWER_TIMING" };
+        const auxiliary = turn.auxiliaryCards?.at(-1);
+        if (auxiliary) {
+          const replacement = drawFromDeck(state.cards, auxiliary.category, state.game.decks, random);
+          if (!replacement.card) return { error: "POWER_FAILED" };
+          auxiliary.cardId = replacement.card.id;
+        } else {
+          if (!MAIN_CATEGORIES.has(turn.category)) return { error: "POWER_TIMING" };
+          const changed = this.redraw(turn.primaryCard.cardId);
+          if (!changed.card) return { error: "POWER_FAILED" };
+        }
+      } else if (power.key === "pass") {
+        if (!turn.primaryCard || turn.outcome || turn.category !== "DESAFIO") return { error: "POWER_TIMING" };
+        turn.outcome = { result: "ALTERNATIVE_SELECTED", sourceCardId: turn.primaryCard.cardId, at: new Date().toISOString(), powerId: power.id };
+        turn.phase = "CONFIRMED";
+      }
+      state.game.powers = state.game.powers.filter((item) => item.id !== power.id);
+      state.game.usedPowers.unshift({ key: power.key, label: power.label, playerId: turn.playerId, at: new Date().toISOString() });
+      if (power.key === "pass" && !this.finishTurn()) return { error: "POWER_FAILED" };
+      return { power: definition, resolved: power.key === "pass" };
+    },
+    grantPower(playerId, key, source = "card") {
+      const definition = POWER_CATALOG.find((item) => item.id === key);
+      if (!definition || !state.participants.some((player) => player.id === playerId)) return { error: "INVALID_POWER" };
+      const id = `power_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      state.game.powers.unshift({ id, key, label: definition.label, playerId, source, createdAt: new Date().toISOString() });
+      return { id, key, playerId };
+    },
+    startChain(random = Math.random) {
+      if (state.game.chain || state.game.current) return { error: "LOCKED" };
+      const participants = state.participants.filter((player) => player.active);
+      if (participants.length < 2) return { error: "NEED_TWO_PLAYERS" };
+      const prompt = CHAIN_CHALLENGES[Math.floor(random() * CHAIN_CHALLENGES.length)];
+      const starter = participants.find((player) => player.id === currentPlayer()?.id) ?? participants[0];
+      state.game.chain = { id: `chain_${Date.now()}`, challengeId: prompt.id, playerIds: participants.map((player) => player.id), starterId: starter.id, activePlayerId: starter.id, visited: [], maxLinks: Math.min(prompt.maxLinks, participants.length), status: "active", startedAt: new Date().toISOString() };
+      return { chain: state.game.chain, prompt };
+    },
+    continueChain() {
+      const chain = state.game.chain;
+      if (!chain || chain.status !== "active") return { error: "NO_ACTIVE_CHAIN" };
+      chain.visited.push({ playerId: chain.activePlayerId, result: "CONTINUED", at: new Date().toISOString() });
+      const next = chain.playerIds.find((id) => !chain.visited.some((entry) => entry.playerId === id));
+      if (!next || chain.visited.length >= chain.maxLinks) return this.finishChain("LIMIT_REACHED");
+      chain.activePlayerId = next;
+      return { activePlayerId: next };
+    },
+    finishChain(reason = "VOLUNTARY") {
+      const chain = state.game.chain;
+      if (!chain) return { error: "NO_ACTIVE_CHAIN" };
+      if (chain.status === "active" && !chain.visited.some((entry) => entry.playerId === chain.activePlayerId)) chain.visited.push({ playerId: chain.activePlayerId, result: reason === "VOLUNTARY" ? "CLOSED" : "CONTINUED", at: new Date().toISOString() });
+      chain.status = "finished";
+      chain.finishedAt = new Date().toISOString();
+      chain.finishReason = reason;
+      state.game.chain = null;
+      state.game.chainHistory ??= [];
+      state.game.chainHistory.unshift(chain);
+      state.game.chainHistory = state.game.chainHistory.slice(0, 10);
+      return { finished: true };
+    },
     resolve(result, sourceCardId = null) {
       const turn = state.game.current;
       if (
@@ -525,6 +610,10 @@ export function gameEngine(state, random = Math.random) {
         }
       }
       for (const effect of turn.pendingEffects ?? []) {
+        if (effect.type === "GRANT_POWER" && POWER_CATALOG.some((power) => power.id === effect.key)) {
+          this.grantPower(turn.playerId, effect.key, card?.id ?? "card");
+          continue;
+        }
         if (effect.type !== "GRANT_REWARD" || !effect.key || !effect.label)
           continue;
         state.game.rewards ??= [];
@@ -538,10 +627,27 @@ export function gameEngine(state, random = Math.random) {
           createdAt: new Date().toISOString(),
         });
       }
-      state.game.currentIndex = nextIndex(
-        state.game.currentIndex,
-        state.participants.length,
-      );
+      if (turn.minigameResult) {
+        for (const item of turn.auxiliaryCards ?? []) {
+          const awardedCard = state.cards.find((entry) => entry.id === item.cardId);
+          if (awardedCard?.categoryId !== "PREMIO") continue;
+          for (const effect of normalizeEffects(awardedCard.effects?.onCompleted)) {
+            if (effect.type === "GRANT_POWER" && POWER_CATALOG.some((power) => power.id === effect.key)) {
+              this.grantPower(item.playerId ?? turn.playerId, effect.key, awardedCard.id);
+            }
+          }
+        }
+      }
+      state.game.completedTurns += 1;
+      const reverseOrder = state.game.activeRoundEvent?.effect === "reverse_order";
+      applyRoundProgress(state, this);
+      const activeIndexes = state.participants.map((player, index) => player.active ? index : -1).filter((index) => index >= 0);
+      if (reverseOrder && activeIndexes.length > 1) {
+        const position = activeIndexes.indexOf(state.game.currentIndex);
+        state.game.currentIndex = activeIndexes[(position <= 0 ? activeIndexes.length : position) - 1];
+      } else {
+        state.game.currentIndex = nextIndex(state.game.currentIndex, state.participants.length);
+      }
       state.game.current = null;
       state.game.state = "READY";
       locked = false;
@@ -564,6 +670,39 @@ export function gameEngine(state, random = Math.random) {
       return true;
     },
   };
+}
+
+function applyRoundProgress(state, engine) {
+  const completed = state.game.completedTurns;
+  const activeEvent = state.game.activeRoundEvent;
+  if (completed % 5 === 0) {
+    if (activeEvent) closeRoundEvent(state, activeEvent);
+    const event = ROUND_EVENTS[(completed / 5 - 1) % ROUND_EVENTS.length];
+    state.game.activeRoundEvent = { ...event, turnsRemaining: event.durationTurns, eventRound: completed / 5, participantGrants: [] };
+    state.game.roundEventHistory.unshift({ ...state.game.activeRoundEvent, status: "active", activatedAt: new Date().toISOString() });
+    state.game.roundEventHistory = state.game.roundEventHistory.slice(0, 20);
+    return;
+  }
+  if (!activeEvent) return;
+  if (["grant_pass", "grant_redraw", "grant_shield"].includes(activeEvent.effect)) {
+    const key = activeEvent.effect === "grant_pass" ? "pass" : activeEvent.effect === "grant_redraw" ? "redraw" : "shield";
+    activeEvent.participantGrants ??= [];
+    if (!activeEvent.participantGrants.includes(state.game.current?.playerId)) {
+      activeEvent.participantGrants.push(state.game.current?.playerId);
+      engine.grantPower(state.game.current?.playerId, key, activeEvent.id);
+    }
+  }
+  activeEvent.turnsRemaining -= 1;
+  if (activeEvent.turnsRemaining <= 0) {
+    closeRoundEvent(state, activeEvent);
+    state.game.activeRoundEvent = null;
+  }
+}
+
+function closeRoundEvent(state, event) {
+  const entry = state.game.roundEventHistory.find((item) => item.id === event.id && item.status === "active");
+  if (entry) Object.assign(entry, { status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
+  else state.game.roundEventHistory.unshift({ ...event, status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
 }
 
 function normalizeEffects(effects) {

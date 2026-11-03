@@ -1,4 +1,4 @@
-# Ficha técnica general — Get Drunk Party Web
+# Ficha técnica general — Midnight Chaos / ZEVYRA Games
 
 ## Resumen ejecutivo
 
@@ -8,15 +8,15 @@ Aplicación de juego de cartas para navegador, en español, mobile-first, servid
 
 | Campo | Estado observado |
 |---|---|
-| Nombre | Get Drunk Party Web; manifest: Get Drunk Party (`manifest.json:1-4`) |
-| Versión declarada | 1.5.0 (`js/config.js:1`, `package.json:3`, `sw.js:2`) |
+| Nombre | Midnight Chaos (`js/config.js:2-3`); plataforma ZEVYRA Games (`manifest.json:3-5`) |
+| Versión declarada | 1.8.0 (`js/config.js:1`, `package.json:3`, `sw.js:2`) |
 | Tipo | SPA multipantalla cliente, PWA instalable |
-| Entrada | `index.html:530` carga `js/app.js` como módulo |
+| Entrada | `index.html:591` carga `js/app.js` como módulo |
 | Stack | HTML, CSS, JavaScript ES modules, Node.js para servidor local |
 | Paquetes externos | Ningún paquete npm; SDK de Supabase v2 desde CDN al abrir la app (`index.html:14-19`) |
-| Persistencia | `localStorage`, clave `gdpw.data.v1` (`js/storage.js:11,84-178`) |
-| Catálogo inicial | `data/pdf-catalog.js` combinado con 67 cartas adicionales (`data/initial-cards.js:1-7`; `data/additional-challenges.js:92-120`) |
-| Pruebas | `node:test`, `tests/core.test.js`; `npm test` pasó en esta revisión. No cubre Supabase ni UI en navegador |
+| Persistencia | `localStorage`, clave por juego `zevyra.midnight-chaos.data.v1`, con lectura/migración desde `gdpw.data.v1` (`js/storage.js:8-11,92-198`) |
+| Catálogo inicial | 40 cartas originales y manuales (`data/midnight-catalog.js:9-65`; `data/initial-cards.js:1-3`) |
+| Pruebas | `node:test`, `tests/core.test.js`; `npm test` pasó. No cubre Supabase remoto ni sesión UI entre dispositivos |
 | Git | Existe `.git`; al revisar el espacio de trabajo los archivos de la app aparecían sin seguimiento, así que el estado previo no está descrito como base versionada |
 | Despliegue | Servidor simple `server.mjs`, o hosting de archivos HTTPS; no se encontró pipeline de build/deploy |
 
@@ -45,8 +45,8 @@ Estas funcionalidades se verifican en el código de `js/app.js`, `js/game.js` y 
 ├── manifest.json       # metadatos instalables
 ├── package.json
 ├── README.md
-├── Cartas Get Drunk Party.pdf
-└── Get Drunk Party Web.pdf
+├── Cartas Get Drunk Party.pdf (archivo fuente)
+└── Get Drunk Party Web.pdf (documento fuente)
 ```
 
 ## Límites de la auditoría

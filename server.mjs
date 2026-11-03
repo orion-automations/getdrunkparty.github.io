@@ -35,6 +35,6 @@ const server = createServer(async (req, res) => {
 });
 server.listen(Number(process.env.PORT) || 8080, "0.0.0.0", () =>
   console.log(
-    `GDP Web disponible en http://localhost:${server.address().port} (red local incluida)`,
+    `Midnight Chaos de ZEVYRA disponible en http://localhost:${server.address().port} (red local incluida)`,
   ),
 );

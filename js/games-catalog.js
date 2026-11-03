@@ -1,10 +1,11 @@
+import { GAME_NAME } from "./config.js";
 const zevyraCover = "./assets/brand/zevyra-emblem.png";
 
 export const GAMES_CATALOG = [
   {
-    id: "get-drunk-party",
-    name: "Get Drunk Party",
-    description: "Verdades, desafíos, minijuegos y cartas para jugar en grupo.",
+    id: "midnight-chaos",
+    name: GAME_NAME,
+    description: "Secretos, decisiones y desafíos impredecibles para el grupo.",
     status: "Disponible",
     available: true,
     cover: zevyraCover,

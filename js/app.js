@@ -1,4 +1,4 @@
-import { CATEGORIES, TARGETS, VERSION } from "./config.js";
+import { CATEGORIES, GAME_ID, GAME_NAME, TARGETS, VERSION } from "./config.js";
 import { GAMES_CATALOG } from "./games-catalog.js";
 import {
   loadState,
@@ -14,13 +14,18 @@ import { addDrink } from "./drinks.js";
 import { findManual } from "./manuals.js";
 import { DICE_FACES, diceRotationTarget } from "./dice.js";
 import { validateMinigameRules } from "./minigame-results.js";
+import { CHAIN_CHALLENGES } from "../data/chain-challenges.js";
+import { POWER_CATALOG } from "../data/power-catalog.js";
 import {
   closeCurrentRoom,
   connectRoom,
   disconnectRoom,
   getMultiplayerSession,
+  getSavedProfile,
   refreshRoom,
-  scheduleRoomState,
+  saveConnectedProfile,
+  scheduleRoomAction,
+  scheduleRoomTimer,
   startRoom,
   takeRoomHost,
 } from "./multiplayer.js";
@@ -28,11 +33,15 @@ import {
 let state = loadState(),
   engine = gameEngine(state),
   toastTimer;
+let lastRenderedRoundEventId = state.game.activeRoundEvent?.id ?? null;
 let animateCardNext = false;
 let animateCardId = null;
 let rolling = false;
+let syncedRollStartedAt = null;
 let timerState = { remainingMs: 30000, totalMs: 30000, endsAt: null, interval: null };
 let onlineMode = false;
+let authorizedTurnActionAt = 0;
+let authorizedTurnActionUserId = null;
 let playMode = "choose";
 let applyingRemoteState = false;
 let localModeBackup = null;
@@ -61,6 +70,7 @@ function snapshotForRoom() {
   const cards = state.cards.filter((card) => referencedIds.has(card.id));
   const manualIds = new Set(cards.map((card) => card.manualId).filter(Boolean));
   return {
+    gameId: GAME_ID,
     participants: structuredClone(state.participants),
     settings: structuredClone(state.settings),
     game: structuredClone(state.game),
@@ -81,18 +91,32 @@ function requireOnlineHost(message = "Solo el anfitrión controla esta partida."
 }
 function canPlayOnlineGame() {
   const session = getMultiplayerSession();
-  return !onlineMode || (session?.role === "host" && session.status === "playing");
+  if (!onlineMode) return true;
+  if (!session || session.status !== "playing") return false;
+  const activeTurnPlayerId = state.game.chain?.activePlayerId ?? state.game.current?.playerId ?? state.participants[state.game.currentIndex]?.id;
+  return activeTurnPlayerId === session.user.id;
 }
 function requireOnlineGame(message = "La partida online aún no está iniciada o solo el anfitrión puede controlarla.") {
-  if (canPlayOnlineGame()) return true;
-  notify(message);
+  if (canPlayOnlineGame()) {
+    const session = onlineMode ? getMultiplayerSession() : null;
+    if (session) {
+      authorizedTurnActionAt = Date.now();
+      authorizedTurnActionUserId = session.user.id;
+    }
+    return true;
+  }
+  const currentName = state.game.current
+    ? state.participants.find((player) => player.id === state.game.current.playerId)?.name
+    : state.participants[state.game.currentIndex]?.name;
+  notify(onlineMode && currentName ? `Es el turno de ${currentName}. Espera tu turno para jugar.` : message);
   return false;
 }
 function persist() {
   if (onlineMode) {
     const session = getMultiplayerSession();
-    if (!applyingRemoteState && session?.role === "host") {
-      scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
+    const recentlyAuthorized = session && authorizedTurnActionUserId === session.user.id && Date.now() - authorizedTurnActionAt < 2000;
+    if (!applyingRemoteState && session?.status === "playing" && (canPlayOnlineGame() || recentlyAuthorized)) {
+      scheduleRoomAction(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
     }
     return;
   }
@@ -119,12 +143,18 @@ function multiplayerErrorMessage(error) {
   if (/ROOM_CLOSED|ROOM_NOT_WAITING/i.test(message)) return "La sala está cerrada y no acepta jugadores.";
   if (/AUTH_REQUIRED/i.test(message) || /Anonymous|anonymous/i.test(message)) return "No se pudo validar tu sesión online. Activa Anonymous Sign-Ins en Supabase.";
   if (code === "42501" || /ROOM_MEMBERSHIP_REQUIRED/i.test(message)) return "Tu sesión no tiene permiso para entrar a esta sala.";
-  if (code === "PGRST202" || /could not find the function/i.test(message)) return "Supabase no tiene actualizada la función de salas. Aplica la migración 005 y vuelve a intentarlo.";
+  if (code === "PGRST202" || /could not find the function/i.test(message)) {
+    return /gdp_act_turn|gdp_refresh_room_profile|gdp_save_shared_timer/i.test(message)
+      ? "Supabase necesita la migración 006_turn_actions_and_profile.sql para turnos y perfil."
+      : "Supabase no tiene actualizadas las funciones de sala. Aplica la migración 005_room_join_diagnostics.sql y vuelve a intentarlo.";
+  }
   if (/Failed to fetch|NetworkError|Load failed/i.test(message)) return "No hay conexión con Supabase. Revisa internet e inténtalo de nuevo.";
   if (/NEED_TWO_PLAYERS/i.test(message)) return "Se necesitan al menos dos jugadores para iniciar.";
   if (/HOST_REQUIRED/i.test(message)) return "Solo el anfitrión puede realizar esa acción.";
   if (/HOST_STILL_ACTIVE/i.test(message)) return "El anfitrión sigue conectado; no es necesario transferir el control.";
   if (/VERSION_CONFLICT/i.test(message)) return "La partida cambió en otro dispositivo. Se está actualizando.";
+  if (/TURN_OWNER_REQUIRED/i.test(message)) return "Solo quien tiene el turno puede realizar esta acción.";
+  if (/ROOM_GAME_MISMATCH/i.test(message)) return "Esta sala pertenece a otra experiencia de ZEVYRA.";
   if (/Invalid API key|JWT/i.test(message)) return "La URL y la clave de Supabase no corresponden o no son válidas.";
   if (code === "23505") return "Esta sesión ya está registrada en la sala.";
   return "No se pudo completar la acción online. Inténtalo de nuevo.";
@@ -223,6 +253,19 @@ function renderMultiplayerRoom(details = null) {
   }
 }
 function applyOnlineSnapshot(roomState, timer, version, details = null) {
+  if (roomState?.gameId && roomState.gameId !== GAME_ID) {
+    notify("Esta sala pertenece a otra experiencia de ZEVYRA.");
+    return;
+  }
+  const oldTurn = state.game.current;
+  const oldCardIds = new Set([oldTurn?.primaryCard?.cardId, ...(oldTurn?.auxiliaryCards ?? []).map((item) => item.cardId)].filter(Boolean));
+  const incomingTurn = roomState?.game?.current;
+  const sessionBeforeApply = getMultiplayerSession();
+  const animateIncomingRoll = Boolean(
+    incomingTurn?.phase === "ROLLING" && incomingTurn.rollStartedAt &&
+    incomingTurn.rollStartedAt !== oldTurn?.rollStartedAt &&
+    incomingTurn.playerId !== sessionBeforeApply?.user.id
+  );
   enterOnlineMode();
   applyingRemoteState = true;
   const priorPlayers = state.participants ?? [];
@@ -243,6 +286,7 @@ function applyOnlineSnapshot(roomState, timer, version, details = null) {
     state.participants = structuredClone(roomState.participants);
   }
   if (roomState?.game) state.game = structuredClone(roomState.game);
+  if (animateIncomingRoll) rolling = true;
   if (roomState?.settings) state.settings = { ...state.settings, ...roomState.settings };
   if (Array.isArray(roomState?.cards)) {
     const remoteIds = new Set(roomState.cards.map((card) => card.id));
@@ -252,6 +296,12 @@ function applyOnlineSnapshot(roomState, timer, version, details = null) {
     const remoteIds = new Set(roomState.manuals.map((manual) => manual.id));
     state.manuals = [...state.manuals.filter((manual) => !remoteIds.has(manual.id)), ...structuredClone(roomState.manuals)];
   }
+  const nextTurn = state.game.current;
+  const incomingCards = [nextTurn?.primaryCard, ...(nextTurn?.auxiliaryCards ?? [])].filter((item) => item && !oldCardIds.has(item.cardId));
+  if (incomingCards.length) {
+    animateCardNext = true;
+    animateCardId = incomingCards.at(-1).cardId;
+  }
   engine = gameEngine(state);
   if (timer) applySharedTimer(timer);
   applyingRemoteState = false;
@@ -259,9 +309,13 @@ function applyOnlineSnapshot(roomState, timer, version, details = null) {
   $("#multiplayer-connection").textContent = session?.status === "playing" ? "Partida sincronizada" : session?.status === "closed" ? "Sala cerrada" : "Conectado";
   renderMultiplayerRoom(details);
   render();
+  if (animateIncomingRoll) {
+    const face = DICE_FACES.find((item) => item.id === Number(nextTurn.diceFace));
+    if (face) animateDiceRoll(face, Number(nextTurn.rollStartedAt), null, true);
+    else rolling = false;
+  }
   if ((details?.room?.status ?? session?.status) === "playing") {
     setView("game");
-    $("#game-message").textContent = session?.role === "host" ? "Partida online · control del anfitrión." : "Partida online · siguiendo al anfitrión.";
   }
 }
 function applySharedTimer(timer) {
@@ -283,14 +337,30 @@ function applySharedTimer(timer) {
   renderTimer();
 }
 async function connectOnlineRoom(mode, code = "") {
-  const typedName = $("#multiplayer-name").value.trim();
-  const fallbackName = state.participants[state.game.currentIndex]?.name ?? state.participants.find((player) => player.active)?.name ?? "";
-  const username = typedName || fallbackName;
-  if (username) $("#multiplayer-name").value = username;
+  let username = $("#profile-nickname").value.trim() || localStorage.getItem("zevyra.profile.name") || "";
+  if (!username) {
+    try {
+      const savedProfile = await getSavedProfile();
+      username = savedProfile?.username ?? "";
+      if (username) {
+        $("#profile-nickname").value = username;
+        localStorage.setItem("zevyra.profile.name", username);
+      }
+    } catch (error) {
+      logMultiplayerError("load-profile", error);
+    }
+  }
+  if (!username) {
+    notify("Configura tu nickname antes de entrar a una partida.");
+    setView("profile");
+    return false;
+  }
+  $("#multiplayer-name").value = username;
   const maxPlayers = Number($("#multiplayer-capacity").value);
   if (mode === "create" && (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 30))
     return notify("El máximo de jugadores debe estar entre 2 y 30.");
   const initialState = {
+    gameId: GAME_ID,
     participants: [],
     settings: structuredClone(state.settings),
     game: blankGame(),
@@ -313,6 +383,8 @@ async function connectOnlineRoom(mode, code = "") {
       },
     });
     $("#multiplayer-name").value = connection.session.profile.username;
+    $("#profile-nickname").value = connection.session.profile.username;
+    localStorage.setItem("zevyra.profile.name", connection.session.profile.username);
     renderMultiplayerRoom(connection.snapshot);
     setView(connection.session.status === "playing" ? "game" : "multiplayer");
     return true;
@@ -337,7 +409,9 @@ async function leaveOnlineRoom() {
   renderMultiplayerRoom();
 }
 
-$("#multiplayer-name").value = localStorage.getItem("zevyra.profile.name") || state.participants[state.game.currentIndex]?.name || state.participants[0]?.name || "";
+const savedProfileName = localStorage.getItem("zevyra.profile.name") || "";
+$("#multiplayer-name").value = savedProfileName;
+$("#profile-nickname").value = savedProfileName;
 for (const emoji of PLAYER_AVATARS) {
   const option = document.createElement("option");
   option.value = emoji;
@@ -360,6 +434,25 @@ const savedOnlineAvatar = localStorage.getItem("zevyra.profile.avatar");
 $("#multiplayer-avatar").value = PLAYER_AVATARS.includes(savedOnlineAvatar) ? savedOnlineAvatar : PLAYER_AVATARS[0];
 $("#multiplayer-name").addEventListener("change", () => localStorage.setItem("zevyra.profile.name", $("#multiplayer-name").value.trim()));
 $("#multiplayer-avatar").addEventListener("change", () => localStorage.setItem("zevyra.profile.avatar", $("#multiplayer-avatar").value));
+$("#profile-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const username = $("#profile-nickname").value.trim().slice(0, 32);
+  if (!username) return notify("Escribe un nickname para guardar tu perfil.");
+  localStorage.setItem("zevyra.profile.name", username);
+  $("#multiplayer-name").value = username;
+  const session = getMultiplayerSession();
+  if (session) {
+    try {
+      await saveConnectedProfile(username, session.profile.avatar ?? $("#multiplayer-avatar").value);
+      render();
+      notify("Nickname actualizado en tu perfil y en las salas activas.");
+    } catch (error) {
+      notify(multiplayerErrorMessage(error));
+    }
+  } else {
+    notify("Nickname guardado. Se usará automáticamente al entrar a una sala.");
+  }
+};
 $("#multiplayer-create-form").onsubmit = async (event) => {
   event.preventDefault();
   await connectOnlineRoom("create");
@@ -377,7 +470,6 @@ $("#multiplayer-start").onclick = async () => {
     await startRoom(snapshotForRoom());
     renderMultiplayerRoom();
     setView("game");
-    scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
   } catch (error) {
     notify(multiplayerErrorMessage(error));
   }
@@ -561,7 +653,7 @@ function syncTimerFromPicker() {
 function publishSharedTimer() {
   const session = getMultiplayerSession();
   if (onlineMode && session?.role === "host" && session.status === "playing") {
-    scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
+    scheduleRoomTimer(roomTimerSnapshot(), handleRoomSaveError);
   }
 }
 function setView(view) {
@@ -647,13 +739,20 @@ function shotLabel(count) {
   return `${shots} ${shots === 1 ? "Shot" : "Shots"}`;
 }
 function render() {
+  document.title = `${GAME_NAME} — ZEVYRA Games`;
+  $("#game-name-label").textContent = GAME_NAME;
   $("#play-mode-screen").classList.toggle("hidden", playMode !== "choose");
   $("#gameplay-screen").classList.toggle("hidden", playMode === "choose");
   renderGame();
   renderRewards();
   renderPlayers();
-  const profilePlayer = state.participants.find((player) => player.id === state.game.current?.playerId) ?? state.participants.find((player) => player.active);
-  $("#profile-nav-avatar").textContent = getMultiplayerSession()?.profile?.avatar || profilePlayer?.avatar || PLAYER_AVATARS[0];
+  const profileSession = getMultiplayerSession();
+  if (profileSession) {
+    $("#profile-nickname").value = profileSession.profile.username;
+    $("#profile-session-info").textContent = `Sesión anónima conectada · ${profileSession.user.id.slice(0, 8)} · el nickname se sincroniza en las salas activas.`;
+  } else {
+    $("#profile-session-info").textContent = "Perfil local. Se vinculará a tu identidad al iniciar una partida online.";
+  }
   renderCards();
   renderManuals();
   renderDrinks();
@@ -670,16 +769,20 @@ function renderGame() {
   const active = state.participants.filter((p) => p.active);
   const hasPlayers = active.length > 0;
   const cur = state.game.current;
-  const current = cur
-    ? state.participants.find((p) => p.id === cur.playerId)
-    : state.participants[state.game.currentIndex];
+  const current = state.game.chain
+    ? state.participants.find((p) => p.id === state.game.chain.activePlayerId)
+    : cur
+      ? state.participants.find((p) => p.id === cur.playerId)
+      : state.participants[state.game.currentIndex];
   $("#empty-game").classList.toggle("hidden", hasPlayers);
   $("#game-layout").classList.toggle("hidden", !hasPlayers);
   $("#current-player").textContent = current?.active
     ? current.name
     : "Agrega participantes";
   $("#current-player-avatar").textContent = current?.avatar || PLAYER_AVATARS[0];
-  const ready = state.game.state === "READY" && hasPlayers && !rolling;
+  renderRoundAndPowerState();
+  renderChainState();
+  const ready = state.game.state === "READY" && hasPlayers && !rolling && !state.game.chain;
   const readOnly = onlineMode && !canPlayOnlineGame();
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
@@ -755,17 +858,25 @@ function renderGame() {
   });
   $$("#category-choices [data-category]").forEach((button) => { button.disabled ||= readOnly; });
   $("#blocked-choice").disabled ||= readOnly;
-  $("#game-mode").disabled = readOnly || Boolean(cur) || rolling;
+  $("#game-mode").disabled = readOnly || Boolean(cur) || rolling || Boolean(state.game.chain);
   $("#save-minigame-participants").disabled = readOnly;
-  $("#game-message").textContent = cur
+  const gameMessage = cur
     ? cur.category === "BLOQUEADA"
       ? "Cara bloqueada · no hay acción."
       : cur.phase === "AWAITING_CATEGORY"
         ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · pulsa el mazo iluminado.`
         : cur.phase === "EMPTY"
           ? `Resultado: ${CATEGORIES[cur.category]?.label ?? cur.category} · mazo agotado.`
-          : `${CATEGORIES[cur.category]?.label ?? cur.category} · turno en curso.`
+      : `${CATEGORIES[cur.category]?.label ?? cur.category} · turno en curso.`
     : "";
+  const turnPlayer = state.game.chain
+    ? state.participants.find((player) => player.id === state.game.chain.activePlayerId)
+    : cur
+    ? state.participants.find((player) => player.id === cur.playerId)
+    : state.participants[state.game.currentIndex];
+  $("#game-message").textContent = onlineMode && !canPlayOnlineGame() && turnPlayer
+    ? `Es el turno de ${turnPlayer.name}. Espera tu turno para jugar.`
+    : cur?.powerMessage || gameMessage;
   const cardsHost = $("#turn-cards");
   const items = cur
     ? [cur.primaryCard, ...(cur.auxiliaryCards ?? [])].filter(Boolean)
@@ -884,6 +995,108 @@ function renderGame() {
   $("#reward-status").textContent = effectMessages.join(" ");
 }
 
+function renderRoundAndPowerState() {
+  const event = state.game.activeRoundEvent;
+  const panel = $("#round-event-panel");
+  const nextEventId = event?.id ?? null;
+  if (nextEventId && nextEventId !== lastRenderedRoundEventId) {
+    panel.classList.remove("is-revealing");
+    void panel.offsetWidth;
+    panel.classList.add("is-revealing");
+    setTimeout(() => panel.classList.remove("is-revealing"), 1400);
+  }
+  lastRenderedRoundEventId = nextEventId;
+  panel.classList.toggle("hidden", !event && !(state.game.completedTurns ?? 0));
+  $("#round-turn-count").textContent = `${state.game.completedTurns ?? 0} turnos completados`;
+  if (event) {
+    $("#round-event-title").textContent = `${event.name} · ${event.turnsRemaining} turnos`;
+    $("#round-event-description").textContent = event.description;
+  }
+  const history = $("#round-event-history");
+  history.replaceChildren();
+  for (const item of state.game.roundEventHistory ?? []) {
+    const line = document.createElement("li");
+    line.textContent = `${item.name} · ${item.status === "active" ? "Activo" : "Finalizado"}`;
+    history.append(line);
+  }
+  const ownerId = state.game.chain ? null : state.game.current?.playerId ?? state.participants[state.game.currentIndex]?.id;
+  const mine = (state.game.powers ?? []).filter((power) => power.playerId === ownerId);
+  const powers = $("#power-inventory");
+  powers.replaceChildren();
+  $("#power-inventory-panel").classList.toggle("hidden", !mine.length);
+  for (const power of mine) {
+    const definition = POWER_CATALOG.find((item) => item.id === power.key);
+    if (!definition) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "button button-small";
+    button.textContent = `Usar · ${power.label}`;
+    button.title = definition.description;
+    button.disabled = onlineMode && !canPlayOnlineGame();
+    button.onclick = () => {
+      if (!requireOnlineGame()) return;
+      const result = engine.activatePower(power.id);
+      if (result.error) return notify(result.error === "POWER_TIMING" ? "Ese poder no se puede usar en este momento." : "No se pudo activar el poder.");
+      persist();
+      renderGame();
+    };
+    powers.append(button);
+  }
+}
+
+function renderChainState() {
+  const chain = state.game.chain;
+  const panel = $("#chain-panel");
+  const lastChain = (state.game.chainHistory ?? [])[0];
+  const displayedChain = chain ?? lastChain;
+  const prompt = CHAIN_CHALLENGES.find((item) => item.id === displayedChain?.challengeId);
+  panel.classList.toggle("hidden", !displayedChain || !prompt);
+  const start = $("#chain-start");
+  start.classList.toggle("hidden", Boolean(chain || state.game.current) || state.participants.filter((player) => player.active).length < 2);
+  start.disabled = onlineMode && !canPlayOnlineGame();
+  if (!displayedChain || !prompt) return;
+  $("#chain-continue").classList.toggle("hidden", !chain);
+  $("#chain-finish").classList.toggle("hidden", !chain);
+  if (!chain) {
+    $("#chain-title").textContent = `${prompt.name} · finalizado`;
+    $("#chain-description").textContent = prompt.prompt;
+    const names = lastChain.visited.map((entry) => state.participants.find((player) => player.id === entry.playerId)?.name ?? "Participante");
+    $("#chain-status").textContent = `Participaron: ${names.join(" → ") || "sin pasos"}. Cierre: ${lastChain.finishReason}.`;
+    return;
+  }
+  const activePlayer = state.participants.find((player) => player.id === chain.activePlayerId);
+  $("#chain-title").textContent = prompt.name;
+  $("#chain-description").textContent = prompt.prompt;
+  $("#chain-status").textContent = `Actúa ${activePlayer?.name ?? "el siguiente jugador"} · ${chain.visited.length}/${chain.maxLinks} pasos · ${prompt.consent}`;
+  $("#chain-continue").textContent = prompt.continueLabel;
+  $("#chain-finish").textContent = prompt.finishLabel;
+  $("#chain-continue").disabled = onlineMode && !canPlayOnlineGame();
+  $("#chain-finish").disabled = onlineMode && !canPlayOnlineGame();
+}
+
+$("#round-history-toggle").onclick = () => $("#round-event-history").classList.toggle("hidden");
+$("#chain-start").onclick = () => {
+  if (!requireOnlineGame()) return;
+  const result = engine.startChain();
+  if (result.error) return notify(result.error === "NEED_TWO_PLAYERS" ? "Necesitas al menos dos participantes." : "No se puede iniciar una cadena ahora.");
+  persist();
+  renderGame();
+};
+$("#chain-continue").onclick = () => {
+  if (!requireOnlineGame()) return;
+  const result = engine.continueChain();
+  if (result.error) return notify("No se pudo continuar la cadena.");
+  persist();
+  renderGame();
+};
+$("#chain-finish").onclick = () => {
+  if (!requireOnlineGame()) return;
+  const result = engine.finishChain();
+  if (result.error) return notify("No hay una cadena activa.");
+  persist();
+  renderGame();
+};
+
 function updateSliderActive(host) {
   if (!host.children.length) return;
   const center = host.getBoundingClientRect().left + host.clientWidth / 2;
@@ -906,9 +1119,9 @@ function cubeIsInteractive(turn, ready, digital) {
   const canRepeatRoll = digital && turn && !turn.primaryCard && (["ROLLING", "AWAITING_CATEGORY"].includes(turn.phase) || (turn.type === "BLOCKED" && turn.phase === "RESOLVING"));
   const canReplaceMain = digital && turn?.primaryCard && ["VERDAD", "DESAFIO", "MINIJUEGO"].includes(turn.category) && !turn.outcome && !turn.minigameResult;
   cube.setAttribute("role", "button");
-  cube.setAttribute("tabindex", digital && !readOnly && (ready || canRepeatRoll || canReplaceMain) ? "0" : "-1");
+  cube.setAttribute("tabindex", digital && !readOnly && !rolling && (ready || canRepeatRoll || canReplaceMain) ? "0" : "-1");
   cube.setAttribute("aria-label", canReplaceMain ? `Tirar el dado para extraer otra carta de ${CATEGORIES[turn.category].label}` : "Pulsa para tirar el dado");
-  cube.classList.toggle("dice-clickable", digital && !readOnly && (ready || canRepeatRoll || canReplaceMain));
+  cube.classList.toggle("dice-clickable", digital && !readOnly && !rolling && (ready || canRepeatRoll || canReplaceMain));
   $("#dice-hint").textContent = canReplaceMain
     ? `Pulsa el dado para extraer otra carta de ${CATEGORIES[turn.category].label}.`
     : canRepeatRoll
@@ -1026,6 +1239,7 @@ function renderMinigameFlow(turn, card) {
         leftAction: () => setOutcome(player.id, "LOSS"),
         rightAction: () => setOutcome(player.id, "WIN"),
       });
+      row.classList.toggle("is-disabled", readOnly);
       row.dataset.result = "NEUTRAL";
       row.dataset.playerId = player.id;
       list.append(row);
@@ -1175,7 +1389,7 @@ function makeTurnCard(card, item, primary, animate) {
   );
   const back = document.createElement("div");
   back.className = "card-back";
-  back.innerHTML = '<div class="cross-ribbon"><span></span></div><b>GDP</b>';
+  back.innerHTML = '<div class="cross-ribbon"><span></span></div><img class="card-back-emblem" src="./assets/brand/zevyra-emblem.png" alt=""><b class="card-back-brand-mark">Z</b>';
   back.querySelector("span").textContent =
     CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
   const front = document.createElement("article");
@@ -1223,6 +1437,7 @@ function makeTurnCard(card, item, primary, animate) {
     timer.type = "button";
     timer.className = "button button-small";
     timer.textContent = `Iniciar ${card.durationSeconds}s`;
+    timer.disabled = onlineMode && !canPlayOnlineGame();
     timer.onclick = () => {
       setTimer(card.durationSeconds * 1000);
       $("#timer-dialog").showModal();
@@ -1699,7 +1914,21 @@ $("#menu-toggle").onclick = () => {
 };
 $("#home-browse-games").onclick = () => setView("games");
 $("#home-join-game").onclick = () => { playMode = "choose"; setView("game"); };
-$("#profile-nav").onclick = () => setView("players");
+$("#profile-nav").onclick = async () => {
+  setView("profile");
+  if (getMultiplayerSession() || $("#profile-nickname").value.trim()) return;
+  try {
+    const profile = await getSavedProfile();
+    if (profile?.username) {
+      $("#profile-nickname").value = profile.username;
+      $("#multiplayer-name").value = profile.username;
+      localStorage.setItem("zevyra.profile.name", profile.username);
+      $("#profile-session-info").textContent = `Perfil online recuperado · ${profile.id.slice(0, 8)}.`;
+    }
+  } catch (error) {
+    logMultiplayerError("load-profile", error);
+  }
+};
 $("#back-to-games").onclick = () => setView("games");
 $("#back-to-mode-select").onclick = () => { playMode = "choose"; setView("game"); };
 $("#start-local-game").onclick = async () => {
@@ -1844,26 +2073,40 @@ function startDigitalRoll(repeat = false) {
         ? "Agrega participantes primero."
         : "Espera a que termine la acción actual.",
     );
+  const rollStartedAt = Date.now();
+  state.game.current.rollStartedAt = rollStartedAt;
+  persist();
   rolling = true;
   renderGame();
-  $("#dice-stage").classList.remove("hidden");
-  $("#game-message").textContent = "";
   const { face } = result;
+  animateDiceRoll(face, rollStartedAt, () => {
+    engine.completeRoll();
+    rolling = false;
+    syncedRollStartedAt = null;
+    persist();
+    renderGame();
+  });
+}
+function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = false) {
+  if (syncedRollStartedAt === String(startedAt)) return;
+  syncedRollStartedAt = String(startedAt);
+  if (!alreadyRolling) rolling = true;
   const cube = $("#dice-cube");
+  $("#dice-stage").classList.remove("hidden");
   cube.dataset.face = face.category;
   cube.dataset.resultFaceId = String(face.id);
   cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  // Mantiene las seis caras visibles durante un giro 3D breve y reactivo.
   const duration = 1350;
+  const elapsedBeforeAnimation = Math.min(Math.max(Date.now() - Number(startedAt), 0), duration);
   const targetX = diceRotationTarget(currentX, face.x, 6);
   const targetY = diceRotationTarget(currentY, face.y, 8);
   cube.style.transition = "none";
   let animationStart = null;
   const animateRoll = (timestamp) => {
     animationStart ??= timestamp;
-    const progress = Math.min((timestamp - animationStart) / duration, 1);
+    const progress = Math.min((elapsedBeforeAnimation + timestamp - animationStart) / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
     const x = currentX + (targetX - currentX) * eased;
     const y = currentY + (targetY - currentY) * eased;
@@ -1872,15 +2115,14 @@ function startDigitalRoll(repeat = false) {
       requestAnimationFrame(animateRoll);
       return;
     }
-    const resolved = engine.completeRoll();
     cube.dataset.rotationX = String(face.x);
     cube.dataset.rotationY = String(face.y);
     cube.style.transform = `rotateX(${face.x}deg) rotateY(${face.y}deg)`;
     cube.offsetWidth;
     cube.style.removeProperty("transition");
     rolling = false;
-    persist();
-    renderGame();
+    syncedRollStartedAt = null;
+    onComplete?.();
   };
   requestAnimationFrame(animateRoll);
 }

@@ -1,5 +1,7 @@
 # Fase 1 — ZEVYRA Games
 
+> Registro histórico de Fase 1. Las funciones que aquí aparecen como pendientes —acciones de invitados, perfil, nombre Midnight Chaos y catálogo original— se abordaron parcialmente en Fase 2; consulte [13 — Fase 2](13_FASE_2_TURNOS_Y_PERFIL.md) y sus límites antes de tomar esta página como estado actual.
+
 Fecha: 2026-11-02  
 Versión de código: 1.6.0
 

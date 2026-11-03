@@ -1,0 +1,7 @@
+export const ROUND_EVENTS = [
+  { id: "EVENT_REVERSE", name: "Órbita inversa", description: "El orden de turnos avanza en sentido contrario durante esta ronda.", effect: "reverse_order", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+  { id: "EVENT_POWER", name: "Luz violeta", description: "Al cerrar su turno, cada participante recibe un Pase libre.", effect: "grant_pass", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+  { id: "EVENT_REWRITE", name: "Segunda toma", description: "Al cerrar su turno, cada participante recibe una Reescritura.", effect: "grant_redraw", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+  { id: "EVENT_OPEN", name: "Regla abierta", description: "Al cerrar su turno, cada participante recibe un Pase libre para una carta de desafío.", effect: "grant_pass", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+  { id: "EVENT_SPOTLIGHT", name: "Foco compartido", description: "Al cerrar su turno, cada participante recibe un Escudo violeta.", effect: "grant_shield", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+];

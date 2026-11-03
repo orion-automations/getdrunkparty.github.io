@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="./css/brand.css" />
     <link rel="stylesheet" href="./css/platform.css" />
     <meta name="application-name" content="ZEVYRA Games" />
-    <title>ZEVYRA Games — THE DARK PLAYGROUND</title>
+    <title>ZEVYRA Games</title>
   </head>
 
   <body>
@@ -58,7 +58,7 @@
       <button data-view="game" class="nav-link" aria-label="Partida" title="Partida"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v5l3 2"/></svg></button>
       <button data-view="players" class="nav-link" aria-label="Jugadores" title="Jugadores"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-14a3.5 3.5 0 0 1 0 6.8m1 2a5.5 5.5 0 0 1 3 5.2"/></svg></button>
       <button data-view="multiplayer" class="nav-link" aria-label="Multijugador" title="Multijugador"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9a11 11 0 0 1 14 0M8 12a6.5 6.5 0 0 1 8 0m-5 4a2 2 0 0 1 2 0"/><circle cx="12" cy="19" r="1"/></svg></button>
-      <button id="profile-nav" class="nav-link" aria-label="Mi perfil" title="Mi perfil"><span id="profile-nav-avatar" aria-hidden="true">🎮</span></button>
+      <button id="profile-nav" data-view="profile" class="nav-link" aria-label="Mi perfil" title="Mi perfil"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
     </nav>
     <nav id="tools-nav" class="tools-nav" aria-label="Herramientas del juego" hidden>
       <button data-view="editor" class="nav-link">Cartas</button>
@@ -79,6 +79,17 @@
           </div>
         </section>
       </section>
+      <section id="view-profile" class="view">
+        <div class="page-heading"><p class="eyebrow">TU IDENTIDAD ZEVYRA</p><h1>Mi perfil</h1><p class="muted">Este nickname se mostrará cuando participes en partidas online.</p></div>
+        <section class="panel profile-panel" aria-labelledby="profile-heading">
+          <div class="profile-avatar-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+          <form id="profile-form" class="form-grid">
+            <label>Nickname<input id="profile-nickname" maxlength="32" autocomplete="nickname" required placeholder="Elige cómo te verán" /></label>
+            <button class="button" type="submit">Guardar nickname</button>
+          </form>
+          <p id="profile-session-info" class="fine-print" role="status">Perfil local. Se vinculará a tu identidad al iniciar una partida online.</p>
+        </section>
+      </section>
       <section id="view-games" class="view">
         <div class="page-heading platform-page-heading"><p class="eyebrow">BIBLIOTECA DE EXPERIENCIAS</p><h1>Juegos</h1><p class="muted">Elige una experiencia y crea una nueva forma de jugar.</p></div>
         <div id="games-library" class="games-library" aria-live="polite"></div>
@@ -86,7 +97,7 @@
       <section id="view-game" class="view">
         <section id="play-mode-screen" class="play-mode-screen panel">
           <button id="back-to-games" type="button" class="text-button">← Volver a Juegos</button>
-          <p class="eyebrow">GET DRUNK PARTY</p>
+          <p id="game-name-label" class="eyebrow">Juego disponible</p>
           <h1>¿Cómo quieres jugar?</h1>
           <p class="muted">Elige una modalidad. Tu partida local permanece en este dispositivo.</p>
           <div class="mode-cards">
@@ -102,31 +113,31 @@
           aria-labelledby="empty-game-title"
         >
           <div class="empty-game-content">
-            <p class="eyebrow">GDP · GET DRUNK PARTY</p>
-            <h1 id="empty-game-title">GET DRUNK <span>PARTY</span></h1>
+            <p class="eyebrow">ZEVYRA GAMES</p>
+            <h1 id="empty-game-title">MIDNIGHT <span>CHAOS</span></h1>
             <div class="empty-card-stage" aria-hidden="true">
               <div class="empty-card empty-card-one">
                 <div class="empty-card-face empty-card-front">
-                  <span class="empty-card-ribbon"></span><b>G</b>
+                  <span class="empty-card-ribbon"></span><b>Z</b>
                 </div>
                 <div class="empty-card-face empty-card-back">
-                  <span class="empty-card-ribbon"></span><b>G</b>
+                  <span class="empty-card-ribbon"></span><b>Z</b>
                 </div>
               </div>
               <div class="empty-card empty-card-two">
                 <div class="empty-card-face empty-card-front">
-                  <span class="empty-card-ribbon"></span><b>D</b>
+                  <span class="empty-card-ribbon"></span><b>M</b>
                 </div>
                 <div class="empty-card-face empty-card-back">
-                  <span class="empty-card-ribbon"></span><b>D</b>
+                  <span class="empty-card-ribbon"></span><b>M</b>
                 </div>
               </div>
               <div class="empty-card empty-card-three">
                 <div class="empty-card-face empty-card-front">
-                  <span class="empty-card-ribbon"></span><b>P</b>
+                  <span class="empty-card-ribbon"></span><b>C</b>
                 </div>
                 <div class="empty-card-face empty-card-back">
-                  <span class="empty-card-ribbon"></span><b>P</b>
+                  <span class="empty-card-ribbon"></span><b>C</b>
                 </div>
               </div>
             </div>
@@ -183,6 +194,22 @@
               <div id="aux-category-choices" class="aux-category-choices"></div>
             </div>
             <div id="turn-cards" class="turn-cards hidden"></div>
+            <section id="round-event-panel" class="round-event-panel hidden" aria-live="polite">
+              <p class="eyebrow">EVENTO DE RONDA · <span id="round-turn-count">0 turnos</span></p>
+              <h3 id="round-event-title"></h3>
+              <p id="round-event-description" class="fine-print"></p>
+              <button id="round-history-toggle" class="text-button" type="button">Historial de eventos</button>
+              <ol id="round-event-history" class="round-event-history hidden"></ol>
+            </section>
+            <section id="power-inventory-panel" class="power-inventory-panel hidden" aria-label="Poderes disponibles">
+              <p class="eyebrow">TUS PODERES</p><div id="power-inventory"></div>
+            </section>
+            <section id="chain-panel" class="chain-panel hidden" aria-live="polite">
+              <p class="eyebrow">RETO ENCADENADO</p><h3 id="chain-title"></h3>
+              <p id="chain-description" class="fine-print"></p><p id="chain-status" class="fine-print"></p>
+              <div class="button-row"><button id="chain-continue" class="button" type="button">Continuar cadena</button><button id="chain-finish" class="button" type="button">Cerrar cadena</button></div>
+            </section>
+            <button id="chain-start" class="button hidden" type="button">Iniciar reto encadenado</button>
             <section
               id="minigame-flow"
               class="minigame-flow hidden"
@@ -223,7 +250,7 @@
                   Cumplió el castigo
                 </button>
                 <button id="confirm-alternative" class="button hidden">
-                  Toma Shot
+                  Elegir alternativa
                 </button>
                 <button id="finish-turn" class="button hidden">
                   Finalizar turno
@@ -269,7 +296,7 @@
         <div class="page-heading"><button id="multiplayer-back" type="button" class="text-button">← Volver a modalidades</button><p class="eyebrow">JUEGA CON TU GRUPO</p><h1>Multijugador online</h1><p class="muted">Crea una sala privada o únete con el código de invitación.</p></div>
         <section class="panel multiplayer-panel" id="multiplayer-panel" aria-labelledby="multiplayer-heading">
           <div class="panel-heading"><div><p class="eyebrow">SALA ONLINE</p><h2 id="multiplayer-heading">Lobby</h2></div><span id="multiplayer-connection" class="fine-print" role="status">Desconectado</span></div>
-          <div class="multiplayer-profile"><label>Tu nickname<input id="multiplayer-name" maxlength="32" placeholder="Tu nombre" autocomplete="nickname" /></label><label>Avatar<select id="multiplayer-avatar" aria-label="Elige tu avatar online"></select></label></div>
+          <div class="multiplayer-profile"><label>Nickname de Mi perfil<input id="multiplayer-name" maxlength="32" placeholder="Configúralo en Mi perfil" autocomplete="nickname" readonly /></label><label>Avatar<select id="multiplayer-avatar" aria-label="Elige tu avatar online"></select></label></div>
           <form id="multiplayer-create-form" class="form-grid"><label>Máximo de jugadores<input id="multiplayer-capacity" type="number" min="2" max="30" value="8" required /></label><button class="button button-primary" type="submit">Crear sala</button></form>
           <div class="lobby-divider"><span>o únete con una invitación</span></div>
           <form id="multiplayer-join-form" class="inline-form"><label class="grow">Código de sala<input id="multiplayer-code" maxlength="6" autocomplete="one-time-code" required placeholder="ABC234" /></label><button class="button" type="submit">Unirme a la sala</button></form>

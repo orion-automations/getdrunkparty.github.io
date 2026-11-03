@@ -70,7 +70,7 @@ Para que nuevos desafíos formen parte del catálogo incluido en el código:
 2. En el mismo índice al final de `shotCounts`, agrega `1`, `2` o `3`. Ese número es la penalización que aparece abajo como Shots. No escribas «O toma X shots» en la descripción: la app muestra la cantidad desde `penalty.units`.
 3. Los IDs y títulos se generan en orden desde `DESAFIO_PDF_103` / `Desafío 103`; las 67 entradas actuales llegan hasta el 169. No reordenes ni elimines elementos de estas dos listas, porque su posición determina qué texto, cantidad e ID quedan emparejados.
 4. Incrementa `ADDITIONAL_CHALLENGE_CATALOG_VERSION` en ese archivo (ahora es `5`) para que las instalaciones existentes agreguen las nuevas cartas. La migración inserta solo los IDs faltantes y conserva las cartas y participantes locales.
-5. Incrementa la versión visible en `js/config.js`, `package.json` y el nombre de caché en `sw.js` (actualmente `1.6.1`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
+5. Incrementa la versión visible en `js/config.js`, `package.json` y el nombre de caché en `sw.js` (actualmente `1.8.0`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
 
 Para añadir por código una carta de otra categoría, agrega el objeto completo a `OTHER_ADDITIONAL_CARDS` en `data/additional-challenges.js` y aumenta la misma versión de catálogo. `data/initial-cards.js` ya combina esa lista con `PDF_CARDS`, y `js/storage.js` añade automáticamente a las instalaciones existentes las cartas adicionales cuyo ID aún no está guardado. Usa un ID único. Ejemplo de formato:
 
@@ -87,7 +87,7 @@ Para añadir por código una carta de otra categoría, agrega el objeto completo
 
 No necesitas cambiar `data/pdf-catalog.js` para añadir cartas por este método. Esa lista contiene las 310 cartas originales del PDF; `data/additional-challenges.js` contiene las adiciones posteriores.
 
-Las categorías y colores están en `js/config.js`. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición de 2.5 segundos se configuran en `css/dice.css`; las caras visibles están en `index.html`. El catálogo base contiene 377 cartas: las 310 originales de `data/pdf-catalog.js` y 67 desafíos nuevos de `data/additional-challenges.js`; `data/initial-cards.js` combina ambos archivos. Los manuales completos de los 50 minijuegos están en el mismo archivo base y se cargan desde `data/initial-manuals.js`. Las instalaciones existentes incorporan las 67 cartas mediante una migración que conserva sus demás datos.
+El nombre e ID de Midnight Chaos están en `js/config.js`. Las categorías y colores también se configuran allí. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición 3D se configuran en `css/dice.css`; las caras visibles están en `index.html`. Las fuentes históricas de cartas siguen en `data/pdf-catalog.js` y `data/additional-challenges.js`, pero ya no forman el catálogo inicial activo.
 
 ## Manuales, bebidas e iconos
 
@@ -95,9 +95,9 @@ En **Manuales**, usa **＋ Nuevo manual** para crear reglas o **Editar manual** 
 
 `consequenceRules` es una lista opcional para minijuegos. Cada regla usa `when` (`WIN`, `LOSS` o `ANY`), `category` (`PREMIO` o `CASTIGO`), `recipients` (`WINNERS`, `LOSERS`, `PARTICIPANTS` o `GROUP`) y exactamente uno de `cardsPerRecipient` o `totalCards`. Ejemplo: `[{"when":"LOSS","category":"CASTIGO","recipients":"LOSERS","cardsPerRecipient":1},{"when":"WIN","category":"PREMIO","recipients":"WINNERS","cardsPerRecipient":1}]`. `totalCards` crea esa cantidad fija de selecciones y permite asignar cada una a un destinatario elegible. No se añade ninguna regla por defecto; una lista vacía permite registrar el resultado y finalizar sin consecuencias.
 
-El catálogo inicial incorpora los minijuegos del documento Cartas Get Drunk Party.pdf con sus instrucciones completas. Si alguna regla requiere definir resultados o consecuencias, edita el manual correspondiente en **Manuales**; las reglas no se deducen automáticamente del texto.
+El catálogo inicial de **Midnight Chaos** usa contenido propio separado en `data/midnight-catalog.js`; sus minijuegos e instrucciones están en el mismo archivo de datos. Los catálogos heredados permanecen en archivos de archivo y los registros anteriores se desactivan durante la migración local sin borrarlos. Si alguna regla requiere definir resultados o consecuencias, edita el manual correspondiente en **Manuales**.
 
-El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). La marca de plataforma es ZEVYRA Games. El emblema fuente está en `assets/brand/zevyra-emblem.png`; sus variantes se referencian desde `manifest.json` y `index.html`. La paleta y presentación de plataforma están en `css/platform.css` y `css/brand.css`. El juego disponible conserva el nombre Get Drunk Party.
+El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). La marca de plataforma es ZEVYRA Games; el juego disponible se llama Midnight Chaos, configurado en `js/config.js`. El emblema fuente está en `assets/brand/zevyra-emblem.png`; sus variantes se referencian desde `manifest.json` y `index.html`. La paleta y presentación de plataforma están en `css/platform.css` y `css/brand.css`.
 
 Las cartas pueden incluir opcionalmente `effects`. Es un objeto de datos; por ejemplo `{"onCompleted":[{"type":"DRAW_AUXILIARY","category":"PREMIO"},{"type":"GRANT_REWARD","key":"protection","label":"Protección futura"}]}` permite acceder a un mazo auxiliar tras confirmar el resultado y guardar una ventaja con nombre para usar manualmente. `onNotCompleted` puede declarar de la misma forma una acción auxiliar de castigo. Estos efectos no se derivan del texto de la carta.
 
@@ -153,11 +153,11 @@ No abras el HTML desde un administrador de archivos esperando que funcionen mód
 npm test
 ```
 
-El catálogo base conserva las 310 cartas transcritas de Cartas Get Drunk Party.pdf (107 verdades, 102 desafíos, 50 minijuegos, 26 premios y 25 castigos) y suma los 67 desafíos nuevos, numerados del 103 al 169, para un total de 377 cartas y 169 desafíos. Las cantidades de shots de los desafíos aparecen en la parte inferior de cada carta y no se repiten en la descripción. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
+La versión 1.8.0 inicializa 40 cartas nuevas: 10 verdades, 10 desafíos, 8 minijuegos, 6 premios y 6 castigos. La migración de catálogo conserva y desactiva cartas de origen anteriores en lugar de eliminarlas, mantiene las personalizadas y añade los nuevos manuales sin sobrescribir modificaciones. Los premios aportan poderes persistentes; eventos se activan cada cinco turnos; las cadenas tienen un máximo de eslabones definido en datos. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
 
 ## Fase de plataforma ZEVYRA
 
-La navegación Inicio/Juegos, el catálogo basado en datos, el selector local/online, el lobby y los recursos de marca están descritos en [`DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md`](DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md). La partida multijugador aún es controlada solo por el anfitrión; las acciones de invitados y una prueba real entre dos dispositivos permanecen pendientes.
+La navegación Inicio/Juegos, el catálogo basado en datos, el selector local/online, el lobby y los recursos de marca están descritos en [`DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md`](DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md). La ruta nueva por turnos está en [`DOCUMENTACION_TECNICA/13_FASE_2_TURNOS_Y_PERFIL.md`](DOCUMENTACION_TECNICA/13_FASE_2_TURNOS_Y_PERFIL.md) y requiere la migración 006 antes de la prueba online actualizada.
 
 Los cambios de interfaz, emojis de avatar, diagnóstico de unión y la migración adicional preparada están en [`DOCUMENTACION_TECNICA/12_FASE_1_1_AUDITORIA_Y_UI.md`](DOCUMENTACION_TECNICA/12_FASE_1_1_AUDITORIA_Y_UI.md). La migración 005 requiere ejecución manual en el Dashboard; el fallo con una sala válida necesita confirmación contra el Supabase desplegado.
 

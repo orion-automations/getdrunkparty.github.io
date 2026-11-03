@@ -4,16 +4,151 @@ import { INITIAL_CARDS } from '../data/initial-cards.js';
 import { INITIAL_MANUALS } from '../data/initial-manuals.js';
 import { drawFromDeck } from '../js/decks.js';
 import { nextIndex, assignTargets } from '../js/participants.js';
-import { validateCards, seedState, isValidState, parseCardImport, exportCardCatalog } from '../js/storage.js';
+import { validateCards, seedState, isValidState, parseCardImport, exportCardCatalog, loadState, STORAGE_KEY, LEGACY_STORAGE_KEY } from '../js/storage.js';
 import { gameEngine } from '../js/game.js';
 import { DICE_FACES, rollDice, categoryProbabilities, diceRotationTarget } from '../js/dice.js';
 import { validateMinigameRules } from '../js/minigame-results.js';
+import { MIDNIGHT_CARDS } from '../data/midnight-catalog.js';
+import { ROUND_EVENTS } from '../data/round-events.js';
+import { CHAIN_CHALLENGES } from '../data/chain-challenges.js';
+import { POWER_CATALOG } from '../data/power-catalog.js';
+import { PDF_CARDS } from '../data/pdf-catalog.js';
+import { GAME_ID, GAME_NAME } from '../js/config.js';
 
-test('catálogo inicial conserva las 310 cartas del documento, suma 67 desafíos y manuales válidos', () => {
-  assert.equal(INITIAL_CARDS.length, 377);
-  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 377);
-  for (const [category, count] of Object.entries({ VERDAD: 107, DESAFIO: 169, MINIJUEGO: 50, PREMIO: 26, CASTIGO: 25 })) assert.equal(INITIAL_CARDS.filter((c) => c.categoryId === category).length, count);
+test('Midnight Chaos tiene identidad centralizada y las partidas nuevas conservan su ID propio', () => {
+  assert.equal(GAME_NAME, 'Midnight Chaos');
+  assert.equal(GAME_ID, 'midnight-chaos');
+  assert.equal(seedState().gameId, GAME_ID);
+});
+
+test('catálogo Midnight Chaos es original, separado por categoría y mantiene referencias válidas', () => {
+  assert.equal(INITIAL_CARDS.length, 40);
+  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 40);
+  assert.deepEqual(Object.fromEntries(['VERDAD','DESAFIO','MINIJUEGO','PREMIO','CASTIGO'].map((category) => [category, INITIAL_CARDS.filter((c) => c.categoryId === category).length])), { VERDAD: 10, DESAFIO: 10, MINIJUEGO: 8, PREMIO: 6, CASTIGO: 6 });
   assert.equal(validateCards(INITIAL_CARDS, INITIAL_MANUALS), true);
+  assert.ok(INITIAL_CARDS.every((card) => card.id.startsWith('MC_')));
+});
+
+test('los catálogos de eventos, poderes y cadenas tienen IDs únicos y reglas explícitas', () => {
+  for (const catalog of [ROUND_EVENTS, POWER_CATALOG, CHAIN_CHALLENGES]) assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
+  assert.ok(ROUND_EVENTS.every((event) => event.durationTurns === 5 && event.activation && event.completion && event.effect));
+  assert.ok(POWER_CATALOG.every((power) => power.timing && power.duration && power.effect && power.cancel));
+  assert.ok(CHAIN_CHALLENGES.every((chain) => chain.maxLinks >= 2 && chain.maxLinks <= 6 && chain.consent));
+});
+
+test('eventos de ronda se activan cada cinco turnos y el estado continúa tras recargar', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }, { id: 'q', name: 'B', active: true }];
+  const engine = gameEngine(state, () => .1);
+  const complete = () => { const card = engine.draw('VERDAD').card; assert.ok(card); assert.equal(engine.resolve('COMPLETED', card.id), true); assert.equal(engine.finishTurn(), true); };
+  for (let index = 0; index < 5; index++) complete();
+  assert.equal(state.game.completedTurns, 5);
+  assert.equal(state.game.activeRoundEvent.eventRound, 1);
+  assert.equal(state.game.activeRoundEvent.turnsRemaining, 5);
+  const persisted = JSON.parse(JSON.stringify(state));
+  const reloadedEngine = gameEngine(persisted);
+  for (let index = 0; index < 5; index++) {
+    const card = reloadedEngine.draw('VERDAD').card;
+    reloadedEngine.resolve('COMPLETED', card.id);
+    reloadedEngine.finishTurn();
+  }
+  assert.equal(persisted.game.completedTurns, 10);
+  assert.equal(persisted.game.activeRoundEvent.eventRound, 2);
+  assert.equal(persisted.game.roundEventHistory.filter((event) => event.status === 'active').length, 1);
+  assert.equal(persisted.game.roundEventHistory.filter((event) => event.status === 'completed').length, 1);
+});
+
+test('inventario de poder persiste, activa una alternativa y consume una sola vez', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }];
+  const engine = gameEngine(state, () => .1);
+  const granted = engine.grantPower('p', 'pass');
+  assert.ok(granted.id);
+  const turn = engine.draw('DESAFIO');
+  assert.equal(engine.activatePower(granted.id).resolved, true);
+  assert.equal(state.game.current, null);
+  assert.equal(state.game.completedTurns, 1);
+  assert.equal(state.game.powers.length, 0);
+  assert.equal(state.game.usedPowers.length, 1);
+});
+
+test('premio de minijuego concede el poder asociado a quien recibe la carta', () => {
+  const { state, engine, record } = makeMinigame(1, [{ when: 'WIN', category: 'PREMIO', recipients: 'WINNERS', cardsPerRecipient: 1 }]);
+  for (const card of state.cards.filter((item) => item.categoryId === 'PREMIO')) {
+    card.effects = { onCompleted: [{ type: 'GRANT_POWER', key: 'shield', label: 'Escudo violeta' }] };
+  }
+  assert.equal(record(['WIN']).pendingSelections, 1);
+  assert.equal(engine.armMinigameSelection('p1').category, 'PREMIO');
+  assert.ok(engine.draw('PREMIO').card);
+  assert.equal(engine.finishTurn(), true);
+  assert.equal(state.game.powers.length, 1);
+  assert.equal(state.game.powers[0].playerId, 'p1');
+  assert.equal(state.game.powers[0].key, 'shield');
+});
+
+test('reto encadenado asigna pasos, respeta límite y guarda historial', () => {
+  const state = seedState();
+  state.participants = ['a','b','c'].map((id) => ({ id, name: id, active: true }));
+  const engine = gameEngine(state, () => 0);
+  assert.equal(engine.startChain().chain.activePlayerId, 'a');
+  assert.equal(engine.continueChain().activePlayerId, 'b');
+  assert.equal(engine.continueChain().activePlayerId, 'c');
+  assert.equal(engine.continueChain().finished, true);
+  assert.equal(state.game.chain, null);
+  assert.equal(state.game.chainHistory[0].visited.length, 3);
+});
+
+test('migración 6 conserva cartas personalizadas y archiva desactivadas las cartas fuente antiguas', () => {
+  const originalStorage = globalThis.localStorage;
+  let saved = '';
+  const state = seedState();
+  const legacy = structuredClone(PDF_CARDS[0]);
+  const custom = { ...structuredClone(INITIAL_CARDS[0]), id: 'CUSTOM_001', title: 'Mi carta editada' };
+  state.catalogVersion = 5;
+  state.cards = [legacy, custom];
+  globalThis.localStorage = { getItem: () => JSON.stringify(state), setItem: (_key, value) => { saved = value; } };
+  try {
+    const migrated = loadState();
+    assert.equal(migrated.catalogVersion, 6);
+    assert.equal(migrated.cards.find((card) => card.id === legacy.id).enabled, false);
+    assert.equal(migrated.cards.find((card) => card.id === custom.id).title, 'Mi carta editada');
+    assert.ok(migrated.cards.some((card) => card.id === 'MC_TRUTH_001'));
+    assert.ok(JSON.parse(saved).cards.some((card) => card.id === custom.id));
+  } finally {
+    if (originalStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = originalStorage;
+  }
+});
+
+test('los datos locales se separan por juego y migran sin borrar la clave anterior', () => {
+  const originalStorage = globalThis.localStorage;
+  const legacyState = seedState();
+  let writtenKey = null;
+  globalThis.localStorage = {
+    getItem: (key) => key === LEGACY_STORAGE_KEY ? JSON.stringify(legacyState) : null,
+    setItem: (key) => { writtenKey = key; },
+  };
+  try {
+    const loaded = loadState();
+    assert.equal(loaded.gameId, GAME_ID);
+    assert.equal(writtenKey, STORAGE_KEY);
+    assert.notEqual(STORAGE_KEY, LEGACY_STORAGE_KEY);
+  } finally {
+    if (originalStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = originalStorage;
+  }
+});
+
+test('escudo violeta consume el poder para evitar una carta auxiliar de castigo', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }];
+  const engine = gameEngine(state, () => .1);
+  const shield = engine.grantPower('p', 'shield');
+  engine.draw('DESAFIO');
+  assert.equal(engine.activatePower(shield.id).power.id, 'shield');
+  assert.equal(engine.draw('CASTIGO').shielded, true);
+  assert.equal(state.game.powers.length, 0);
+  assert.equal(state.game.usedPowers[0].key, 'shield');
 });
 test('mazos agotan antes de repetirse, conservan ciclos separados y evitan última repetición', () => {
   const cards = INITIAL_CARDS.filter((c) => c.categoryId === 'VERDAD').slice(0, 3), decks = {};

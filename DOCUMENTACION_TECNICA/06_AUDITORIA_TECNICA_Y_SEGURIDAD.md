@@ -1,5 +1,7 @@
 # Auditoría técnica y seguridad
 
+> Esta auditoría captura hallazgos anteriores a Fase 2. La migración 006, el permiso por turno y las funciones nuevas se describen en [13 — Fase 2](13_FASE_2_TURNOS_Y_PERFIL.md). El SQL sigue sin validación en el proyecto Supabase remoto; los límites de validación semántica del snapshot siguen vigentes.
+
 ## Hallazgos
 
 | Gravedad | Hallazgo | Evidencia / alcance |
@@ -25,6 +27,7 @@ No se identificó hallazgo CRÍTICO o ALTO respaldado por el código inspecciona
 - Service worker limita interceptación a GET y mismo origen (`sw.js:56-64`).
 - La clave incluida en `js/supabase.js` es la pública `anon` destinada a cliente; el acceso depende de Auth, grants, RLS y RPC. No se usa clave `service_role` en el navegador.
 - Funciones SQL `SECURITY DEFINER` declaran `search_path = ''`, verifican `auth.uid()`, rol de anfitrión/membresía y limitan tamaño del snapshot; grants de ejecución se otorgan a `authenticated` (`supabase/sql/003_multiplayer_functions.sql`). La revisión de archivos no confirma que el proyecto remoto ejecute exactamente estos scripts.
+- La migración 006 añade `gdp_act_turn`: bloquea sala y snapshot, valida miembro con `status='joined'`, compara el usuario con el dueño del turno almacenado y verifica `expected_version` antes de guardar. `gdp_save_game_state` se revoca a `authenticated`; el temporizador usa una RPC separada que no cambia el JSON de juego. Debe aplicarse en Dashboard antes de probar la nueva ruta.
 - Las tablas de juego conceden solo `SELECT` directo a `authenticated`; escrituras pasan por RPC y las políticas limitan lecturas a miembros (`supabase/sql/002_multiplayer_policies.sql:44-68`). Verificar estas políticas tras aplicarlas en Dashboard.
 
 ## Calidad y mantenimiento

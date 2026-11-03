@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta documenta el código observado de Get Drunk Party Web, versión declarada 1.5.0. Las rutas y líneas se refieren a archivos del proyecto y deben contrastarse si cambian.
+Esta carpeta documenta el código observado de ZEVYRA Games / Midnight Chaos, versión declarada 1.8.0. Las rutas y líneas se refieren a archivos del proyecto y deben contrastarse si cambian.
 
 | Documento | Contenido |
 |---|---|
@@ -12,17 +12,19 @@ Esta carpeta documenta el código observado de Get Drunk Party Web, versión dec
 | [06 — Auditoría técnica y seguridad](06_AUDITORIA_TECNICA_Y_SEGURIDAD.md) | Hallazgos clasificados, evidencia y límites. |
 | [07 — Estado actual y transferencia](07_ESTADO_ACTUAL_Y_TRANSFERENCIA.md) | Clasificación de funcionalidades, riesgos y orden de familiarización. |
 | [08 — Instalación y ejecución](08_GUIA_DE_INSTALACION_Y_EJECUCION.md) | Requisitos, comandos declarados y operación de PWA. |
+| [13 — Fase 2: turnos y perfil](13_FASE_2_TURNOS_Y_PERFIL.md) | Acciones del participante activo, animación sincronizada, nickname y migración 006. |
 | [10 — Historial de modificaciones](10_HISTORIAL_DE_MODIFICACIONES.md) | Cambios implementados desde la auditoría, pruebas y pendientes. |
 
 ## Mapa rápido de trazabilidad
 
 - Entrada y vistas: `index.html` → `js/app.js`.
-- Estado: `js/app.js` → `js/storage.js` → `localStorage`.
+- Estado Midnight Chaos: `js/app.js` → `js/storage.js` → `localStorage: zevyra.midnight-chaos.data.v1`; la clave anterior `gdpw.data.v1` se importa sin borrarse.
 - Salas online: `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase.
-- SQL/RLS/Realtime: `supabase/sql/001` → `002` → `003` → `004`; guía de ejecución: `supabase/README.md`.
-- Catálogo: `js/storage.js` → `data/initial-cards.js` → `data/pdf-catalog.js` + `data/additional-challenges.js`.
+- SQL/RLS/Realtime: `supabase/sql/001` → `002` → `003` → `004` → `005` → `006`; guía de ejecución: `supabase/README.md`.
+- Catálogo: `js/storage.js` → `data/initial-cards.js` / `data/initial-manuals.js` → `data/midnight-catalog.js`; archivos anteriores quedan como archivo y migración 6 reversible.
+- Sistemas de partida: `js/game.js` → `data/power-catalog.js` / `data/round-events.js` / `data/chain-challenges.js`.
 - Turno: `js/app.js` → `js/game.js` → `js/dice.js` / `js/decks.js` / `js/participants.js` / `js/minigame-results.js` → `js/storage.js`.
 - PWA: `index.html` → `manifest.json`; `js/app.js` → `sw.js` → Cache Storage.
 - Desarrollo local: `package.json` → `server.mjs`.
 
-No se modificó el código fuente para producir esta documentación. Se inspeccionaron archivos propios de app y pruebas; los dos PDFs solo fueron reconocidos como binarios presentes, sin análisis semántico completo.
+El catálogo legado en los PDFs se conserva como fuente de archivo; esta fase no declara terminada una auditoría semántica de similitud de todos los textos de esos binarios. Las pruebas y validaciones realmente ejecutadas se detallan en `13_FASE_2_TURNOS_Y_PERFIL.md` y `10_HISTORIAL_DE_MODIFICACIONES.md`.

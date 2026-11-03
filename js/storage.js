@@ -4,14 +4,15 @@ import {
   REMOVED_LEGACY_CARD_IDS,
   REMOVED_LEGACY_MANUAL_IDS,
 } from "../data/catalog-migrations.js";
-import {
-  ADDITIONAL_CARDS,
-  ADDITIONAL_CHALLENGE_CATALOG_VERSION,
-} from "../data/additional-challenges.js";
-export const STORAGE_KEY = "gdpw.data.v1";
+import { POWER_CATALOG } from "../data/power-catalog.js";
+import { GAME_ID } from "./config.js";
+export const CATALOG_VERSION = 6;
+export const STORAGE_KEY = `zevyra.${GAME_ID}.data.v1`;
+export const LEGACY_STORAGE_KEY = "gdpw.data.v1";
 export const seedState = () => ({
   version: 1,
-  catalogVersion: ADDITIONAL_CHALLENGE_CATALOG_VERSION,
+  gameId: GAME_ID,
+  catalogVersion: CATALOG_VERSION,
   cards: structuredClone(INITIAL_CARDS),
   manuals: structuredClone(INITIAL_MANUALS),
   drinks: [
@@ -33,6 +34,12 @@ export const seedState = () => ({
     history: [],
     archives: [],
     rewards: [],
+    completedTurns: 0,
+    activeRoundEvent: null,
+    roundEventHistory: [],
+    powers: [],
+    usedPowers: [],
+    chain: null,
   },
 });
 export function isValidState(state) {
@@ -84,7 +91,9 @@ export function isValidState(state) {
 }
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const currentRaw = localStorage.getItem(STORAGE_KEY);
+    const loadedLegacyKey = !currentRaw;
+    const raw = currentRaw ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) {
       const init = seedState();
       saveState(init);
@@ -152,16 +161,40 @@ export function loadState() {
         parsed.catalogVersion = 4;
         saveState(parsed);
       }
-      if ((parsed.catalogVersion ?? 0) < ADDITIONAL_CHALLENGE_CATALOG_VERSION) {
+      if ((parsed.catalogVersion ?? 0) < 5) {
         const cardIds = new Set(parsed.cards.map((card) => card.id));
-        parsed.cards.push(
-          ...structuredClone(
-            ADDITIONAL_CARDS.filter((card) => !cardIds.has(card.id)),
-          ),
-        );
-        parsed.catalogVersion = ADDITIONAL_CHALLENGE_CATALOG_VERSION;
+        parsed.cards.push(...structuredClone(INITIAL_CARDS.filter((card) => !cardIds.has(card.id))));
+        parsed.catalogVersion = 5;
         saveState(parsed);
       }
+      if ((parsed.catalogVersion ?? 0) < CATALOG_VERSION) {
+        const liveCardIds = new Set([parsed.game.current?.primaryCard?.cardId, ...(parsed.game.current?.auxiliaryCards ?? []).map((card) => card.cardId)].filter(Boolean));
+        parsed.cards.forEach((card) => {
+          if (/^(VERDAD|DESAFIO|MINIJUEGO|PREMIO|CASTIGO)_PDF_/.test(card.id) || /^DESAFIO_PDF_(1[0-6][0-9]|0?[0-9]{3})$/.test(card.id)) {
+            if (!liveCardIds.has(card.id)) card.enabled = false;
+          }
+        });
+        const knownIds = new Set(parsed.cards.map((card) => card.id));
+        parsed.cards.push(...structuredClone(INITIAL_CARDS.filter((card) => !knownIds.has(card.id))));
+        const manualIds = new Set(parsed.manuals.map((manual) => manual.id));
+        parsed.manuals.push(...structuredClone(INITIAL_MANUALS.filter((manual) => !manualIds.has(manual.id))));
+        parsed.game.completedTurns ??= 0;
+        parsed.game.activeRoundEvent ??= null;
+        parsed.game.roundEventHistory ??= [];
+        parsed.game.powers ??= [];
+        parsed.game.usedPowers ??= [];
+        parsed.game.chain ??= null;
+        parsed.catalogVersion = CATALOG_VERSION;
+        parsed.gameId ??= GAME_ID;
+        saveState(parsed);
+      }
+      parsed.gameId ??= GAME_ID;
+      parsed.game.completedTurns ??= 0;
+      parsed.game.roundEventHistory ??= [];
+      parsed.game.powers ??= [];
+      parsed.game.usedPowers ??= [];
+      parsed.game.chain ??= null;
+      if (loadedLegacyKey) saveState(parsed);
       return parsed;
     }
   } catch (error) {
@@ -276,6 +309,8 @@ function validateEffects(effects, cardId) {
         typeof action.label === "string" &&
         action.label
       )
+        continue;
+      if (action.type === "GRANT_POWER" && POWER_CATALOG.some((power) => power.id === action.key))
         continue;
       throw new Error(`Tipo o datos de efecto no reconocidos en ${cardId}.`);
     }

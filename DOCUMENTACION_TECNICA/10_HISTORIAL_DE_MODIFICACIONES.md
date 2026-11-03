@@ -118,3 +118,21 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - Inicio ocupa el espacio disponible y anima tarjetas generadas desde `GAMES_CATALOG`, disponibles y próximas. Se quitó “Bienvenido”.
 - La cuadrícula de participantes contempla avatar, selector emoji, nombre, turno y acción Eliminar para que el último control no se corte (`css/styles.css`).
 - Verificación tras el ajuste: suite aprobada (1), sintaxis JS/SW aprobada e IDs HTML sin duplicar. No se pudo ejecutar inspección en navegador; servidor localhost sigue bloqueado por el entorno.
+
+## 2026-11-02 — Fase 2: Midnight Chaos
+
+- Nombre centralizado en `js/config.js` (`GAME_NAME`, `GAME_ID`) y aplicado al catálogo de juegos y título visible; `manifest.json` mantiene nombre neutral de plataforma.
+- `data/midnight-catalog.js` establece 40 cartas originales y ocho manuales. La migración local 6 desactiva pero conserva cartas fuente anteriores, mantiene cartas personalizadas y añade contenido por ID sin sobreescritura. El editor sigue usando el mismo contrato.
+- Se añadieron catálogos modulares de poderes, eventos y cadenas (`data/power-catalog.js`, `data/round-events.js`, `data/chain-challenges.js`) y cambios al motor (`js/game.js`) para inventario, poderes, eventos cada cinco turnos y cadenas finitas.
+- `gameId` se guarda en estado local/remoto. La interfaz rechaza snapshots de otro juego; la migración 006 verifica el ID.
+- Nuevas pruebas cubren catálogo, migración reversible, poderes, cadenas, contador de rondas e identidad. `npm test` pasa; falta revisión SQL en Supabase y prueba real de dos dispositivos después de aplicar 006.
+- Versiones de aplicación/paquete/caché: 1.8.0. Consulte límites de motor validado en servidor y auditoría completa del catálogo en el documento 13.
+
+## 2026-11-02 — Fase 2, turnos por jugador y perfil
+
+- La UI calcula el dueño del turno con el ID autenticado y bloquea dado, categorías, selección de minijuego y resolución para el resto. Los mensajes indican quién debe jugar (`js/app.js`).
+- La cara y hora del lanzamiento se guardan antes de animar; el snapshot dispara la misma cara en los dispositivos observadores (`js/app.js`, `js/game.js`).
+- El participante activo guarda por `gdp_act_turn`, validada con bloqueo de filas y versión optimista. El host conserva el lobby y el temporizador; `gdp_save_shared_timer` no escribe el estado de juego. La migración 006 revoca el antiguo guardado completo a `authenticated`.
+- Se añadió pantalla Perfil con SVG clásico, nickname local persistente y sincronización del perfil/roster en salas conectadas, conservando UUID e historial (`index.html`, `js/app.js`, `js/multiplayer.js`, `js/multiplayer-rooms.js`).
+- El reverso de cartas ahora usa el emblema ZEVYRA en vez de GDP. Se bumpó la versión de app/caché a 1.7.0.
+- `npm test` y `node --check` pasaron. Sin verificación SQL remota ni prueba actualizada de dos dispositivos; aplicar `supabase/sql/006_turn_actions_and_profile.sql` y seguir la prueba descrita en el documento 13.

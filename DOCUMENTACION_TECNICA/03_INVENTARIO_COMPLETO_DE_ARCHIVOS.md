@@ -1,5 +1,7 @@
 # Inventario de archivos propios
 
+> Este inventario conserva el detalle de una auditoría anterior a la Fase 2. Para las responsabilidades actuales de catálogo, estado, turnos, poderes, rondas, cadenas y RPC, consulte [13 — Fase 2](13_FASE_2_TURNOS_Y_PERFIL.md), que actualiza y prevalece sobre las filas históricas de versiones previas.
+
 Las líneas apuntan a los archivos del proyecto (números verificados con `nl -ba`/lectura directa durante la auditoría). “Consumido por” identifica referencias estáticas o uso observable; en archivos estáticos se refiere al documento/configuración que los enlaza. Los PDFs e imágenes son recursos binarios, por lo que no se atribuyen funciones ni líneas.
 
 ## Raíz
@@ -93,4 +95,4 @@ Se excluyen `.agents/`, `.aws/` y `.codex/` del inventario de aplicación: direc
 
 ## Actualización multijugador (fase Supabase)
 
-La ruta funcional de conexión está en `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase. `js/app.js` mantiene separados el estado local y el remoto; los clientes invitados son lectores y el host controla el motor. Los SQL de instalación deben ejecutarse por el operador del proyecto; el uso no se considera verificado hasta probar dos identidades de navegador.
+La ruta funcional de conexión está en `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase. `js/app.js` mantiene separados el estado local y el remoto; en juego, la RPC 006 da permiso de escritura al participante actual y el resto observa. El host mantiene control del lobby y temporizador. El uso de esta actualización queda pendiente de aplicar 006 y probar dos identidades de navegador.

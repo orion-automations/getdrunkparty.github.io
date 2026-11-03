@@ -51,12 +51,31 @@ export async function beginRoomGame(roomId, expectedVersion, state) {
   return unwrap(data);
 }
 
-export async function saveRoomGame(roomId, expectedVersion, state, timer) {
-  const { data, error } = await supabase.rpc("gdp_save_game_state", {
+export async function actRoomTurn(roomId, expectedVersion, state, timer) {
+  const { data, error } = await supabase.rpc("gdp_act_turn", {
     p_room_id: roomId,
     p_expected_version: expectedVersion,
     p_state: state,
     p_timer: timer,
+  });
+  if (error) throw error;
+  return unwrap(data);
+}
+
+export async function saveSharedTimer(roomId, expectedVersion, timer) {
+  const { data, error } = await supabase.rpc("gdp_save_shared_timer", {
+    p_room_id: roomId,
+    p_expected_version: expectedVersion,
+    p_timer: timer,
+  });
+  if (error) throw error;
+  return unwrap(data);
+}
+
+export async function refreshRoomProfile(username, avatar = null) {
+  const { data, error } = await supabase.rpc("gdp_refresh_room_profile", {
+    p_username: username,
+    p_avatar: avatar,
   });
   if (error) throw error;
   return unwrap(data);
