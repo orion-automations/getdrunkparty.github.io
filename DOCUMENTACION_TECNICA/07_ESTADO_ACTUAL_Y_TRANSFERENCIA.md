@@ -11,9 +11,10 @@
 | Editor/importación/exportación/gestión de manuales | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN DOM | Handlers en `app.js`; validadores probados parcialmente |
 | UI responsive | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN | CSS y HTML presentes; no se realizó inspección visual/browser |
 | Instalación PWA y offline | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN | Manifest/SW y registro presentes; requiere servir origen seguro |
+| Estructura Supabase / Auth / RLS / Realtime | IMPLEMENTADA EN REPOSITORIO, CONFIGURACIÓN EXTERNA PENDIENTE | `supabase/sql/001`–`004`, `supabase/README.md`; falta aplicar SQL y habilitar Anonymous Sign-Ins en Dashboard |
+| Multijugador online de extremo a extremo | INCOMPLETO / PENDIENTE DE VERIFICACIÓN | Host controla el motor y los invitados son de solo lectura; no existe canal de solicitudes de acciones desde el dispositivo de cada participante. Además, no se ha creado sala probada con dos identidades reales |
 | Cara BLOQUEADA | IMPLEMENTADA Y VERIFICADA en lógica | El motor inicia turno sin robo; caso test |
 | Código `js/icons.js` | INACTIVA O SIN REFERENCIAS APARENTES | No hay consumidores encontrados |
-| Integración backend/cuentas | PENDIENTE / NO PRESENTE EN IMPLEMENTACIÓN | No existe backend ni API en repositorio; no se afirma como requerimiento pendiente del producto |
 | Semana inglesa | Parcial según texto de README/manual | Manual puede estar marcado pendiente; configuración concreta depende del dato. No implica regla automática |
 
 ## Limitaciones y riesgos de cambio
@@ -22,7 +23,9 @@
 2. `loadState()` contiene migraciones en secuencia y debe probarse con respaldos representativos antes de cambiar esquema (`storage.js:84-168`).
 3. Cambiar formatos de turno afecta compatibilidad y renders; motor y UI comparten el mismo objeto mutable (`game.js:53-125`, `app.js:16-31`).
 4. El índice de `challengeTexts` se alinea con `shotCounts`; reordenar/desfasar listas cambia IDs/texto/unidades (`additional-challenges.js:5-114`).
-5. La versión del catálogo, versión visible y caché SW son valores separados (`additional-challenges.js:3`, `config.js:1`, `sw.js:2`).
+5. La versión del catálogo, versión visible y caché SW son valores separados (`additional-challenges.js`, `config.js:1`, `sw.js:2`).
+6. El estado de juego remoto es propiedad del host y se guarda con una versión esperada; el roster se reconstruye desde miembros del room, no desde los participantes locales (`js/app.js:snapshotForRoom/applyOnlineSnapshot`; `js/multiplayer.js:scheduleRoomState`).
+7. Los usuarios anónimos no recuperan su identidad tras limpiar el almacenamiento del navegador; no comunicar la sesión anónima como cuenta respaldada.
 6. La edición de `pdf-catalog.js` puede romper manualId o identidad estable de cartas.
 7. Service worker precachea lista explícita `SHELL` y no los PDFs; al agregar módulo hay que reflejarlo en esa lista para offline.
 
@@ -41,4 +44,4 @@ No se ejecutó una inspección visual interactiva, instalación PWA ni desconexi
 
 ## Actualización fase 1
 
-Repetición de dado/carta, temporizador, carrusel, edición completa de manuales, guardado automático de nombres y archivado de historial están implementados localmente. Falta comprobar gestos táctiles y audio en navegador real. Perfiles, salas y sincronización online siguen pendientes.
+Repetición de dado/carta, temporizador, carrusel, edición completa de manuales, guardado automático de nombres y archivado de historial están implementados localmente. La capa Supabase ya está en el repositorio, pero falta ejecutar sus scripts desde el Dashboard y comprobar crear/unirse/iniciar/sincronizar/salir con dos perfiles o dispositivos. Navegador UI y gesto/audio aún requieren prueba real.

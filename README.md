@@ -1,6 +1,6 @@
 # Get Drunk Party Web
 
-Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, dado digital 3D con modo físico opcional, participantes, editor, manuales, respaldos JSON y PWA con caché offline. No usa cuenta, backend, CDN ni fuentes remotas.
+Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, dado digital 3D con modo físico opcional, participantes, editor, manuales, respaldos JSON y PWA con caché offline. El modo local sigue funcionando sin cuenta ni conexión; el modo multijugador online usa Supabase y carga su SDK desde CDN solo para conectar salas.
 
 ## Ejecutar en PC
 
@@ -20,7 +20,7 @@ Abre `http://localhost:8080`. También puedes usar Live Server de VS Code, pero 
 4. En Chrome Android abre `http://192.168.1.25:8080`.
 5. Si no conecta, permite Node.js o el puerto 8080 en el firewall para redes privadas.
 
-El acceso por HTTP a una IP local sirve para desarrollo en la red, pero no permite instalar una PWA con service worker en Chrome como lo hace HTTPS. Para instalarla de forma realista, publica los archivos estáticos en un hosting con HTTPS (por ejemplo GitHub Pages, Cloudflare Pages o Netlify). No se necesita un backend. Abre el enlace HTTPS en Android, carga la aplicación una vez y usa el menú de Chrome → **Instalar aplicación** o **Añadir a pantalla de inicio**.
+El acceso por HTTP a una IP local sirve para desarrollo en la red, pero no permite instalar una PWA con service worker en Chrome como lo hace HTTPS. Para instalarla de forma realista, publica los archivos estáticos en un hosting con HTTPS (por ejemplo GitHub Pages, Cloudflare Pages o Netlify). El modo local no necesita backend; el online necesita la configuración de Supabase descrita abajo. Abre el enlace HTTPS en Android, carga la aplicación una vez y usa el menú de Chrome → **Instalar aplicación** o **Añadir a pantalla de inicio**.
 
 ## Comprobar uso offline
 
@@ -36,6 +36,14 @@ Con la URL HTTPS abierta y conectada, espera a que el service worker termine de 
 6. Marca el resultado de VERDAD o DESAFÍO con los botones disponibles y pulsa **Finalizar turno**. En un minijuego sin consecuencias configuradas, registra el resultado del grupo y finaliza sin premios ni castigos.
 7. El menú permite cambiar a **Dado físico**. En ese modo eliges manualmente VERDAD, DESAFÍO, MINIJUEGO o BLOQUEADA; no se genera una tirada aleatoria digital. La opción persiste en este navegador.
 8. El botón `?` abre el manual cuando la carta tiene uno. Cerrar el manual mantiene el turno y las cartas en pantalla.
+
+## Multijugador online (Supabase)
+
+La sección **Multijugador** está en **Participantes**. El anfitrión crea una sala y comparte el código; los demás se unen con ese código. Se necesitan al menos dos personas para iniciar. Durante la partida el anfitrión controla las acciones y los demás dispositivos reciben el estado compartido en tiempo real. Salir como anfitrión transfiere el control al siguiente miembro; **Cerrar sala** la cierra para todos.
+
+Antes de usarlo, sigue [`supabase/README.md`](supabase/README.md): ejecuta en orden los cuatro archivos `supabase/sql/001`–`004` desde el SQL Editor del proyecto Supabase y activa **Anonymous Sign-Ins**. `js/supabase.js` contiene la URL del proyecto y su clave pública `anon`; nunca pongas allí claves `service_role` o secretas. La identidad anónima se conserva en el navegador y no se recupera al borrar sus datos ni al cambiar de dispositivo. Usa dos perfiles de navegador o dispositivos distintos para verificar una sala, porque dos pestañas del mismo perfil comparten la identidad.
+
+El SDK está marcado como `async`, y los módulos de Supabase se importan solo al crear o unirse. Si el CDN o internet no están disponibles, la conexión online no funciona y el modo local permanece disponible. Para probar online se requiere un origen servido (HTTPS para despliegue; `localhost` sirve en desarrollo), no `file://`. El estado remoto usa Postgres Changes, Presence y RPCs protegidas con RLS; el historial local no se mezcla automáticamente con una sala.
 
 ## Editar, añadir y administrar cartas
 
@@ -62,7 +70,7 @@ Para que nuevos desafíos formen parte del catálogo incluido en el código:
 2. En el mismo índice al final de `shotCounts`, agrega `1`, `2` o `3`. Ese número es la penalización que aparece abajo como Shots. No escribas «O toma X shots» en la descripción: la app muestra la cantidad desde `penalty.units`.
 3. Los IDs y títulos se generan en orden desde `DESAFIO_PDF_103` / `Desafío 103`; las 67 entradas actuales llegan hasta el 169. No reordenes ni elimines elementos de estas dos listas, porque su posición determina qué texto, cantidad e ID quedan emparejados.
 4. Incrementa `ADDITIONAL_CHALLENGE_CATALOG_VERSION` en ese archivo (ahora es `5`) para que las instalaciones existentes agreguen las nuevas cartas. La migración inserta solo los IDs faltantes y conserva las cartas y participantes locales.
-5. Incrementa la versión visible en `js/config.js`, `package.json` y el nombre de caché en `sw.js` (actualmente `1.4.7`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
+5. Incrementa la versión visible en `js/config.js`, `package.json` y el nombre de caché en `sw.js` (actualmente `1.5.0`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
 
 Para añadir por código una carta de otra categoría, agrega el objeto completo a `OTHER_ADDITIONAL_CARDS` en `data/additional-challenges.js` y aumenta la misma versión de catálogo. `data/initial-cards.js` ya combina esa lista con `PDF_CARDS`, y `js/storage.js` añade automáticamente a las instalaciones existentes las cartas adicionales cuyo ID aún no está guardado. Usa un ID único. Ejemplo de formato:
 

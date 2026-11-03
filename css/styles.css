@@ -1065,9 +1065,6 @@ hr {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
-  .resolve-actions .button-row .button-primary {
-    grid-column: 1/-1;
-  }
   .shot-actions .button {
     width: 100%;
     margin: 3px 0;

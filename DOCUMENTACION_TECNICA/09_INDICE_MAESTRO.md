@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta documenta el código observado de Get Drunk Party Web, versión declarada 1.4.4. Las rutas y líneas se refieren a archivos del proyecto y deben contrastarse si cambian.
+Esta carpeta documenta el código observado de Get Drunk Party Web, versión declarada 1.5.0. Las rutas y líneas se refieren a archivos del proyecto y deben contrastarse si cambian.
 
 | Documento | Contenido |
 |---|---|
@@ -18,6 +18,8 @@ Esta carpeta documenta el código observado de Get Drunk Party Web, versión dec
 
 - Entrada y vistas: `index.html` → `js/app.js`.
 - Estado: `js/app.js` → `js/storage.js` → `localStorage`.
+- Salas online: `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase.
+- SQL/RLS/Realtime: `supabase/sql/001` → `002` → `003` → `004`; guía de ejecución: `supabase/README.md`.
 - Catálogo: `js/storage.js` → `data/initial-cards.js` → `data/pdf-catalog.js` + `data/additional-challenges.js`.
 - Turno: `js/app.js` → `js/game.js` → `js/dice.js` / `js/decks.js` / `js/participants.js` / `js/minigame-results.js` → `js/storage.js`.
 - PWA: `index.html` → `manifest.json`; `js/app.js` → `sw.js` → Cache Storage.

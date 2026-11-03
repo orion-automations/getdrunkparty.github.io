@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "gdpw-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}1.4.7`;
+const CACHE_NAME = `${CACHE_PREFIX}1.5.0`;
 const SHELL = [
   "./",
   "./index.html",
@@ -9,6 +9,11 @@ const SHELL = [
   "./css/dice.css",
   "./css/brand.css",
   "./js/app.js",
+  "./js/supabase.js",
+  "./js/multiplayer.js",
+  "./js/multiplayer-auth.js",
+  "./js/multiplayer-rooms.js",
+  "./js/multiplayer-sync.js",
   "./js/config.js",
   "./js/utils.js",
   "./js/storage.js",

@@ -11,6 +11,13 @@
       name="description"
       content="Juego de cartas de fiesta instalable y disponible sin conexión."
     />
+    <script
+      id="supabase-sdk"
+      async
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+      onload="this.dataset.loaded='true'"
+      onerror="this.dataset.failed='true'"
+    ></script>
     <link rel="manifest" href="./manifest.json" />
     <link
       rel="icon"
@@ -165,7 +172,7 @@
             <section id="resolve-actions" class="resolve-actions hidden">
               <p id="reward-status" class="reward-status"></p>
               <div class="button-row">
-                <button id="confirm-completed" class="button button-primary">
+                <button id="confirm-completed" class="button">
                   Cumplió
                 </button>
                 <button id="confirm-challenge" class="button hidden">
@@ -177,7 +184,7 @@
                 <button id="confirm-alternative" class="button hidden">
                   Toma Shot
                 </button>
-                <button id="finish-turn" class="button button-quiet hidden">
+                <button id="finish-turn" class="button hidden">
                   Finalizar turno
                 </button>
               </div>
@@ -214,6 +221,31 @@
             voluntarias y locales.
           </p>
         </div>
+        <section class="panel" id="multiplayer-panel" aria-labelledby="multiplayer-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">ONLINE</p><h2 id="multiplayer-heading">Multijugador</h2></div>
+            <span id="multiplayer-connection" class="fine-print" role="status">Desconectado</span>
+          </div>
+          <form id="multiplayer-create-form" class="form-grid">
+            <label>Nombre online<input id="multiplayer-name" maxlength="32" placeholder="Tu nombre" /></label>
+            <label>Máximo de jugadores<input id="multiplayer-capacity" type="number" min="2" max="30" value="8" required /></label>
+            <button class="button" type="submit">Crear sala</button>
+          </form>
+          <form id="multiplayer-join-form" class="inline-form">
+            <label class="grow">Código de sala<input id="multiplayer-code" maxlength="6" autocomplete="one-time-code" required placeholder="ABC234" /></label>
+            <button class="button" type="submit">Unirme</button>
+          </form>
+          <div id="multiplayer-room" class="hidden">
+            <p class="fine-print">Código para compartir: <strong id="multiplayer-room-code"></strong> · Estado: <span id="multiplayer-room-status"></span></p>
+            <ul id="multiplayer-room-players" class="management-list"></ul>
+            <div class="button-row">
+              <button id="multiplayer-start" class="button hidden" type="button">Iniciar partida</button>
+              <button id="multiplayer-claim-host" class="button hidden" type="button">Tomar control</button>
+              <button id="multiplayer-close" class="button button-danger hidden" type="button">Cerrar sala</button>
+              <button id="multiplayer-leave" class="button" type="button">Salir de sala</button>
+            </div>
+          </div>
+        </section>
       </section>
       <section id="view-editor" class="view">
         <div class="page-heading">

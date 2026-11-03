@@ -13,6 +13,16 @@ import { addDrink } from "./drinks.js";
 import { findManual } from "./manuals.js";
 import { DICE_FACES, diceRotationTarget } from "./dice.js";
 import { validateMinigameRules } from "./minigame-results.js";
+import {
+  closeCurrentRoom,
+  connectRoom,
+  disconnectRoom,
+  getMultiplayerSession,
+  refreshRoom,
+  scheduleRoomState,
+  startRoom,
+  takeRoomHost,
+} from "./multiplayer.js";
 
 let state = loadState(),
   engine = gameEngine(state),
@@ -21,6 +31,10 @@ let animateCardNext = false;
 let animateCardId = null;
 let rolling = false;
 let timerState = { remainingMs: 30000, totalMs: 30000, endsAt: null, interval: null };
+let onlineMode = false;
+let applyingRemoteState = false;
+let localModeBackup = null;
+let roomPresence = [];
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 const diceFaceColor = (category) =>
@@ -33,18 +47,299 @@ for (const face of DICE_FACES) {
   side.textContent = face.label;
   $("#dice-cube").append(side);
 }
-const persist = () => {
+const blankGame = () => ({ currentIndex: 0, state: "READY", decks: {}, current: null, history: [], archives: [], rewards: [] });
+function snapshotForRoom() {
+  const referencedIds = new Set([
+    state.game.current?.primaryCard?.cardId,
+    ...(state.game.current?.auxiliaryCards ?? []).map((item) => item.cardId),
+  ].filter(Boolean));
+  const cards = state.cards.filter((card) => referencedIds.has(card.id));
+  const manualIds = new Set(cards.map((card) => card.manualId).filter(Boolean));
+  return {
+    participants: structuredClone(state.participants),
+    settings: structuredClone(state.settings),
+    game: structuredClone(state.game),
+    cards: structuredClone(cards),
+    manuals: structuredClone(state.manuals.filter((manual) => manualIds.has(manual.id))),
+  };
+}
+function roomTimerSnapshot() {
+  return { endsAt: timerState.endsAt, remainingMs: timerState.remainingMs, totalMs: timerState.totalMs };
+}
+function canControlOnlineGame() {
+  return !onlineMode || getMultiplayerSession()?.role === "host";
+}
+function requireOnlineHost(message = "Solo el anfitrión controla esta partida.") {
+  if (canControlOnlineGame()) return true;
+  notify(message);
+  return false;
+}
+function canPlayOnlineGame() {
+  const session = getMultiplayerSession();
+  return !onlineMode || (session?.role === "host" && session.status === "playing");
+}
+function requireOnlineGame(message = "La partida online aún no está iniciada o solo el anfitrión puede controlarla.") {
+  if (canPlayOnlineGame()) return true;
+  notify(message);
+  return false;
+}
+function persist() {
+  if (onlineMode) {
+    const session = getMultiplayerSession();
+    if (!applyingRemoteState && session?.role === "host") {
+      scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
+    }
+    return;
+  }
   if (!saveState(state))
     notify(
       "No se pudo guardar. Libera espacio en el navegador o exporta un respaldo.",
     );
-};
+}
 function notify(text) {
   const el = $("#toast");
   el.textContent = text;
   el.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+function multiplayerErrorMessage(error) {
+  const message = String(error?.message ?? error ?? "");
+  if (/ROOM_NOT_FOUND/i.test(message)) return "No encontramos esa sala. Revisa el código.";
+  if (/ROOM_FULL/i.test(message)) return "La sala está llena.";
+  if (/ROOM_CLOSED|ROOM_NOT_WAITING/i.test(message)) return "La sala ya no acepta jugadores.";
+  if (/NEED_TWO_PLAYERS/i.test(message)) return "Se necesitan al menos dos jugadores para iniciar.";
+  if (/HOST_REQUIRED/i.test(message)) return "Solo el anfitrión puede realizar esa acción.";
+  if (/HOST_STILL_ACTIVE/i.test(message)) return "El anfitrión sigue conectado; no es necesario transferir el control.";
+  if (/VERSION_CONFLICT/i.test(message)) return "La partida cambió en otro dispositivo. Se está actualizando.";
+  if (/Invalid API key|JWT/i.test(message)) return "La URL y la clave de Supabase no corresponden o no son válidas.";
+  if (/Anonymous|anonymous/i.test(message)) return "Activa Anonymous Sign-Ins en Supabase Authentication.";
+  return message || "No se pudo completar la acción online.";
+}
+function handleRoomSaveError(error) {
+  if (/VERSION_CONFLICT/i.test(String(error?.message ?? error))) {
+    refreshRoom().catch((refreshError) => notify(multiplayerErrorMessage(refreshError)));
+    return;
+  }
+  notify(multiplayerErrorMessage(error));
+}
+function enterOnlineMode() {
+  if (onlineMode) return;
+  const timerRemaining = timerState.endsAt ? Math.max(0, timerState.endsAt - Date.now()) : timerState.remainingMs;
+  localModeBackup = {
+    state,
+    engine,
+    timer: { remainingMs: timerRemaining, totalMs: timerState.totalMs, wasRunning: Boolean(timerState.endsAt) },
+  };
+  clearInterval(timerState.interval);
+  timerState.interval = null;
+  timerState.endsAt = null;
+  state = structuredClone(state);
+  state.participants = [];
+  state.game = blankGame();
+  engine = gameEngine(state);
+  onlineMode = true;
+}
+function leaveOnlineMode() {
+  if (!onlineMode || !localModeBackup) return;
+  const resumeLocalTimer = localModeBackup.timer.wasRunning;
+  clearInterval(timerState.interval);
+  timerState = { remainingMs: localModeBackup.timer.remainingMs, totalMs: localModeBackup.timer.totalMs, endsAt: null, interval: null };
+  state = localModeBackup.state;
+  engine = localModeBackup.engine;
+  localModeBackup = null;
+  onlineMode = false;
+  applyingRemoteState = false;
+  roomPresence = [];
+  renderTimer();
+  if (resumeLocalTimer) startTimer();
+  render();
+}
+function renderMultiplayerRoom(details = null) {
+  const session = getMultiplayerSession();
+  const panel = $("#multiplayer-room");
+  panel.classList.toggle("hidden", !session);
+  $("#multiplayer-create-form").classList.toggle("hidden", Boolean(session));
+  $("#multiplayer-join-form").classList.toggle("hidden", Boolean(session));
+  if (!session) return;
+  $("#multiplayer-room-code").textContent = session.code;
+  $("#multiplayer-room-status").textContent = details?.room?.status ?? session.status;
+  $("#multiplayer-start").classList.toggle("hidden", session.role !== "host" || session.status !== "waiting");
+  $("#multiplayer-claim-host").classList.toggle("hidden", session.role === "host" || session.status === "closed");
+  $("#multiplayer-close").classList.toggle("hidden", session.role !== "host" || session.status === "closed");
+  $("#multiplayer-leave").textContent = session.role === "host" ? "Transferir anfitrión y salir" : "Salir de sala";
+  const playersHost = $("#multiplayer-room-players");
+  playersHost.replaceChildren();
+  const players = details?.players ?? state.participants.map((player) => ({
+    user_id: player.id, username_snapshot: player.name, role: player.id === session.user.id ? session.role : "player", status: "joined",
+  }));
+  for (const player of players) {
+    const item = document.createElement("li");
+    const isOnline = roomPresence.some((presence) => presence.userId === player.user_id);
+    item.textContent = `${player.username_snapshot}${player.role === "host" ? " · anfitrión" : ""} · ${isOnline ? "conectado" : "reconectando"}`;
+    playersHost.append(item);
+  }
+}
+function applyOnlineSnapshot(roomState, timer, version, details = null) {
+  enterOnlineMode();
+  applyingRemoteState = true;
+  const priorPlayers = state.participants ?? [];
+  if (Array.isArray(details?.players)) {
+    const roomPlayers = details.players.map((player) => ({
+      id: player.user_id,
+      name: player.username_snapshot,
+      active: true,
+      preferences: {},
+      avatar: player.avatar_snapshot ?? null,
+    }));
+    const memberIds = new Set(roomPlayers.map((player) => player.id));
+    const departed = priorPlayers
+      .filter((player) => !memberIds.has(player.id))
+      .map((player) => ({ ...player, active: false }));
+    state.participants = [...roomPlayers, ...departed];
+  } else if (Array.isArray(roomState?.participants)) {
+    state.participants = structuredClone(roomState.participants);
+  }
+  if (roomState?.game) state.game = structuredClone(roomState.game);
+  if (roomState?.settings) state.settings = { ...state.settings, ...roomState.settings };
+  if (Array.isArray(roomState?.cards)) {
+    const remoteIds = new Set(roomState.cards.map((card) => card.id));
+    state.cards = [...state.cards.filter((card) => !remoteIds.has(card.id)), ...structuredClone(roomState.cards)];
+  }
+  if (Array.isArray(roomState?.manuals)) {
+    const remoteIds = new Set(roomState.manuals.map((manual) => manual.id));
+    state.manuals = [...state.manuals.filter((manual) => !remoteIds.has(manual.id)), ...structuredClone(roomState.manuals)];
+  }
+  engine = gameEngine(state);
+  if (timer) applySharedTimer(timer);
+  applyingRemoteState = false;
+  const session = getMultiplayerSession();
+  $("#multiplayer-connection").textContent = session?.status === "playing" ? "Partida sincronizada" : session?.status === "closed" ? "Sala cerrada" : "Conectado";
+  renderMultiplayerRoom(details);
+  render();
+  if ((details?.room?.status ?? session?.status) === "playing") {
+    setView("game");
+    $("#game-message").textContent = session?.role === "host" ? "Partida online · control del anfitrión." : "Partida online · siguiendo al anfitrión.";
+  }
+}
+function applySharedTimer(timer) {
+  const endsAt = timer.endsAt ? Number(timer.endsAt) : null;
+  if (timerState.endsAt === endsAt && timerState.totalMs === Number(timer.totalMs) &&
+      (endsAt || timerState.remainingMs === Number(timer.remainingMs))) return;
+  clearInterval(timerState.interval);
+  timerState.endsAt = endsAt;
+  timerState.totalMs = Number(timer.totalMs) || 30000;
+  timerState.remainingMs = endsAt
+    ? Math.max(0, endsAt - Date.now())
+    : Number(timer.remainingMs) || 0;
+  if (endsAt) {
+    timerState.interval = setInterval(() => {
+      if (Date.now() >= timerState.endsAt) stopTimer(true);
+      else renderTimer();
+    }, 250);
+  } else timerState.interval = null;
+  renderTimer();
+}
+async function connectOnlineRoom(mode, code = "") {
+  const typedName = $("#multiplayer-name").value.trim();
+  const fallbackName = state.participants[state.game.currentIndex]?.name ?? state.participants.find((player) => player.active)?.name ?? "";
+  const username = typedName || fallbackName;
+  if (username) $("#multiplayer-name").value = username;
+  const maxPlayers = Number($("#multiplayer-capacity").value);
+  if (mode === "create" && (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 30))
+    return notify("El máximo de jugadores debe estar entre 2 y 30.");
+  const initialState = {
+    participants: [],
+    settings: structuredClone(state.settings),
+    game: blankGame(),
+    cards: [],
+    manuals: [],
+  };
+  enterOnlineMode();
+  $("#multiplayer-connection").textContent = "Conectando…";
+  try {
+    const connection = await connectRoom({
+      mode, code, username, maxPlayers, initialState,
+      onSnapshot: applyOnlineSnapshot,
+      onPresence: (presence) => {
+        roomPresence = presence;
+        renderMultiplayerRoom();
+      },
+      onStatus: (status, error) => {
+        $("#multiplayer-connection").textContent = status === "connected" ? "Conectado" : status === "reconnecting" ? "Reconectando…" : status === "error" ? multiplayerErrorMessage(error) : status;
+      },
+    });
+    $("#multiplayer-name").value = connection.session.profile.username;
+    renderMultiplayerRoom();
+    return true;
+  } catch (error) {
+    leaveOnlineMode();
+    $("#multiplayer-connection").textContent = "Error de conexión";
+    notify(multiplayerErrorMessage(error));
+    return false;
+  }
+}
+
+async function leaveOnlineRoom() {
+  try {
+    await disconnectRoom();
+  } catch (error) {
+    notify(multiplayerErrorMessage(error));
+  }
+  leaveOnlineMode();
+  $("#multiplayer-connection").textContent = "Desconectado";
+  renderMultiplayerRoom();
+}
+
+$("#multiplayer-name").value = state.participants[state.game.currentIndex]?.name ?? state.participants[0]?.name ?? "";
+$("#multiplayer-create-form").onsubmit = async (event) => {
+  event.preventDefault();
+  await connectOnlineRoom("create");
+};
+$("#multiplayer-join-form").onsubmit = async (event) => {
+  event.preventDefault();
+  await connectOnlineRoom("join", $("#multiplayer-code").value);
+};
+$("#multiplayer-start").onclick = async () => {
+  if (!requireOnlineHost()) return;
+  state.game = blankGame();
+  try {
+    await startRoom(snapshotForRoom());
+    renderMultiplayerRoom();
+    setView("game");
+    scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
+  } catch (error) {
+    notify(multiplayerErrorMessage(error));
+  }
+};
+$("#multiplayer-claim-host").onclick = async () => {
+  try {
+    await takeRoomHost();
+    renderMultiplayerRoom();
+    renderGame();
+    notify("Ahora tienes el control de la partida.");
+  } catch (error) {
+    notify(multiplayerErrorMessage(error));
+  }
+};
+$("#multiplayer-leave").onclick = leaveOnlineRoom;
+$("#multiplayer-close").onclick = async () => {
+  if (!requireOnlineHost()) return;
+  try {
+    await closeCurrentRoom();
+    await disconnectRoom({ voluntary: false });
+    leaveOnlineMode();
+    $("#multiplayer-connection").textContent = "Sala cerrada";
+    renderMultiplayerRoom();
+    notify("Sala cerrada.");
+  } catch (error) {
+    notify(multiplayerErrorMessage(error));
+  }
+};
+const savedRoomCode = sessionStorage.getItem("gdpw.multiplayer.room");
+if (savedRoomCode) {
+  $("#multiplayer-code").value = savedRoomCode;
+  void connectOnlineRoom("join", savedRoomCode);
 }
 function formatTimer(ms) {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -118,6 +413,13 @@ function renderTimer() {
   $("#timer-pause").disabled = !timerState.endsAt;
   $("#timer-start").setAttribute("aria-label", "Iniciar temporizador");
   $("#timer-pause").setAttribute("aria-label", "Pausar temporizador");
+  const readOnly = onlineMode && !canControlOnlineGame();
+  $("#timer-start").disabled = Boolean(timerState.endsAt) || readOnly;
+  $("#timer-pause").disabled = !timerState.endsAt || readOnly;
+  $("#timer-reset").disabled = readOnly;
+  $("#timer-test-sound").disabled = readOnly;
+  $$("#timer-hours, #timer-minutes, #timer-seconds").forEach((select) => { select.disabled = readOnly; });
+  $$("#timer-presets .button").forEach((button) => { button.disabled = readOnly; });
 }
 function stopTimer(finished = false) {
   clearInterval(timerState.interval);
@@ -130,8 +432,10 @@ function stopTimer(finished = false) {
     notify("Tiempo terminado.");
   }
   renderTimer();
+  publishSharedTimer();
 }
 function startTimer() {
+  if (!requireOnlineHost("Solo el anfitrión controla el temporizador compartido.")) return;
   if (!timerState.remainingMs) return notify("Indica un tiempo mayor que cero.");
   timerState.endsAt = Date.now() + timerState.remainingMs;
   clearInterval(timerState.interval);
@@ -140,13 +444,16 @@ function startTimer() {
     else renderTimer();
   }, 250);
   renderTimer();
+  publishSharedTimer();
 }
 function setTimer(milliseconds) {
+  if (!requireOnlineHost("Solo el anfitrión controla el temporizador compartido.")) return;
   stopTimer();
   timerState.totalMs = Math.max(0, milliseconds);
   timerState.remainingMs = timerState.totalMs;
   setPickerFromMilliseconds(timerState.totalMs);
   renderTimer();
+  publishSharedTimer();
 }
 function setPickerFromMilliseconds(milliseconds) {
   const totalSeconds = Math.floor(milliseconds / 1000);
@@ -155,6 +462,7 @@ function setPickerFromMilliseconds(milliseconds) {
   $("#timer-seconds").value = String(totalSeconds % 60);
 }
 function syncTimerFromPicker() {
+  if (!requireOnlineHost("Solo el anfitrión ajusta el temporizador compartido.")) return;
   if (timerState.endsAt) return;
   const duration = (
     Number($("#timer-hours").value) * 3600 +
@@ -164,6 +472,13 @@ function syncTimerFromPicker() {
   timerState.totalMs = duration;
   timerState.remainingMs = duration;
   renderTimer();
+  publishSharedTimer();
+}
+function publishSharedTimer() {
+  const session = getMultiplayerSession();
+  if (onlineMode && session?.role === "host" && session.status === "playing") {
+    scheduleRoomState(snapshotForRoom(), roomTimerSnapshot(), handleRoomSaveError);
+  }
 }
 function setView(view) {
   $$(".view").forEach((el) =>
@@ -191,6 +506,13 @@ function render() {
   renderManuals();
   renderDrinks();
   $("#position-reversed").checked = state.settings.positionReversed;
+  const readOnly = onlineMode && !canControlOnlineGame();
+  $("#player-form button").disabled = onlineMode || readOnly;
+  $("#player-name").disabled = onlineMode || readOnly;
+  $("#position-reversed").disabled = readOnly;
+  ["#view-editor", "#view-manuals", "#view-settings"].forEach((selector) => {
+    $(selector).inert = readOnly;
+  });
 }
 function renderGame() {
   const active = state.participants.filter((p) => p.active);
@@ -205,6 +527,7 @@ function renderGame() {
     ? current.name
     : "Agrega participantes";
   const ready = state.game.state === "READY" && hasPlayers && !rolling;
+  const readOnly = onlineMode && !canPlayOnlineGame();
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
   const showDice = digital && hasPlayers;
@@ -275,7 +598,12 @@ function renderGame() {
           canDrawAuxiliary &&
           (!cur?.outcome || effectCategories.includes(b.dataset.category))
         );
+    b.disabled ||= readOnly;
   });
+  $$("#category-choices [data-category]").forEach((button) => { button.disabled ||= readOnly; });
+  $("#blocked-choice").disabled ||= readOnly;
+  $("#game-mode").disabled = readOnly || Boolean(cur) || rolling;
+  $("#save-minigame-participants").disabled = readOnly;
   $("#game-message").textContent = cur
     ? cur.category === "BLOQUEADA"
       ? "Cara bloqueada · no hay acción."
@@ -387,6 +715,9 @@ function renderGame() {
   );
   $("#finish-turn").classList.toggle("hidden", !canFinish);
   $("#finish-turn").disabled = !canFinish;
+  ["#confirm-completed", "#confirm-challenge", "#confirm-penalty", "#confirm-alternative", "#finish-turn"].forEach((selector) => {
+    $(selector).disabled = readOnly || $(selector).classList.contains("hidden") || (selector === "#finish-turn" && !canFinish);
+  });
   const effectMessages = (cur?.pendingEffects ?? [])
     .filter(
       (effect) =>
@@ -418,17 +749,18 @@ function updateSliderActive(host) {
 
 function cubeIsInteractive(turn, ready, digital) {
   const cube = $("#dice-cube");
+  const readOnly = onlineMode && !canPlayOnlineGame();
   const canRepeatRoll = digital && turn && !turn.primaryCard && (["ROLLING", "AWAITING_CATEGORY"].includes(turn.phase) || (turn.type === "BLOCKED" && turn.phase === "RESOLVING"));
   const canReplaceMain = digital && turn?.primaryCard && ["VERDAD", "DESAFIO", "MINIJUEGO"].includes(turn.category) && !turn.outcome && !turn.minigameResult;
   cube.setAttribute("role", "button");
-  cube.setAttribute("tabindex", digital && (ready || canRepeatRoll || canReplaceMain) ? "0" : "-1");
+  cube.setAttribute("tabindex", digital && !readOnly && (ready || canRepeatRoll || canReplaceMain) ? "0" : "-1");
   cube.setAttribute("aria-label", canReplaceMain ? `Tirar el dado para extraer otra carta de ${CATEGORIES[turn.category].label}` : "Pulsa para tirar el dado");
-  cube.classList.toggle("dice-clickable", digital && (ready || canRepeatRoll || canReplaceMain));
+  cube.classList.toggle("dice-clickable", digital && !readOnly && (ready || canRepeatRoll || canReplaceMain));
   $("#dice-hint").textContent = canReplaceMain
     ? `Pulsa el dado para extraer otra carta de ${CATEGORIES[turn.category].label}.`
     : canRepeatRoll
       ? "Pulsa el dado para volver a tirar."
-      : ready && digital
+    : ready && digital && !readOnly
         ? "Pulsa el dado para tirar."
         : "";
 }
@@ -454,11 +786,13 @@ function makeSwipeRow(player, { leftLabel, rightLabel, leftAction, rightAction, 
   row.append(left, name, value, right);
   let startX = null;
   row.addEventListener("pointerdown", (event) => {
+    if (!requireOnlineGame()) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     startX = event.clientX;
     row.setPointerCapture(event.pointerId);
   });
   row.addEventListener("pointerup", (event) => {
+    if (!requireOnlineGame()) return;
     if (startX === null) return;
     const delta = event.clientX - startX;
     startX = null;
@@ -469,6 +803,7 @@ function makeSwipeRow(player, { leftLabel, rightLabel, leftAction, rightAction, 
   row.addEventListener("pointercancel", () => { startX = null; });
   row.addEventListener("keydown", (event) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    if (!requireOnlineGame()) return;
     event.preventDefault();
     (event.key === "ArrowLeft" ? leftAction : rightAction)?.();
   });
@@ -476,6 +811,7 @@ function makeSwipeRow(player, { leftLabel, rightLabel, leftAction, rightAction, 
 }
 
 function renderMinigameFlow(turn, card) {
+  const readOnly = onlineMode && !canPlayOnlineGame();
   const participantHost = $("#minigame-participant-picker");
   const outcomeHost = $("#minigame-outcomes");
   const selectionHost = $("#minigame-selection");
@@ -509,12 +845,13 @@ function renderMinigameFlow(turn, card) {
       checkbox.name = "minigame-participant";
       checkbox.value = player.id;
       checkbox.checked = (turn.participantIds ?? []).includes(player.id);
+      checkbox.disabled = readOnly;
       label.append(checkbox, document.createTextNode(player.name));
       list.append(label);
     });
     participantHost.append(list);
     saveParticipants.classList.remove("hidden");
-    saveParticipants.disabled = activePlayers.length < card.target.count;
+    saveParticipants.disabled = readOnly || activePlayers.length < card.target.count;
   } else if (!turn.minigameResult) {
     const summary = document.createElement("p");
     summary.className = "fine-print";
@@ -552,8 +889,9 @@ function renderMinigameFlow(turn, card) {
     }
     outcomeHost.append(list);
     recordResult.classList.remove("hidden");
-    recordResult.disabled = false;
+    recordResult.disabled = readOnly;
     recordResult.onclick = () => {
+      if (!requireOnlineGame()) return;
       const resultList = participants.map(({ id: playerId }) => ({
         playerId,
         result: outcomes.get(playerId),
@@ -748,6 +1086,7 @@ function makeTurnCard(card, item, primary, animate) {
   return slot;
 }
 function redrawCard(cardId) {
+  if (!requireOnlineGame()) return;
   const active = state.cards.find((card) => card.id === cardId);
   if (!active || !["VERDAD", "DESAFIO", "MINIJUEGO"].includes(active.categoryId))
     return notify("Solo puedes repetir una carta principal.");
@@ -780,7 +1119,9 @@ function renderRewards() {
       const btn = document.createElement("button");
       btn.className = "button button-small";
       btn.textContent = "Marcar usado";
+      btn.disabled = onlineMode && !canPlayOnlineGame();
       btn.onclick = () => {
+        if (!requireOnlineGame()) return;
         reward.used = true;
         reward.usedAt = new Date().toISOString();
         persist();
@@ -794,11 +1135,15 @@ function renderRewards() {
 function renderPlayers() {
   const host = $("#players-list");
   host.replaceChildren();
+  const readOnly = onlineMode;
   state.participants.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "manage-row";
     row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
+    row.querySelector("input").disabled = readOnly;
+    row.querySelector("[data-action=delete-player]").disabled = readOnly;
     const saveName = () => {
+      if (!requireOnlineHost()) return;
       const v = row.querySelector("input").value.trim();
       if (!v) return notify("El nombre no puede quedar vacío.");
       if (v === p.name) return;
@@ -808,7 +1153,8 @@ function renderPlayers() {
     };
     row.querySelector("input").onchange = saveName;
     row.querySelector("input").onblur = saveName;
-    row.querySelector("[data-action=delete-player]").onclick = () =>
+    row.querySelector("[data-action=delete-player]").onclick = () => {
+      if (!requireOnlineHost()) return;
       confirmAction("Eliminar participante", `¿Eliminar a ${p.name}?`, () => {
         const wasCurrent = i === state.game.currentIndex;
         state.participants.splice(i, 1);
@@ -819,6 +1165,7 @@ function renderPlayers() {
         persist();
         render();
       });
+    };
     host.append(row);
   });
 }
@@ -1216,6 +1563,7 @@ $("#timer-reset").onclick = () => {
   stopTimer();
   timerState.remainingMs = timerState.totalMs;
   renderTimer();
+  publishSharedTimer();
 };
 $("#timer-test-sound").onclick = playTimerSound;
 function makeCategoryButton(id, category) {
@@ -1231,6 +1579,7 @@ function makeCategoryButton(id, category) {
   return button;
 }
 function drawCategory(id) {
+  if (!requireOnlineGame()) return;
   const result = engine.draw(id);
   if (result.error)
     return notify(
@@ -1256,6 +1605,7 @@ function drawCategory(id) {
   renderGame();
 }
 $("#save-minigame-participants").onclick = () => {
+  if (!requireOnlineGame()) return;
   const playerIds = $$(
     "#minigame-participant-picker input[name='minigame-participant']:checked",
   ).map((input) => input.value);
@@ -1280,6 +1630,7 @@ $("#blocked-choice").innerHTML =
 $("#blocked-choice").style.setProperty("--category-color", "#a5a5b4");
 $("#blocked-choice").onclick = () => drawCategory("BLOQUEADA");
 $("#game-mode").onchange = (event) => {
+  if (!requireOnlineGame()) { renderGame(); return; }
   if (state.game.current || rolling) {
     event.target.value = state.settings.gameMode ?? "digital";
     return notify("Termina el turno actual antes de cambiar el modo.");
@@ -1289,6 +1640,7 @@ $("#game-mode").onchange = (event) => {
   renderGame();
 };
 function startDigitalRoll(repeat = false) {
+  if (!requireOnlineGame()) return;
   if (rolling) return;
   const result = repeat ? engine.rerollDigital() : engine.rollDigital();
   if (result.error)
@@ -1357,6 +1709,7 @@ $("#dice-cube").onkeydown = (event) => {
   }
 };
 function confirmResult(result, sourceCardId) {
+  if (!requireOnlineGame()) return;
   if (!engine.resolve(result, sourceCardId))
     return notify("El resultado de este turno ya fue confirmado.");
   persist();
@@ -1389,6 +1742,7 @@ $("#confirm-penalty").onclick = () => {
   confirmResult("COMPLETED", punishment?.cardId ?? null);
 };
 $("#finish-turn").onclick = () => {
+  if (!requireOnlineGame()) return;
   if (!engine.finishTurn())
     return notify("Confirma primero el resultado del turno.");
   persist();
@@ -1397,6 +1751,7 @@ $("#finish-turn").onclick = () => {
 };
 $("#player-form").onsubmit = (e) => {
   e.preventDefault();
+  if (!requireOnlineHost()) return;
   const input = $("#player-name"),
     name = input.value.trim();
   if (!name) return;

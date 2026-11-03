@@ -2,22 +2,22 @@
 
 ## Resumen ejecutivo
 
-Aplicación de juego de cartas para navegador, en español, mobile-first, servida como archivos estáticos. Interfaz en HTML/CSS y lógica en JavaScript nativo con módulos ES. No hay backend de aplicación, cuentas, ni llamadas HTTP externas en el código inspeccionado. El servidor incluido (`server.mjs`) sirve archivos; el navegador conserva catálogo, participantes y partida en `localStorage`.
+Aplicación de juego de cartas para navegador, en español, mobile-first, servida como archivos estáticos. Interfaz en HTML/CSS y lógica en JavaScript nativo con módulos ES. El modo local persiste en `localStorage`; la fase online añade Supabase Auth anónimo, PostgreSQL y Realtime para salas compartidas. El servidor incluido (`server.mjs`) sigue sirviendo archivos y no implementa una API propia.
 
 ## Ficha
 
 | Campo | Estado observado |
 |---|---|
 | Nombre | Get Drunk Party Web; manifest: Get Drunk Party (`manifest.json:1-4`) |
-| Versión declarada | 1.4.4 (`js/config.js:1`, `sw.js:2`) |
+| Versión declarada | 1.5.0 (`js/config.js:1`, `package.json:3`, `sw.js:2`) |
 | Tipo | SPA multipantalla cliente, PWA instalable |
-| Entrada | `index.html:474` carga `js/app.js` como módulo |
+| Entrada | `index.html:530` carga `js/app.js` como módulo |
 | Stack | HTML, CSS, JavaScript ES modules, Node.js para servidor local |
-| Paquetes externos | Ninguno declarado (`package.json:1-13`) |
+| Paquetes externos | Ningún paquete npm; SDK de Supabase v2 desde CDN al abrir la app (`index.html:14-19`) |
 | Persistencia | `localStorage`, clave `gdpw.data.v1` (`js/storage.js:11,84-178`) |
 | Catálogo inicial | `data/pdf-catalog.js` combinado con 67 cartas adicionales (`data/initial-cards.js:1-7`; `data/additional-challenges.js:92-120`) |
-| Pruebas | `node:test`, `tests/core.test.js`; ejecución en esta auditoría: 1 archivo aprobado, 28 subpruebas incluidas |
-| Git | No hay repositorio Git detectable en la carpeta raíz (`git rev-parse` falla); no es posible documentar rama o cambios locales |
+| Pruebas | `node:test`, `tests/core.test.js`; `npm test` pasó en esta revisión. No cubre Supabase ni UI en navegador |
+| Git | Existe `.git`; al revisar el espacio de trabajo los archivos de la app aparecían sin seguimiento, así que el estado previo no está descrito como base versionada |
 | Despliegue | Servidor simple `server.mjs`, o hosting de archivos HTTPS; no se encontró pipeline de build/deploy |
 
 ## Funcionalidades principales
@@ -55,4 +55,10 @@ Se inspeccionaron todos los archivos propios de código/configuración listados,
 
 ## Actualización fase 1 (2026-11-02)
 
-Se añadieron mejoras locales: repetición desde el cubo, slider conjunto de cartas extraídas, temporizador, formulario completo de manuales, guardado automático de nombres e historial archivado. El modo online no está implementado.
+Se añadieron mejoras locales: repetición desde el cubo, slider conjunto de cartas extraídas, temporizador, formulario completo de manuales, guardado automático de nombres e historial archivado.
+
+## Multijugador online (fase Supabase)
+
+La vista **Participantes** contiene el panel de crear/unirse a una sala (`index.html:224-246`). `js/app.js` gestiona aislamiento/restauración del estado local, controles de anfitrión, snapshots y flujo de sala; `js/multiplayer.js` conecta los servicios y sesión; `js/multiplayer-auth.js`, `js/multiplayer-rooms.js` y `js/multiplayer-sync.js` implementan identidad, RPC/lecturas y Realtime. SQL, RLS y guía están en `supabase/sql/` y `supabase/README.md`.
+
+La integración está implementada en archivos, pero su funcionamiento productivo aún depende de ejecutar los cuatro SQL en el Dashboard, habilitar Anonymous Sign-Ins y completar una prueba en dos perfiles/dispositivos. No se afirma que esas acciones externas ya se hayan realizado.

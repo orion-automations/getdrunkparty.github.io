@@ -51,3 +51,11 @@ El dado se puede repetir antes de revelar mazo; una carta activa puede sustituir
 La acción está en el cubo: al tocarlo sin turno lanza; antes de revelar vuelve a tirar; con una carta principal de VERDAD, DESAFÍO o MINIJUEGO extrae otra del mismo mazo. Premio y castigo no tienen acción de repetición. La cara BLOQUEADA puede repetirse antes de finalizar el turno. La carta principal y las auxiliares extraídas aparecen en un slider superpuesto sin barra horizontal; la carta más cercana al centro se resalta y la última extracción se centra automáticamente.
 
 El temporizador aparece también como cuenta compacta en la cabecera del turno. El diálogo incluye anillo de progreso, lectura de siete segmentos, selectores de horas/minutos/segundos, presets uniformes e iniciar/pausar/reiniciar; la X cierra el diálogo. Su cronometraje sigue basado en una marca de tiempo, incluso al cambiar de sección.
+
+## Multijugador online
+
+Desde **Participantes → Multijugador**, el jugador indica un nombre y crea una sala (2–30 plazas) o introduce un código para unirse. Supabase crea/reutiliza identidad anónima y perfil; al unirse el roster aparece en el panel. El anfitrión inicia cuando hay dos personas. La sesión online comienza separada de los datos locales y salir restaura participantes, motor y temporizador previos (`js/app.js:117-148,234-307`).
+
+Durante la partida el host tira el dado, extrae/gestiona cartas, marca resultados y controla el temporizador. Los demás ven el snapshot actualizado y no pueden ejecutar esas acciones. El host puede cerrar la sala; al salir la autoridad pasa al miembro que lleva más tiempo en ella. Un miembro puede reclamar el control si el heartbeat del host está vencido (>90 s). No hay avatar picker en la app, por lo que el campo queda vacío por defecto.
+
+El recorrido de conexión es `index.html:14-19,224-246 → js/app.js:243-340 → js/multiplayer.js:4-136 → auth/rooms/sync → js/supabase.js → Supabase`. El juego y temporizador se guardan en `game_states`; roster y roles se leen desde `room_players`; políticas `002` limitan lectura y RPCs `003` realizan mutaciones. Para ejecutar y verificar, sigue `supabase/README.md`; la integración online no se debe considerar probada hasta usar dos identidades de navegador y observar la actualización real.

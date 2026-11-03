@@ -6,12 +6,12 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 
 | Archivo | Función, relaciones y estado |
 |---|---|
-| `index.html` (1-476) | Documento de entrada, DOM de Partida/Participantes/Cartas/Manuales/Ajustes y diálogos. Enlaza `manifest.json`, 4 CSS y `js/app.js` (`14-31,474`). Datos de formulario entran por DOM; app escribe resultados en esos nodos. Activo y central. |
-| `package.json` (1-13) | Metadatos, módulo ES, scripts `test` y `serve`; sin dependencias. Consumido por npm. |
+| `index.html` | Documento de entrada, DOM de Partida/Participantes/Cartas/Manuales/Ajustes y diálogos. Declara SDK Supabase async y el panel de salas; inicia `js/app.js` como módulo. |
+| `package.json` | Metadatos versión 1.5.0, módulo ES, scripts `test` y `serve`; sin dependencia npm. Consumido por npm. |
 | `README.md` (todo) | Guía de uso/edición y afirmaciones de catálogo/versiones; documento informativo, no importado en runtime. |
 | `manifest.json` (1-27) | Identidad PWA, scope, orientación e iconos; enlazado por `index.html:14`, consumido por navegador/service worker. |
 | `server.mjs` (1-40) | Servidor HTTP local, lee archivos de raíz y asigna MIME; ejecutado por `npm run serve`. No persiste estado. |
-| `sw.js` (1-79) | Ciclo install/activate/fetch, caché shell y fallback offline; registrado por `app.js:1297`. |
+| `sw.js` | Ciclo install/activate/fetch, caché shell v1.5.0, incluye módulos online; registrado por `app.js`. SDK CDN no se precachea. |
 | `Cartas Get Drunk Party.pdf` | Fuente documental de cartas según README; no se carga en runtime. Binario, contenido no auditado en detalle. |
 | `Get Drunk Party Web.pdf` | Documento PDF presente; no referenciado por código. Propósito exacto no confirmado por el runtime. Binario no auditado en detalle. |
 
@@ -19,7 +19,12 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 
 | Archivo y líneas | Declaraciones / responsabilidad | Uso / estado |
 |---|---|---|
-| `js/app.js:1-1313` | Controlador de interfaz: `render`, `renderGame`, `renderMinigameFlow`, `makeTurnCard`, vistas de jugadores/cartas/manuales/bebidas, formularios y eventos. Importa módulos enumerados en líneas 1-15. | Importado por HTML; consumidor de todos los módulos de lógica. Activo, mayor superficie de cambio. |
+| `js/app.js` | Controlador de interfaz y estado; render, guardas de host, aislamiento/restauración local, snapshot, temporizador sincronizado, eventos de sala. Importa `multiplayer.js`. | Importado por HTML; cliente de lógica de juego y orquestador de UI online. |
+| `js/supabase.js` | Crea cliente SDK v2 desde URL del proyecto + clave pública `anon`; expone `window.gdpSupabase`. | Importado dinámicamente por los servicios Auth/RPC/Realtime tras cargar el SDK. |
+| `js/multiplayer.js` | `waitForSdk`, `services`, `connectRoom`, `startRoom`, `scheduleRoomState`, `refreshRoom`, `disconnectRoom`, `takeRoomHost`, `closeCurrentRoom`. | Importado por `app.js`; coordina módulos online y callbacks de snapshot/estado. |
+| `js/multiplayer-auth.js` | `ensureAnonymousIdentity`, `saveProfile`, `getProfile`. | Importa cliente de `supabase.js`; usa Supabase Auth anónimo y tabla profiles. |
+| `js/multiplayer-rooms.js` | `createRoom`, `joinRoom`, `readRoom`, `beginRoomGame`, `saveRoomGame`, `leaveRoom`, `touchRoom`, `claimHost`, `closeRoom`. | Importa cliente Supabase; consume RPCs y tablas en Supabase. |
+| `js/multiplayer-sync.js` | `subscribeRoom`, `unsubscribeRoom`; Postgres Changes y Presence. | Importa cliente Supabase; `multiplayer.js` consume el canal. |
 | `js/config.js:1-20` | `VERSION`, mapas `CATEGORIES`, `TARGETS`. | Importado por app; activo. |
 | `js/storage.js:1-295` | `seedState`, `isValidState`, `loadState`, `saveState`, `validateCards`, validación de effects, export/import y clave local. Importa catálogos/migraciones. | App importa funciones (`app.js:2-9`); activo. |
 | `js/game.js:1-521` | `gameEngine`, `attachCard`, acciones de turno (roll, draw, selección/resultado minijuego, resolve/finish/cancel), normalización de efectos. Importa decks, participants, dice, minigame-results. | App y tests (`tests/core.test.js:8`); activo y central. |
@@ -55,7 +60,12 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 
 | Archivo | Función |
 |---|---|
-| `tests/core.test.js:1-301` | Pruebas node:test de catálogo, mazos, targets, dado, ciclo de juego, minijuegos, migración y JSON. Importa lógica y datos, no UI DOM. Script npm test. |
+| `tests/core.test.js` | Pruebas node:test de catálogo, mazos, targets, dado, ciclo de juego, minijuegos, migración y JSON. Aún no incluye prueba de integración Supabase ni navegador. |
+| `supabase/sql/001_multiplayer_schema.sql` | Tablas `profiles`, `rooms`, `room_players`, `game_states`, índices y RLS habilitado. |
+| `supabase/sql/002_multiplayer_policies.sql` | Grants mínimos, helpers y políticas RLS de lectura de miembros y Presence privada. |
+| `supabase/sql/003_multiplayer_functions.sql` | RPC transaccionales de crear/unirse/iniciar/guardar/heartbeat/salir/transferir/cerrar sala. |
+| `supabase/sql/004_multiplayer_realtime.sql` | Replica identity y publicación de tablas de sala/estado. |
+| `supabase/README.md` | Orden de despliegue SQL, requisitos del proyecto, comprobaciones y límites. |
 | `assets/icons/icon.svg` | Marca vectorial, favicon/manifiesto y shell SW. |
 | `assets/icons/icon-192.png`, `icon-512.png` | Iconos PWA, listados en manifest y SW. |
 | `assets/icons/favicon-32.png`, `apple-touch-icon.png` | Iconos de navegador/iOS enlazados por HTML y precacheados. |
@@ -67,7 +77,8 @@ DOCUMENTACION_TECNICA/ [nueva entrega]
 assets/icons/ [5 iconos]
 css/ [4 hojas]
 data/ [6 módulos de datos]
-js/ [12 módulos]
+js/ [17 módulos]
+supabase/sql/ [4 scripts SQL]
 tests/ [1 archivo]
 raíz: index.html, package.json, README.md, manifest.json, server.mjs, sw.js, 2 PDF
 ```
@@ -77,3 +88,7 @@ Se excluyen `.agents/`, `.aws/` y `.codex/` del inventario de aplicación: direc
 ## Actualización fase 1
 
 `js/game.js` expone `rerollDigital` y `redraw`; `js/app.js` añade temporizador, carrusel, formulario de manual y menú contextual; `storage.js` valida `durationSeconds`; `tests/core.test.js` cubre las nuevas operaciones del motor.
+
+## Actualización multijugador (fase Supabase)
+
+La ruta funcional de conexión está en `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase. `js/app.js` mantiene separados el estado local y el remoto; los clientes invitados son lectores y el host controla el motor. Los SQL de instalación deben ejecutarse por el operador del proyecto; el uso no se considera verificado hasta probar dos identidades de navegador.

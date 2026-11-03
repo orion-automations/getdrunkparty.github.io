@@ -81,3 +81,17 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - El dado conserva la orientación de la cara exacta sorteada, incluidas ambas caras de VERDAD y DESAFÍO. `startDigitalRoll()` inicia el estado de giro antes de renderizar, calcula varias vueltas 3D y finaliza en la cara que corresponde al resultado (`js/app.js`, `js/dice.js`, `css/dice.css`).
 - Al elegir Cumplió o Toma Shot se cierra automáticamente un turno sin efectos auxiliares pendientes; por eso el botón Finalizar turno ya no aparece como segundo paso para ese flujo (`js/app.js: confirmResult`).
 - Cuando el dado no puede actuar, ahora indica el motivo en vez de ignorar el toque. La versión visible, paquete y caché PWA se actualizaron a `1.4.7`.
+
+## 2026-11-02 — Estilo uniforme de acciones de turno
+
+- Los botones Cumplió, Cumplió el desafío, Cumplió el castigo, Toma Shot y Finalizar turno usan el mismo estilo neutro base, sin acento verde, rosado o morado. Se quitó también el diseño móvil que agrandaba el botón primario (`index.html`, `css/styles.css`).
+- La versión visible, paquete y caché PWA se actualizaron a `1.4.8`.
+
+## 2026-11-02 — Multijugador online con Supabase
+
+- Se añadió el SDK Supabase v2 como script `async` en `index.html` y un panel de crear/unirse a sala en la vista Participantes. El cliente se inicializa solo cuando se intenta conectar (`js/supabase.js`, `js/multiplayer.js`).
+- Se implementaron Auth anónimo/perfil, RPCs de sala, lecturas del roster/estado y sincronización Postgres Changes + Presence (`js/multiplayer-auth.js`, `js/multiplayer-rooms.js`, `js/multiplayer-sync.js`). El host mantiene autoridad exclusiva sobre las mutaciones del juego; clientes invitados observan estado sincronizado.
+- Se mantuvo aislado el estado local: al entrar se guarda una referencia al estado/motor local y se crea el contexto online; al salir se restaura. Snapshots incluyen participantes, ajustes, partida y cartas/manuales usados (`js/app.js:51-89,117-148,174-214`).
+- Se añadieron tablas, políticas RLS, funciones SQL transaccionales y publicación Realtime en `supabase/sql/001`–`004`; guía de instalación en `supabase/README.md`.
+- La integración requiere que el operador habilite Anonymous Sign-Ins y ejecute los cuatro scripts en Dashboard. No se han ejecutado esos cambios externos ni se ha completado prueba de dos dispositivos; por eso queda pendiente la aceptación online.
+- La versión visible, paquete y caché PWA pasan a `1.5.0`. Se revisó sintaxis JavaScript; las pruebas automatizadas y el navegador se documentan según su resultado real al finalizar esta fase.
