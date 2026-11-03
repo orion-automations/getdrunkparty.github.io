@@ -103,3 +103,18 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - La versión declarada y caché del shell pasan a 1.6.0.
 - `npm test` pasó (1 suite); `node --check js/app.js` pasó. El navegador no pudo recargar la ruta `file://` y el entorno bloqueó el servidor local.
 - Sigue pendiente habilitar acciones de invitados mediante RPC validada y probar Supabase/Realtime entre dispositivos. Ver [`11_FASE_1_ZEVYRA_GAMES.md`](11_FASE_1_ZEVYRA_GAMES.md).
+
+## 2026-11-02 — Fase 1.1: interfaz, perfiles emoji y diagnóstico de salas
+
+- La barra persistente pasó a Inicio, Juegos, Partida, Jugadores, Multijugador y Perfil como iconos accesibles; el menú conserva Cartas, Manuales y Ajustes. Inicio se simplificó y catálogo/selector pasan a tarjetas seleccionables con comportamiento descrito en `12_FASE_1_1_AUDITORIA_Y_UI.md`.
+- Se añadieron avatares emoji para jugadores locales y perfiles online, controles de copiar código junto al código, candado trazado y tamaños favicon/ICO/maskable. Manifest y shell PWA quedan en versión 1.6.1.
+- La auditoría local encontró que 003 ya normaliza extremos, consulta en SECURITY DEFINER y serializa aforo. No pudo verificarse el despliegue Supabase; se preparó 005 para normalización amplia y errores distinguibles, sin modificar 001–004.
+- Sigue pendiente aplicar 005, comprobar unión entre dos sesiones y construir acciones de invitados validadas en servidor. No se concede escritura directa ni se altera RLS.
+
+## 2026-11-02 — Correcciones de flujo y pantalla Inicio
+
+- Al cambiar a juego local se desconecta cualquier sala activa, se restaura el estado local respaldado y se limpia `onlineMode` antes de mostrar Partida; así los guardas online no bloquean una partida local (`js/app.js`).
+- El acceso “Unirse a una partida” de Inicio ahora abre la selección de modalidad. Las tarjetas Local/Online ya no muestran emojis.
+- Inicio ocupa el espacio disponible y anima tarjetas generadas desde `GAMES_CATALOG`, disponibles y próximas. Se quitó “Bienvenido”.
+- La cuadrícula de participantes contempla avatar, selector emoji, nombre, turno y acción Eliminar para que el último control no se corte (`css/styles.css`).
+- Verificación tras el ajuste: suite aprobada (1), sintaxis JS/SW aprobada e IDs HTML sin duplicar. No se pudo ejecutar inspección en navegador; servidor localhost sigue bloqueado por el entorno.

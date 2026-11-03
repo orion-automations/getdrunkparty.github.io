@@ -1,5 +1,5 @@
 import { CATEGORIES, TARGETS, VERSION } from "./config.js";
-import { GAMES_CATALOG, getAvailableGame } from "./games-catalog.js";
+import { GAMES_CATALOG } from "./games-catalog.js";
 import {
   loadState,
   saveState,
@@ -42,6 +42,9 @@ const $ = (s) => document.querySelector(s),
 const diceFaceColor = (category) =>
   CATEGORIES[category]?.color ??
   (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
+const PLAYER_AVATARS = ["🎮", "🃏", "👑", "🦊", "🐼", "🐸", "🐱", "🐉", "👾", "🌙", "⭐", "🔥"];
+const savedLocalAvatar = localStorage.getItem("zevyra.local.avatar");
+let selectedLocalAvatar = PLAYER_AVATARS.includes(savedLocalAvatar) ? savedLocalAvatar : PLAYER_AVATARS[0];
 for (const face of DICE_FACES) {
   const side = document.createElement("div");
   side.className = `dice-face face-${face.surface}`;
@@ -107,16 +110,28 @@ function notify(text) {
 }
 function multiplayerErrorMessage(error) {
   const message = String(error?.message ?? error ?? "");
-  if (/ROOM_NOT_FOUND/i.test(message)) return "No encontramos esa sala. Revisa el código.";
+  const code = String(error?.code ?? "");
+  if (/ROOM_CODE_INVALID/i.test(message)) return "El código debe tener seis letras o números válidos.";
+  if (/ROOM_NOT_FOUND/i.test(message)) return "No existe una sala con ese código. Revísalo e inténtalo de nuevo.";
+  if (/ROOM_EXPIRED/i.test(message)) return "Esta sala venció. Pide un código nuevo al anfitrión.";
   if (/ROOM_FULL/i.test(message)) return "La sala está llena.";
-  if (/ROOM_CLOSED|ROOM_NOT_WAITING/i.test(message)) return "La sala ya no acepta jugadores.";
+  if (/ROOM_IN_PROGRESS/i.test(message)) return "La partida ya comenzó y no acepta nuevos participantes.";
+  if (/ROOM_CLOSED|ROOM_NOT_WAITING/i.test(message)) return "La sala está cerrada y no acepta jugadores.";
+  if (/AUTH_REQUIRED/i.test(message) || /Anonymous|anonymous/i.test(message)) return "No se pudo validar tu sesión online. Activa Anonymous Sign-Ins en Supabase.";
+  if (code === "42501" || /ROOM_MEMBERSHIP_REQUIRED/i.test(message)) return "Tu sesión no tiene permiso para entrar a esta sala.";
+  if (code === "PGRST202" || /could not find the function/i.test(message)) return "Supabase no tiene actualizada la función de salas. Aplica la migración 005 y vuelve a intentarlo.";
+  if (/Failed to fetch|NetworkError|Load failed/i.test(message)) return "No hay conexión con Supabase. Revisa internet e inténtalo de nuevo.";
   if (/NEED_TWO_PLAYERS/i.test(message)) return "Se necesitan al menos dos jugadores para iniciar.";
   if (/HOST_REQUIRED/i.test(message)) return "Solo el anfitrión puede realizar esa acción.";
   if (/HOST_STILL_ACTIVE/i.test(message)) return "El anfitrión sigue conectado; no es necesario transferir el control.";
   if (/VERSION_CONFLICT/i.test(message)) return "La partida cambió en otro dispositivo. Se está actualizando.";
   if (/Invalid API key|JWT/i.test(message)) return "La URL y la clave de Supabase no corresponden o no son válidas.";
-  if (/Anonymous|anonymous/i.test(message)) return "Activa Anonymous Sign-Ins en Supabase Authentication.";
-  return message || "No se pudo completar la acción online.";
+  if (code === "23505") return "Esta sesión ya está registrada en la sala.";
+  return "No se pudo completar la acción online. Inténtalo de nuevo.";
+}
+function logMultiplayerError(phase, error) {
+  const message = String(error?.message ?? error ?? "").replace(/eyJ[a-zA-Z0-9._-]+/g, "[redacted]");
+  console.warn("[ZEVYRA multiplayer]", { phase, code: error?.code ?? null, message });
 }
 function handleRoomSaveError(error) {
   if (/VERSION_CONFLICT/i.test(String(error?.message ?? error))) {
@@ -144,7 +159,13 @@ function enterOnlineMode() {
   onlineMode = true;
 }
 function leaveOnlineMode() {
-  if (!onlineMode || !localModeBackup) return;
+  if (!onlineMode) return;
+  if (!localModeBackup) {
+    onlineMode = false;
+    applyingRemoteState = false;
+    roomPresence = [];
+    return;
+  }
   const resumeLocalTimer = localModeBackup.timer.wasRunning;
   clearInterval(timerState.interval);
   timerState = { remainingMs: localModeBackup.timer.remainingMs, totalMs: localModeBackup.timer.totalMs, endsAt: null, interval: null };
@@ -164,7 +185,11 @@ function renderMultiplayerRoom(details = null) {
   panel.classList.toggle("hidden", !session);
   $("#multiplayer-create-form").classList.toggle("hidden", Boolean(session));
   $("#multiplayer-join-form").classList.toggle("hidden", Boolean(session));
+  $("#multiplayer-name").disabled = Boolean(session);
+  $("#multiplayer-avatar").disabled = Boolean(session);
   if (!session) return;
+  $("#multiplayer-name").value = session.profile.username;
+  $("#multiplayer-avatar").value = session.profile.avatar || PLAYER_AVATARS[0];
   $("#multiplayer-room-code").textContent = session.code;
   const roomStatus = details?.room?.status ?? session.status;
   $("#multiplayer-room-status").textContent = roomStatus === "waiting" ? "Esperando jugadores" : roomStatus === "playing" ? "Partida en curso" : "Sala cerrada";
@@ -175,14 +200,25 @@ function renderMultiplayerRoom(details = null) {
   const playersHost = $("#multiplayer-room-players");
   playersHost.replaceChildren();
   const players = details?.players ?? state.participants.map((player) => ({
-    user_id: player.id, username_snapshot: player.name, role: player.id === session.user.id ? session.role : "player", status: "joined",
+    user_id: player.id, username_snapshot: player.name, avatar_snapshot: player.avatar, role: player.id === session.user.id ? session.role : "player", status: "joined",
   }));
   $("#multiplayer-player-count").textContent = players.length + (players.length === 1 ? " jugador" : " jugadores");
   $("#multiplayer-start").disabled = players.length < 2;
   for (const player of players) {
     const item = document.createElement("li");
+    item.className = "lobby-player-row";
     const isOnline = roomPresence.some((presence) => presence.userId === player.user_id);
-    item.textContent = `${player.username_snapshot}${player.role === "host" ? " · anfitrión" : ""} · ${isOnline ? "conectado" : "reconectando"}`;
+    const avatar = document.createElement("span");
+    avatar.className = "player-avatar";
+    avatar.textContent = player.avatar_snapshot || "🎮";
+    const detailsEl = document.createElement("span");
+    detailsEl.className = "lobby-player-details";
+    const name = document.createElement("strong");
+    name.textContent = player.username_snapshot;
+    const status = document.createElement("small");
+    status.textContent = `${player.role === "host" ? "Anfitrión · " : ""}${isOnline ? "Conectado" : "En sala"}`;
+    detailsEl.append(name, status);
+    item.append(avatar, detailsEl);
     playersHost.append(item);
   }
 }
@@ -266,7 +302,8 @@ async function connectOnlineRoom(mode, code = "") {
   try {
     const connection = await connectRoom({
       mode, code, username, maxPlayers, initialState,
-      onSnapshot: applyOnlineSnapshot,
+    onSnapshot: applyOnlineSnapshot,
+    avatar: $("#multiplayer-avatar").value,
       onPresence: (presence) => {
         roomPresence = presence;
         renderMultiplayerRoom();
@@ -280,6 +317,7 @@ async function connectOnlineRoom(mode, code = "") {
     setView(connection.session.status === "playing" ? "game" : "multiplayer");
     return true;
   } catch (error) {
+    logMultiplayerError(mode === "create" ? "create-room" : "join-room", error);
     leaveOnlineMode();
     $("#multiplayer-connection").textContent = "Error de conexión";
     notify(multiplayerErrorMessage(error));
@@ -299,14 +337,38 @@ async function leaveOnlineRoom() {
   renderMultiplayerRoom();
 }
 
-$("#multiplayer-name").value = state.participants[state.game.currentIndex]?.name ?? state.participants[0]?.name ?? "";
+$("#multiplayer-name").value = localStorage.getItem("zevyra.profile.name") || state.participants[state.game.currentIndex]?.name || state.participants[0]?.name || "";
+for (const emoji of PLAYER_AVATARS) {
+  const option = document.createElement("option");
+  option.value = emoji;
+  option.textContent = emoji;
+  $("#multiplayer-avatar").append(option);
+  const avatarButton = document.createElement("button");
+  avatarButton.type = "button";
+  avatarButton.className = "avatar-choice";
+  avatarButton.textContent = emoji;
+  avatarButton.setAttribute("aria-label", `Elegir avatar ${emoji}`);
+  avatarButton.setAttribute("aria-pressed", String(emoji === selectedLocalAvatar));
+  avatarButton.onclick = () => {
+    selectedLocalAvatar = emoji;
+    localStorage.setItem("zevyra.local.avatar", emoji);
+    $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button.textContent === emoji)));
+  };
+  $("#player-avatar-choices").append(avatarButton);
+}
+const savedOnlineAvatar = localStorage.getItem("zevyra.profile.avatar");
+$("#multiplayer-avatar").value = PLAYER_AVATARS.includes(savedOnlineAvatar) ? savedOnlineAvatar : PLAYER_AVATARS[0];
+$("#multiplayer-name").addEventListener("change", () => localStorage.setItem("zevyra.profile.name", $("#multiplayer-name").value.trim()));
+$("#multiplayer-avatar").addEventListener("change", () => localStorage.setItem("zevyra.profile.avatar", $("#multiplayer-avatar").value));
 $("#multiplayer-create-form").onsubmit = async (event) => {
   event.preventDefault();
   await connectOnlineRoom("create");
 };
 $("#multiplayer-join-form").onsubmit = async (event) => {
   event.preventDefault();
-  await connectOnlineRoom("join", $("#multiplayer-code").value);
+  const normalizedCode = $("#multiplayer-code").value.replace(/\s+/g, "").toUpperCase();
+  $("#multiplayer-code").value = normalizedCode;
+  await connectOnlineRoom("join", normalizedCode);
 };
 $("#multiplayer-start").onclick = async () => {
   if (!requireOnlineHost()) return;
@@ -504,7 +566,7 @@ function publishSharedTimer() {
 }
 function setView(view) {
   $$(".view").forEach((el) => el.classList.toggle("active", el.id === `view-${view}`));
-  $$("#nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === (view === "home" ? "home" : "games")));
+  $$("#nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === view));
   $$("#tools-nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === view));
   $("#tools-nav").classList.remove("open");
   $("#tools-nav").hidden = true;
@@ -521,6 +583,20 @@ function renderGameLibrary() {
   for (const game of GAMES_CATALOG) {
     const card = document.createElement("article");
     card.className = `game-card ${game.available ? "is-available" : "is-coming-soon"}`;
+    if (game.available) {
+      card.tabIndex = 0;
+      card.setAttribute("role", "link");
+      card.setAttribute("aria-label", `Abrir ${game.name}`);
+      card.onclick = () => { playMode = "choose"; setView(game.route); };
+      card.onkeydown = (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          card.click();
+        }
+      };
+    } else {
+      card.setAttribute("aria-disabled", "true");
+    }
     const cover = document.createElement("div");
     cover.className = "game-card-cover-wrap";
     const image = document.createElement("img");
@@ -532,7 +608,7 @@ function renderGameLibrary() {
       const lock = document.createElement("span");
       lock.className = "game-card-lock";
       lock.setAttribute("aria-hidden", "true");
-      lock.textContent = "▣";
+      lock.innerHTML = '<svg viewBox="0 0 32 38" aria-hidden="true"><rect x="4" y="16" width="24" height="19" rx="4"/><path d="M9 16V10a7 7 0 0 1 14 0v6M5 5l22 28"/></svg>';
       cover.append(lock);
     }
     const content = document.createElement("div");
@@ -542,45 +618,26 @@ function renderGameLibrary() {
     status.textContent = game.status;
     const title = document.createElement("h2");
     title.textContent = game.name;
-    const description = document.createElement("p");
-    description.textContent = game.description;
-    const action = document.createElement("button");
-    action.className = `button${game.available ? " button-primary" : ""}`;
-    action.type = "button";
-    action.textContent = game.available ? "Jugar" : "Próximamente";
-    action.disabled = !game.available;
-    if (game.available) action.onclick = () => { playMode = "choose"; setView(game.route); };
-    content.append(status, title, description, action);
+    content.append(status, title);
     card.append(cover, content);
     host.append(card);
   }
 }
-function renderFeaturedGame() {
-  const game = getAvailableGame("get-drunk-party");
-  const host = $("#featured-game");
-  if (!host || !game) return;
+function renderHomeGameStack() {
+  const host = $("#home-game-stack");
+  if (!host) return;
   host.replaceChildren();
-  const image = document.createElement("img");
-  image.className = "featured-game-cover";
-  image.src = game.cover;
-  image.alt = "Emblema de ZEVYRA Games";
-  const copy = document.createElement("div");
-  copy.className = "featured-game-copy";
-  const status = document.createElement("span");
-  status.className = "game-status";
-  status.textContent = game.status;
-  const title = document.createElement("h3");
-  title.textContent = game.name;
-  const description = document.createElement("p");
-  description.className = "muted";
-  description.textContent = game.description;
-  const button = document.createElement("button");
-  button.className = "button button-primary";
-  button.type = "button";
-  button.textContent = "Jugar";
-  button.onclick = () => { playMode = "choose"; setView("game"); };
-  copy.append(status, title, description, button);
-  host.append(image, copy);
+  GAMES_CATALOG.forEach((game, index) => {
+    const card = document.createElement("article");
+    card.className = `home-game-card${game.available ? " is-available" : " is-upcoming"}`;
+    card.style.setProperty("--card-index", String(index));
+    const name = document.createElement("strong");
+    name.textContent = game.name;
+    const status = document.createElement("span");
+    status.textContent = game.available ? "DISPONIBLE" : "PRÓXIMAMENTE";
+    card.append(name, status);
+    host.append(card);
+  });
 }
 function esc(text) {
   return escapeText(text);
@@ -595,6 +652,8 @@ function render() {
   renderGame();
   renderRewards();
   renderPlayers();
+  const profilePlayer = state.participants.find((player) => player.id === state.game.current?.playerId) ?? state.participants.find((player) => player.active);
+  $("#profile-nav-avatar").textContent = getMultiplayerSession()?.profile?.avatar || profilePlayer?.avatar || PLAYER_AVATARS[0];
   renderCards();
   renderManuals();
   renderDrinks();
@@ -619,6 +678,7 @@ function renderGame() {
   $("#current-player").textContent = current?.active
     ? current.name
     : "Agrega participantes";
+  $("#current-player-avatar").textContent = current?.avatar || PLAYER_AVATARS[0];
   const ready = state.game.state === "READY" && hasPlayers && !rolling;
   const readOnly = onlineMode && !canPlayOnlineGame();
   const digital = (state.settings.gameMode ?? "digital") === "digital";
@@ -1232,7 +1292,20 @@ function renderPlayers() {
   state.participants.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "manage-row";
-    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
+    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><span class="player-avatar">${esc(p.avatar || PLAYER_AVATARS[0])}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
+    const avatarSelect = document.createElement("select");
+    avatarSelect.className = "player-avatar-select";
+    avatarSelect.setAttribute("aria-label", `Avatar de ${p.name}`);
+    for (const emoji of PLAYER_AVATARS) {
+      const option = document.createElement("option");
+      option.value = emoji;
+      option.textContent = emoji;
+      option.selected = (p.avatar || PLAYER_AVATARS[0]) === emoji;
+      avatarSelect.append(option);
+    }
+    avatarSelect.disabled = readOnly;
+    avatarSelect.onchange = () => { p.avatar = avatarSelect.value; persist(); render(); };
+    row.insertBefore(avatarSelect, row.querySelector("input"));
     row.querySelector("input").disabled = readOnly;
     row.querySelector("[data-action=delete-player]").disabled = readOnly;
     const saveName = () => {
@@ -1624,14 +1697,25 @@ $("#menu-toggle").onclick = () => {
   menu.hidden = false;
   menu.classList.toggle("open");
 };
-$("#home-browse-games").onclick = $("#home-all-games").onclick = () => setView("games");
+$("#home-browse-games").onclick = () => setView("games");
+$("#home-join-game").onclick = () => { playMode = "choose"; setView("game"); };
+$("#profile-nav").onclick = () => setView("players");
 $("#back-to-games").onclick = () => setView("games");
 $("#back-to-mode-select").onclick = () => { playMode = "choose"; setView("game"); };
-$("#start-local-game").onclick = () => { playMode = "local"; setView("game"); };
+$("#start-local-game").onclick = async () => {
+  if (getMultiplayerSession()) {
+    try { await disconnectRoom(); }
+    catch (error) { logMultiplayerError("leave-online-before-local", error); }
+  }
+  if (onlineMode) leaveOnlineMode();
+  onlineMode = false;
+  playMode = "local";
+  setView("game");
+};
 $("#open-online-game").onclick = () => setView("multiplayer");
 $("#multiplayer-back").onclick = () => { playMode = "choose"; setView("game"); };
 renderGameLibrary();
-renderFeaturedGame();
+renderHomeGameStack();
 $$(".close-dialog").forEach(
   (b) => (b.onclick = () => b.closest("dialog").close()),
 );
@@ -1652,7 +1736,9 @@ for (const [id, max, selected] of [
   select.onchange = syncTimerFromPicker;
 }
 renderTimer();
-setView("home");
+const allowedViews = new Set(["home", "games", "game", "players", "multiplayer", "editor", "manuals", "settings"]);
+const requestedView = location.hash.slice(1) === "inicio" ? "home" : location.hash.slice(1) === "juegos" ? "games" : location.hash.slice(1);
+setView(allowedViews.has(requestedView) ? requestedView : "home");
 TIMER_PRESETS.forEach((seconds) => {
   const button = document.createElement("button");
   button.type = "button";
@@ -1867,6 +1953,7 @@ $("#player-form").onsubmit = (e) => {
   state.participants.push({
     id: makeId("player"),
     name,
+    avatar: selectedLocalAvatar,
     active: true,
     preferences: {},
   });

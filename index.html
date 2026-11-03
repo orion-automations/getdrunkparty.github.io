@@ -26,6 +26,7 @@
       sizes="32x32"
     />
     <link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/icons/favicon.ico" sizes="any" />
     <link
       rel="apple-touch-icon"
       href="./assets/icons/apple-touch-icon.png"
@@ -44,7 +45,7 @@
     <header class="topbar">
       <a class="brand zevyra-brand" href="#inicio" aria-label="Zevyra Games, inicio">
         <img src="./assets/brand/zevyra-emblem.png" alt="" width="42" height="42" />
-        <span>ZEVYRA <b>Games</b><small>THE DARK PLAYGROUND</small></span>
+        <span>ZEVYRA <b>Games</b></span>
       </a>
       <div class="topbar-actions">
         <button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador"><span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span></button>
@@ -52,12 +53,14 @@
       </div>
     </header>
     <nav id="nav" class="primary-nav" aria-label="Navegación principal">
-      <button data-view="home" class="nav-link active">Inicio</button>
-      <button data-view="games" class="nav-link">Juegos</button>
+      <button data-view="home" class="nav-link active" aria-label="Inicio" title="Inicio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></button>
+      <button data-view="games" class="nav-link" aria-label="Juegos" title="Juegos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8h10a4 4 0 0 1 3.8 2.8l1.1 3.8a2.5 2.5 0 0 1-4 2.6L15 15H9l-2.9 2.2a2.5 2.5 0 0 1-4-2.6l1.1-3.8A4 4 0 0 1 7 8Z"/><path d="M7 10v4m-2-2h4m8-1h.01M18 13h.01"/></svg></button>
+      <button data-view="game" class="nav-link" aria-label="Partida" title="Partida"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v5l3 2"/></svg></button>
+      <button data-view="players" class="nav-link" aria-label="Jugadores" title="Jugadores"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-14a3.5 3.5 0 0 1 0 6.8m1 2a5.5 5.5 0 0 1 3 5.2"/></svg></button>
+      <button data-view="multiplayer" class="nav-link" aria-label="Multijugador" title="Multijugador"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9a11 11 0 0 1 14 0M8 12a6.5 6.5 0 0 1 8 0m-5 4a2 2 0 0 1 2 0"/><circle cx="12" cy="19" r="1"/></svg></button>
+      <button id="profile-nav" class="nav-link" aria-label="Mi perfil" title="Mi perfil"><span id="profile-nav-avatar" aria-hidden="true">🎮</span></button>
     </nav>
     <nav id="tools-nav" class="tools-nav" aria-label="Herramientas del juego" hidden>
-      <button data-view="game" class="nav-link">Partida</button>
-      <button data-view="players" class="nav-link">Participantes</button>
       <button data-view="editor" class="nav-link">Cartas</button>
       <button data-view="manuals" class="nav-link">Manuales</button>
       <button data-view="settings" class="nav-link">Ajustes</button>
@@ -68,23 +71,12 @@
           <img class="platform-hero-emblem" src="./assets/brand/zevyra-emblem.png" alt="Emblema de ZEVYRA Games" />
           <div class="platform-hero-copy">
             <p class="eyebrow">WELCOME TO ZEVYRA</p>
-            <h1>ZEVYRA <span>Games</span></h1>
-            <p class="platform-tagline">THE DARK PLAYGROUND</p>
-            <p class="muted">Un universo de juegos. Infinitas formas de jugar.</p>
-            <button id="home-browse-games" class="button button-primary" type="button">Explorar juegos</button>
+            <div id="home-game-stack" class="home-game-stack" aria-label="Juegos de ZEVYRA"></div>
+            <div class="home-icon-actions">
+              <button id="home-browse-games" class="home-icon-action" type="button" aria-label="Explorar juegos" title="Explorar juegos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8h10a4 4 0 0 1 3.8 2.8l1.1 3.8a2.5 2.5 0 0 1-4 2.6L15 15H9l-2.9 2.2a2.5 2.5 0 0 1-4-2.6l1.1-3.8A4 4 0 0 1 7 8Z"/><path d="M7 10v4m-2-2h4m8-1h.01M18 13h.01"/></svg></button>
+              <button id="home-join-game" class="home-icon-action" type="button" aria-label="Unirse a una partida" title="Unirse a una partida"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7m-1-6-9 9"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>
+            </div>
           </div>
-        </section>
-        <section class="platform-section" aria-labelledby="featured-title">
-          <div class="section-heading"><div><p class="eyebrow">DISPONIBLE AHORA</p><h2 id="featured-title">Juego destacado</h2></div><button id="home-all-games" class="text-button" type="button">Ver biblioteca</button></div>
-          <div id="featured-game" class="featured-game"></div>
-        </section>
-        <section class="platform-section" aria-labelledby="recent-title">
-          <div class="section-heading"><div><p class="eyebrow">TU ESPACIO</p><h2 id="recent-title">Actividad reciente</h2></div></div>
-          <div class="empty-state panel"><span class="empty-state-mark" aria-hidden="true">◌</span><div><h3>Aún no hay partidas recientes</h3><p class="muted">Tus próximas experiencias aparecerán aquí.</p></div></div>
-        </section>
-        <section class="platform-section" aria-labelledby="news-title">
-          <div class="section-heading"><div><p class="eyebrow">EL UNIVERSO SE EXPANDE</p><h2 id="news-title">Novedades</h2></div></div>
-          <div class="empty-state panel"><span class="empty-state-mark" aria-hidden="true">✦</span><div><h3>Muy pronto</h3><p class="muted">Nuevos juegos y novedades llegarán a ZEVYRA.</p></div></div>
         </section>
       </section>
       <section id="view-games" class="view">
@@ -98,8 +90,8 @@
           <h1>¿Cómo quieres jugar?</h1>
           <p class="muted">Elige una modalidad. Tu partida local permanece en este dispositivo.</p>
           <div class="mode-cards">
-            <article class="mode-card"><span class="mode-card-icon" aria-hidden="true">◈</span><h2>Jugar localmente</h2><p class="muted">Una partida compartida desde este dispositivo.</p><button id="start-local-game" class="button button-primary" type="button">Jugar localmente</button></article>
-            <article class="mode-card"><span class="mode-card-icon" aria-hidden="true">◎</span><h2>Multijugador online</h2><p class="muted">Crea una sala o únete con un código.</p><button id="open-online-game" class="button" type="button">Multijugador online</button></article>
+            <button id="start-local-game" class="mode-card" type="button"><span class="mode-card-title">Jugar localmente</span><span class="muted">Una partida compartida en este dispositivo.</span></button>
+            <button id="open-online-game" class="mode-card" type="button"><span class="mode-card-title">Multijugador online</span><span class="muted">Crea una sala o únete con un código.</span></button>
           </div>
         </section>
         <div id="gameplay-screen" class="hidden">
@@ -153,9 +145,9 @@
         <div id="game-layout" class="game-layout">
           <section class="panel game-panel">
             <div class="turn-line">
-              <div>
+              <div class="turn-player-heading">
                 <span class="eyebrow">TURNO ACTUAL</span>
-                <h2 id="current-player">Agrega participantes</h2>
+                <div class="current-player-line"><span id="current-player-avatar" class="player-avatar" aria-hidden="true">🎮</span><h2 id="current-player">Agrega participantes</h2></div>
               </div>
             </div>
             <label class="mode-picker"
@@ -252,6 +244,7 @@
         </div>
         <div class="panel">
           <form id="player-form" class="inline-form">
+            <div class="avatar-picker"><span>Avatar</span><div id="player-avatar-choices" class="avatar-choices" aria-label="Elige un avatar"></div></div>
             <label class="grow"
               >Nombre<input
                 id="player-name"
@@ -276,11 +269,12 @@
         <div class="page-heading"><button id="multiplayer-back" type="button" class="text-button">← Volver a modalidades</button><p class="eyebrow">JUEGA CON TU GRUPO</p><h1>Multijugador online</h1><p class="muted">Crea una sala privada o únete con el código de invitación.</p></div>
         <section class="panel multiplayer-panel" id="multiplayer-panel" aria-labelledby="multiplayer-heading">
           <div class="panel-heading"><div><p class="eyebrow">SALA ONLINE</p><h2 id="multiplayer-heading">Lobby</h2></div><span id="multiplayer-connection" class="fine-print" role="status">Desconectado</span></div>
-          <form id="multiplayer-create-form" class="form-grid"><label>Tu nickname<input id="multiplayer-name" maxlength="32" placeholder="Tu nombre" autocomplete="nickname" /></label><label>Máximo de jugadores<input id="multiplayer-capacity" type="number" min="2" max="30" value="8" required /></label><button class="button button-primary" type="submit">Crear sala</button></form>
+          <div class="multiplayer-profile"><label>Tu nickname<input id="multiplayer-name" maxlength="32" placeholder="Tu nombre" autocomplete="nickname" /></label><label>Avatar<select id="multiplayer-avatar" aria-label="Elige tu avatar online"></select></label></div>
+          <form id="multiplayer-create-form" class="form-grid"><label>Máximo de jugadores<input id="multiplayer-capacity" type="number" min="2" max="30" value="8" required /></label><button class="button button-primary" type="submit">Crear sala</button></form>
           <div class="lobby-divider"><span>o únete con una invitación</span></div>
           <form id="multiplayer-join-form" class="inline-form"><label class="grow">Código de sala<input id="multiplayer-code" maxlength="6" autocomplete="one-time-code" required placeholder="ABC234" /></label><button class="button" type="submit">Unirme a la sala</button></form>
           <div id="multiplayer-room" class="hidden">
-            <div class="lobby-room-summary"><div><p class="eyebrow">CÓDIGO DE INVITACIÓN</p><strong id="multiplayer-room-code" class="room-code"></strong><p id="multiplayer-room-status" class="fine-print"></p></div><button id="multiplayer-copy-code" class="button" type="button">Copiar código</button></div>
+            <div class="lobby-room-summary"><div><p class="eyebrow">CÓDIGO DE INVITACIÓN</p><div class="room-code-row"><strong id="multiplayer-room-code" class="room-code"></strong><button id="multiplayer-copy-code" class="copy-code-icon" type="button" aria-label="Copiar código" title="Copiar código"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3"/></svg></button></div><p id="multiplayer-room-status" class="fine-print"></p></div></div>
             <div class="panel-heading lobby-roster-heading"><h3>Participantes</h3><span id="multiplayer-player-count" class="fine-print"></span></div>
             <ul id="multiplayer-room-players" class="management-list lobby-roster"></ul>
             <div class="button-row"><button id="multiplayer-start" class="button button-primary hidden" type="button">Iniciar partida</button><button id="multiplayer-claim-host" class="button hidden" type="button">Tomar control</button><button id="multiplayer-close" class="button button-danger hidden" type="button">Cerrar sala</button><button id="multiplayer-leave" class="button" type="button">Salir de sala</button></div>

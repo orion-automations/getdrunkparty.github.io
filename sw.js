@@ -1,5 +1,5 @@
-const CACHE_PREFIX = "gdpw-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}1.6.0`;
+const CACHE_PREFIX = "zevyra-shell-";
+const CACHE_NAME = `${CACHE_PREFIX}1.6.1`;
 const SHELL = [
   "./",
   "./index.html",
@@ -35,7 +35,11 @@ const SHELL = [
   "./assets/icons/icon.svg",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
+  "./assets/icons/icon-maskable-192.png",
+  "./assets/icons/icon-maskable-512.png",
+  "./assets/icons/favicon-16x16.png",
   "./assets/icons/favicon-32.png",
+  "./assets/icons/favicon.ico",
   "./assets/icons/favicon-32x32.png",
   "./assets/icons/favicon.svg",
   "./assets/brand/zevyra-emblem.png",
@@ -56,7 +60,7 @@ self.addEventListener("activate", (event) =>
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+            .filter((key) => (key.startsWith(CACHE_PREFIX) || key.startsWith("gdpw-shell-")) && key !== CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )

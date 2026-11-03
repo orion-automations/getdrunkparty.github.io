@@ -17,7 +17,7 @@ export async function createRoom(username, avatar, maxPlayers, initialState) {
 
 export async function joinRoom(code, username, avatar) {
   const { data, error } = await supabase.rpc("gdp_join_room", {
-    p_code: String(code ?? "").trim().toUpperCase(),
+    p_code: String(code ?? "").replace(/\s+/g, "").toUpperCase(),
     p_username: username,
     p_avatar: avatar,
   });
