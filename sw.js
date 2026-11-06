@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}1.8.0`;
+const CACHE_NAME = `${CACHE_PREFIX}1.9.0`;
 const SHELL = [
   "./",
   "./index.html",
@@ -47,6 +47,13 @@ const SHELL = [
   "./assets/icons/favicon-32x32.png",
   "./assets/icons/favicon.svg",
   "./assets/brand/zevyra-emblem.png",
+  "./assets/branding/logo-dark.png",
+  "./assets/branding/logo-light.png",
+  "./assets/games/carnival-of-chaos.png",
+  "./assets/games/yo-nunca-nunca.png",
+  "./assets/games/weekend-hearts.png",
+  "./assets/games/quien-es-mas-probable.png",
+  "./assets/games/el-impostor.png",
   "./assets/icons/apple-touch-icon.png",
 ];
 self.addEventListener("install", (event) =>

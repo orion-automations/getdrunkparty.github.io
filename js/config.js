@@ -1,5 +1,5 @@
-export const VERSION = "1.8.0";
-export const GAME_NAME = "Midnight Chaos";
+export const VERSION = "1.9.0";
+export const GAME_NAME = "Carnival of Chaos";
 export const GAME_ID = "midnight-chaos";
 export const CATEGORIES = {
   VERDAD: { label: "Verdad", color: "#39E58C", icon: "◉" },

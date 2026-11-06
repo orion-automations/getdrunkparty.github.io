@@ -46,6 +46,7 @@ let playMode = "choose";
 let applyingRemoteState = false;
 let localModeBackup = null;
 let roomPresence = [];
+let selectedGameIndex = 0;
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 const diceFaceColor = (category) =>
@@ -85,7 +86,14 @@ function canControlOnlineGame() {
   return !onlineMode || getMultiplayerSession()?.role === "host";
 }
 function requireOnlineHost(message = "Solo el anfitrión controla esta partida.") {
-  if (canControlOnlineGame()) return true;
+  if (canControlOnlineGame()) {
+    const session = onlineMode ? getMultiplayerSession() : null;
+    if (session) {
+      authorizedTurnActionAt = Date.now();
+      authorizedTurnActionUserId = session.user.id;
+    }
+    return true;
+  }
   notify(message);
   return false;
 }
@@ -131,6 +139,18 @@ function notify(text) {
   el.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+function profileAvatarUrl(seed = localStorage.getItem("zevyra.profile.avatarSeed") || "circus-player") {
+  return `https://api.dicebear.com/10.x/big-smile/svg?seed=${encodeURIComponent(seed)}`;
+}
+function renderAvatar(target, avatar, fallback = "🎮") {
+  if (!target) return;
+  target.replaceChildren();
+  if (typeof avatar === "string" && avatar.startsWith("https://api.dicebear.com/10.x/big-smile/svg")) {
+    const image = document.createElement("img");
+    image.src = avatar; image.alt = ""; image.loading = "lazy";
+    target.append(image);
+  } else target.textContent = avatar || fallback;
 }
 function multiplayerErrorMessage(error) {
   const message = String(error?.message ?? error ?? "");
@@ -240,7 +260,7 @@ function renderMultiplayerRoom(details = null) {
     const isOnline = roomPresence.some((presence) => presence.userId === player.user_id);
     const avatar = document.createElement("span");
     avatar.className = "player-avatar";
-    avatar.textContent = player.avatar_snapshot || "🎮";
+    renderAvatar(avatar, player.avatar_snapshot);
     const detailsEl = document.createElement("span");
     detailsEl.className = "lobby-player-details";
     const name = document.createElement("strong");
@@ -412,6 +432,7 @@ async function leaveOnlineRoom() {
 const savedProfileName = localStorage.getItem("zevyra.profile.name") || "";
 $("#multiplayer-name").value = savedProfileName;
 $("#profile-nickname").value = savedProfileName;
+$("#player-name").value = savedProfileName;
 for (const emoji of PLAYER_AVATARS) {
   const option = document.createElement("option");
   option.value = emoji;
@@ -431,7 +452,11 @@ for (const emoji of PLAYER_AVATARS) {
   $("#player-avatar-choices").append(avatarButton);
 }
 const savedOnlineAvatar = localStorage.getItem("zevyra.profile.avatar");
-$("#multiplayer-avatar").value = PLAYER_AVATARS.includes(savedOnlineAvatar) ? savedOnlineAvatar : PLAYER_AVATARS[0];
+const dicebearOption = document.createElement("option");
+dicebearOption.value = profileAvatarUrl();
+dicebearOption.textContent = "Avatar de perfil";
+$("#multiplayer-avatar").append(dicebearOption);
+$("#multiplayer-avatar").value = profileAvatarUrl();
 $("#multiplayer-name").addEventListener("change", () => localStorage.setItem("zevyra.profile.name", $("#multiplayer-name").value.trim()));
 $("#multiplayer-avatar").addEventListener("change", () => localStorage.setItem("zevyra.profile.avatar", $("#multiplayer-avatar").value));
 $("#profile-form").onsubmit = async (event) => {
@@ -440,10 +465,11 @@ $("#profile-form").onsubmit = async (event) => {
   if (!username) return notify("Escribe un nickname para guardar tu perfil.");
   localStorage.setItem("zevyra.profile.name", username);
   $("#multiplayer-name").value = username;
+  if (!$("#player-name").value.trim()) $("#player-name").value = username;
   const session = getMultiplayerSession();
   if (session) {
     try {
-      await saveConnectedProfile(username, session.profile.avatar ?? $("#multiplayer-avatar").value);
+      await saveConnectedProfile(username, profileAvatarUrl());
       render();
       notify("Nickname actualizado en tu perfil y en las salas activas.");
     } catch (error) {
@@ -485,7 +511,7 @@ $("#multiplayer-claim-host").onclick = async () => {
   }
 };
 $("#multiplayer-copy-code").onclick = async () => {
-  const code = getMultiplayerSession()?.code;
+  const code = getMultiplayerSession()?.code; 
   if (!code) return;
   try {
     await navigator.clipboard.writeText(code);
@@ -662,6 +688,7 @@ function setView(view) {
   $$("#tools-nav .nav-link").forEach((el) => el.classList.toggle("active", el.dataset.view === view));
   $("#tools-nav").classList.remove("open");
   $("#tools-nav").hidden = true;
+  $("#menu-toggle").setAttribute("aria-expanded", "false");
   $("#timer-inline").classList.toggle("is-hidden", !["game", "players", "editor", "manuals", "settings", "multiplayer"].includes(view));
   if (view === "game" && playMode === "online" && getMultiplayerSession()?.status === "playing") playMode = "online";
   history.replaceState(null, "", view === "home" ? "#inicio" : view === "games" ? "#juegos" : `#${view}`);
@@ -674,21 +701,17 @@ function renderGameLibrary() {
   host.replaceChildren();
   for (const game of GAMES_CATALOG) {
     const card = document.createElement("article");
-    card.className = `game-card ${game.available ? "is-available" : "is-coming-soon"}`;
-    if (game.available) {
-      card.tabIndex = 0;
-      card.setAttribute("role", "link");
-      card.setAttribute("aria-label", `Abrir ${game.name}`);
-      card.onclick = () => { playMode = "choose"; setView(game.route); };
-      card.onkeydown = (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          card.click();
-        }
-      };
-    } else {
-      card.setAttribute("aria-disabled", "true");
-    }
+    card.className = `game-card ${game.available ? "is-available" : game.status === "En desarrollo" ? "is-in-development" : "is-blocked"}`;
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${game.name}, ${game.status}`);
+    card.onclick = () => {
+      if (game.available) { playMode = "choose"; setView(game.route); }
+      else notify(`${game.name}: ${game.status.toLocaleLowerCase()}.`);
+    };
+    card.onkeydown = (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); card.click(); }
+    };
     const cover = document.createElement("div");
     cover.className = "game-card-cover-wrap";
     const image = document.createElement("img");
@@ -719,17 +742,50 @@ function renderHomeGameStack() {
   const host = $("#home-game-stack");
   if (!host) return;
   host.replaceChildren();
+  host.style.setProperty("--selected-game-index", String(selectedGameIndex));
   GAMES_CATALOG.forEach((game, index) => {
     const card = document.createElement("article");
-    card.className = `home-game-card${game.available ? " is-available" : " is-upcoming"}`;
+    card.className = `home-game-card${game.available ? " is-available" : game.status === "En desarrollo" ? " is-in-development" : " is-blocked"}${index === selectedGameIndex ? " is-selected" : ""}`;
     card.style.setProperty("--card-index", String(index));
-    const name = document.createElement("strong");
-    name.textContent = game.name;
+    const cover = document.createElement("img");
+    cover.src = game.cover;
+    cover.alt = "";
     const status = document.createElement("span");
-    status.textContent = game.available ? "DISPONIBLE" : "PRÓXIMAMENTE";
-    card.append(name, status);
+    status.textContent = game.status;
+    card.append(cover, status);
+    card.setAttribute("aria-hidden", String(index !== selectedGameIndex));
+    card.onclick = (event) => {
+      if (carouselSwipeHandled) { carouselSwipeHandled = false; event.preventDefault(); return; }
+      selectHomeGame(index);
+    };
     host.append(card);
   });
+  const cards = [...host.children];
+  const cardWidth = cards[0]?.getBoundingClientRect().width || 300;
+  cards.forEach((card, index) => {
+    const offset = (index - selectedGameIndex) * (cardWidth + 17);
+    card.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(${index === selectedGameIndex ? 1 : 0.88})`;
+  });
+  const selected = GAMES_CATALOG[selectedGameIndex];
+  $("#home-selected-game").replaceChildren();
+  const title = document.createElement("h2"); title.textContent = selected.name;
+  const description = document.createElement("p"); description.textContent = selected.description;
+  $("#home-selected-game").append(title, description);
+  $("#home-play-selected").disabled = !selected.available;
+  $("#home-play-selected").textContent = selected.available ? "▶ PLAY" : selected.status.toUpperCase();
+  $("#home-play-selected").setAttribute("aria-label", selected.available ? `Iniciar ${selected.name}` : `${selected.name}: ${selected.status}`);
+}
+function selectHomeGame(index) {
+  selectedGameIndex = (index + GAMES_CATALOG.length) % GAMES_CATALOG.length;
+  renderHomeGameStack();
+}
+function applyAppearance(mode) {
+  const selection = ["dark", "light", "system"].includes(mode) ? mode : "system";
+  localStorage.setItem("zevyra.appearance", selection);
+  const resolved = selection === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : selection;
+  document.documentElement.dataset.theme = resolved;
+  const logo = $(".zevyra-brand img");
+  if (logo) logo.src = resolved === "light" ? "./assets/branding/logo-light.png" : "./assets/branding/logo-dark.png";
 }
 function esc(text) {
   return escapeText(text);
@@ -739,8 +795,18 @@ function shotLabel(count) {
   return `${shots} ${shots === 1 ? "Shot" : "Shots"}`;
 }
 function render() {
-  document.title = `${GAME_NAME} — ZEVYRA Games`;
+  document.title = `${GAME_NAME} — Circus Zevyra`;
+  const appearance = localStorage.getItem("zevyra.appearance") || "system";
+  $("#appearance-mode").value = appearance;
+  applyAppearance(appearance);
+  $("#app-version").textContent = VERSION;
   $("#game-name-label").textContent = GAME_NAME;
+  const currentExperience = GAMES_CATALOG.find((game) => game.id === GAME_ID);
+  const experienceUnavailable = !currentExperience?.available;
+  $("#mode-unavailable-notice").hidden = !experienceUnavailable;
+  $("#mode-unavailable-notice").textContent = experienceUnavailable ? `${GAME_NAME} todavía está en desarrollo. Las modalidades se habilitarán cuando se integren y validen sus cartas y reglas.` : "";
+  $("#start-local-game").disabled = experienceUnavailable;
+  $("#open-online-game").disabled = experienceUnavailable;
   $("#play-mode-screen").classList.toggle("hidden", playMode !== "choose");
   $("#gameplay-screen").classList.toggle("hidden", playMode === "choose");
   renderGame();
@@ -779,7 +845,7 @@ function renderGame() {
   $("#current-player").textContent = current?.active
     ? current.name
     : "Agrega participantes";
-  $("#current-player-avatar").textContent = current?.avatar || PLAYER_AVATARS[0];
+  renderAvatar($("#current-player-avatar"), current?.avatar || PLAYER_AVATARS[0]);
   renderRoundAndPowerState();
   renderChainState();
   const ready = state.game.state === "READY" && hasPlayers && !rolling && !state.game.chain;
@@ -875,7 +941,7 @@ function renderGame() {
     ? state.participants.find((player) => player.id === cur.playerId)
     : state.participants[state.game.currentIndex];
   $("#game-message").textContent = onlineMode && !canPlayOnlineGame() && turnPlayer
-    ? `Es el turno de ${turnPlayer.name}. Espera tu turno para jugar.`
+    ? canControlOnlineGame() ? `Turno de ${turnPlayer.name}. Como anfitrión, confirma el resultado cuando corresponda.` : `Es el turno de ${turnPlayer.name}. Espera tu turno para jugar.`
     : cur?.powerMessage || gameMessage;
   const cardsHost = $("#turn-cards");
   const items = cur
@@ -980,7 +1046,8 @@ function renderGame() {
   $("#finish-turn").classList.toggle("hidden", !canFinish);
   $("#finish-turn").disabled = !canFinish;
   ["#confirm-completed", "#confirm-challenge", "#confirm-penalty", "#confirm-alternative", "#finish-turn"].forEach((selector) => {
-    $(selector).disabled = readOnly || $(selector).classList.contains("hidden") || (selector === "#finish-turn" && !canFinish);
+    const hostOnly = onlineMode && !canControlOnlineGame();
+    $(selector).disabled = hostOnly || $(selector).classList.contains("hidden") || (selector === "#finish-turn" && !canFinish);
   });
   const effectMessages = (cur?.pendingEffects ?? [])
     .filter(
@@ -1389,9 +1456,16 @@ function makeTurnCard(card, item, primary, animate) {
   );
   const back = document.createElement("div");
   back.className = "card-back";
-  back.innerHTML = '<div class="cross-ribbon"><span></span></div><img class="card-back-emblem" src="./assets/brand/zevyra-emblem.png" alt=""><b class="card-back-brand-mark">Z</b>';
-  back.querySelector("span").textContent =
-    CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
+  const backSymbol = document.createElement("span");
+  backSymbol.className = "material-symbols-rounded card-back-symbol";
+  backSymbol.setAttribute("aria-hidden", "true");
+  backSymbol.textContent = ({
+    VERDAD: "visibility", DESAFIO: "bolt", MINIJUEGO: "casino", PREMIO: "redeem", CASTIGO: "warning",
+    PECADOS: "visibility", SACRIFICIO: "local_fire_department", CAOS_ABSOLUTO: "casino", JOKERS: "poker_chip", EL_GRAN_CIRCO: "festival", MALDICION_GITANA: "skull",
+  })[card.categoryId] ?? "domino_mask";
+  const backLabel = document.createElement("small");
+  backLabel.textContent = CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
+  back.append(backSymbol, backLabel);
   const front = document.createElement("article");
   front.className = "card-front";
   const category = document.createElement("div");
@@ -1421,8 +1495,9 @@ function makeTurnCard(card, item, primary, animate) {
       ? shotLabel(card.penalty.units)
       : "";
   const fires = document.createElement("span");
-  fires.setAttribute("aria-label", "Intensidad");
-  fires.textContent = "🔥".repeat(card.spiceLevel);
+  fires.className = "card-spice";
+  fires.setAttribute("aria-label", `Intensidad: ${card.spiceLevel}`);
+  fires.innerHTML = Array.from({ length: Math.max(0, Math.min(5, Number(card.spiceLevel) || 0)) }, () => '<span class="material-symbols-rounded spice-icon" aria-hidden="true">mode_heat</span>').join("");
   footer.append(penalty, fires);
   front.append(category, players, copy, footer);
   playing.append(back, front);
@@ -1605,7 +1680,7 @@ function updatePreview() {
         : "Sin penalización";
   $("#card-preview").style.setProperty("--card-color", cat.color);
   $("#card-preview").innerHTML =
-    `<b>${esc($("#f-title").value || "Título de la carta")}</b><p>${esc($("#f-description").value || "La descripción aparecerá aquí.")}</p><small>${esc(penalty)} · ${"🔥".repeat(Number($("#f-spice").value)) || "Sin intensidad"}</small>`;
+    `<b>${esc($("#f-title").value || "Título de la carta")}</b><p>${esc($("#f-description").value || "La descripción aparecerá aquí.")}</p><small>${esc(penalty)} · ${Number($("#f-spice").value) ? '<span class="material-symbols-rounded spice-icon">mode_heat</span>'.repeat(Number($("#f-spice").value)) : "Sin intensidad"}</small>`;
 }
 function saveCard(event) {
   event.preventDefault();
@@ -1701,8 +1776,17 @@ function renderCards() {
     const row = document.createElement("article");
     row.className = `editor-card ${card.enabled ? "" : "disabled"}`;
     row.style.setProperty("--card-color", CATEGORIES[card.categoryId].color);
-    row.innerHTML = `<div class="editor-card-icon">${esc(card.icon?.value ?? "✦")}</div><div class="editor-card-copy"><div class="editor-card-meta"><span>${CATEGORIES[card.categoryId].label}</span><code>${esc(card.id)}</code></div><h3>${esc(card.title)} ${card.enabled ? "" : "<small>(desactivada)</small>"}</h3><p>${esc(card.description)}</p></div><div class="card-menu"><button class="icon-button" data-action="menu" aria-label="Acciones de ${esc(card.title)}" title="Acciones">⋮</button><div class="card-menu-popover hidden"><button data-action="edit">Editar</button><button data-action="duplicate">Duplicar</button><button data-action="toggle">${card.enabled ? "Desactivar" : "Activar"}</button><button data-action="delete" class="danger">Eliminar</button></div></div>`;
-    row.querySelector("[data-action=menu]").onclick = () => row.querySelector(".card-menu-popover").classList.toggle("hidden");
+    row.innerHTML = `<div class="editor-card-icon">${esc(card.icon?.value ?? "✦")}</div><div class="editor-card-copy"><div class="editor-card-meta"><span>${CATEGORIES[card.categoryId].label}</span><code>${esc(card.id)}</code></div><h3>${esc(card.title)} ${card.enabled ? "" : "<small>(desactivada)</small>"}</h3><p>${esc(card.description)}</p></div><div class="card-menu"><button class="icon-button" data-action="menu" aria-label="Acciones de ${esc(card.title)}" title="Acciones" aria-expanded="false">⋮</button><div class="card-menu-popover hidden"><button data-action="edit">Editar</button><button data-action="duplicate">Duplicar</button><button data-action="toggle">${card.enabled ? "Desactivar" : "Activar"}</button><button data-action="delete" class="danger">Eliminar</button></div></div>`;
+    row.querySelector("[data-action=menu]").onclick = (event) => {
+      event.stopPropagation();
+      const popover = row.querySelector(".card-menu-popover");
+      const opening = popover.classList.contains("hidden");
+      $$(".card-menu-popover").forEach((menu) => menu.classList.add("hidden"));
+      $$(".card-menu [data-action=menu]").forEach((button) => button.setAttribute("aria-expanded", "false"));
+      popover.classList.toggle("hidden", !opening);
+      event.currentTarget.setAttribute("aria-expanded", String(opening));
+    };
+    row.querySelector(".card-menu-popover").addEventListener("click", (event) => event.stopPropagation());
     row.querySelector("[data-action=edit]").onclick = () => populateForm(card);
     row.querySelector("[data-action=duplicate]").onclick = () => {
       const copy = structuredClone(card);
@@ -1717,6 +1801,7 @@ function renderCards() {
       card.enabled = !card.enabled;
       persist();
       renderCards();
+      notify(card.enabled ? "Carta activada; vuelve a estar disponible en el mazo." : "Carta desactivada; se excluyó de las nuevas selecciones.");
     };
     row.querySelector("[data-action=delete]").onclick = () =>
       confirmAction("Eliminar carta", `¿Eliminar “${card.title}”?`, () => {
@@ -1903,6 +1988,10 @@ $("#nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
   if (btn) setView(btn.dataset.view);
 });
+$("#view-settings").addEventListener("click", (e) => {
+  const shortcut = e.target.closest("[data-view]");
+  if (shortcut) setView(shortcut.dataset.view);
+});
 $("#tools-nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
   if (btn) setView(btn.dataset.view);
@@ -1910,24 +1999,41 @@ $("#tools-nav").addEventListener("click", (e) => {
 $("#menu-toggle").onclick = () => {
   const menu = $("#tools-nav");
   menu.hidden = false;
-  menu.classList.toggle("open");
+  const open = !menu.classList.contains("open");
+  menu.classList.toggle("open", open);
+  $("#menu-toggle").setAttribute("aria-expanded", String(open));
+  if (!open) menu.hidden = true;
 };
 $("#home-browse-games").onclick = () => setView("games");
 $("#home-join-game").onclick = () => { playMode = "choose"; setView("game"); };
-$("#profile-nav").onclick = async () => {
-  setView("profile");
+$("#profile-form").addEventListener("focusin", async () => {
   if (getMultiplayerSession() || $("#profile-nickname").value.trim()) return;
   try {
     const profile = await getSavedProfile();
     if (profile?.username) {
       $("#profile-nickname").value = profile.username;
       $("#multiplayer-name").value = profile.username;
+      if (!$("#player-name").value.trim()) $("#player-name").value = profile.username;
       localStorage.setItem("zevyra.profile.name", profile.username);
       $("#profile-session-info").textContent = `Perfil online recuperado · ${profile.id.slice(0, 8)}.`;
     }
-  } catch (error) {
-    logMultiplayerError("load-profile", error);
+  } catch (error) { logMultiplayerError("load-profile", error); }
+}, { once: true });
+$("#profile-avatar-preview").src = profileAvatarUrl();
+$("#profile-avatar-randomize").onclick = async () => {
+  const seed = crypto.randomUUID();
+  localStorage.setItem("zevyra.profile.avatarSeed", seed);
+  $("#profile-avatar-preview").src = profileAvatarUrl(seed);
+  const currentOption = $("#multiplayer-avatar").querySelector("option[value^='https://api.dicebear.com/10.x/big-smile/svg']");
+  if (currentOption) currentOption.value = profileAvatarUrl(seed);
+  $("#multiplayer-avatar").value = profileAvatarUrl(seed);
+  localStorage.setItem("zevyra.profile.avatar", profileAvatarUrl(seed));
+  const session = getMultiplayerSession();
+  if (session) {
+    try { await saveConnectedProfile(session.profile.username, profileAvatarUrl(seed)); }
+    catch (error) { notify(multiplayerErrorMessage(error)); return; }
   }
+  notify("Avatar actualizado.");
 };
 $("#back-to-games").onclick = () => setView("games");
 $("#back-to-mode-select").onclick = () => { playMode = "choose"; setView("game"); };
@@ -1945,6 +2051,46 @@ $("#open-online-game").onclick = () => setView("multiplayer");
 $("#multiplayer-back").onclick = () => { playMode = "choose"; setView("game"); };
 renderGameLibrary();
 renderHomeGameStack();
+$("#home-carousel-prev").onclick = () => selectHomeGame(selectedGameIndex - 1);
+$("#home-carousel-next").onclick = () => selectHomeGame(selectedGameIndex + 1);
+$("#home-play-selected").onclick = () => {
+  const game = GAMES_CATALOG[selectedGameIndex];
+  if (!game?.available) return;
+  playMode = "choose";
+  setView(game.route);
+};
+let carouselPointerX = null;
+let carouselSwipeHandled = false;
+$("#home-game-stack").addEventListener("pointerdown", (event) => { carouselPointerX = event.clientX; });
+$("#home-game-stack").addEventListener("pointerup", (event) => {
+  if (carouselPointerX === null) return;
+  const delta = event.clientX - carouselPointerX;
+  carouselPointerX = null;
+  if (Math.abs(delta) > 35) {
+    carouselSwipeHandled = true;
+    selectHomeGame(selectedGameIndex + (delta < 0 ? 1 : -1));
+  }
+});
+$("#home-game-stack").addEventListener("pointercancel", () => { carouselPointerX = null; });
+$("#home-game-stack").addEventListener("keydown", (event) => {
+  if (event.key === "ArrowLeft") selectHomeGame(selectedGameIndex - 1);
+  if (event.key === "ArrowRight") selectHomeGame(selectedGameIndex + 1);
+});
+$("#appearance-mode").onchange = (event) => applyAppearance(event.target.value);
+document.addEventListener("click", (event) => {
+  if (event.target.closest(".card-menu")) return;
+  $$(".card-menu-popover").forEach((menu) => menu.classList.add("hidden"));
+  $$(".card-menu [data-action=menu]").forEach((button) => button.setAttribute("aria-expanded", "false"));
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  $$(".card-menu-popover").forEach((menu) => menu.classList.add("hidden"));
+  $$(".card-menu [data-action=menu]").forEach((button) => button.setAttribute("aria-expanded", "false"));
+});
+window.addEventListener("resize", () => renderHomeGameStack());
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  if ((localStorage.getItem("zevyra.appearance") || "system") === "system") applyAppearance("system");
+});
 $$(".close-dialog").forEach(
   (b) => (b.onclick = () => b.closest("dialog").close()),
 );
@@ -2146,7 +2292,7 @@ $("#dice-cube").onkeydown = (event) => {
   }
 };
 function confirmResult(result, sourceCardId) {
-  if (!requireOnlineGame()) return;
+  if (!requireOnlineHost("Solo el anfitrión puede confirmar el resultado del turno.")) return;
   if (!engine.resolve(result, sourceCardId))
     return notify("El resultado de este turno ya fue confirmado.");
   persist();
@@ -2179,7 +2325,7 @@ $("#confirm-penalty").onclick = () => {
   confirmResult("COMPLETED", punishment?.cardId ?? null);
 };
 $("#finish-turn").onclick = () => {
-  if (!requireOnlineGame()) return;
+  if (!requireOnlineHost("Solo el anfitrión puede cerrar el turno.")) return;
   if (!engine.finishTurn())
     return notify("Confirma primero el resultado del turno.");
   persist();

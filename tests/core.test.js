@@ -15,8 +15,8 @@ import { POWER_CATALOG } from '../data/power-catalog.js';
 import { PDF_CARDS } from '../data/pdf-catalog.js';
 import { GAME_ID, GAME_NAME } from '../js/config.js';
 
-test('Midnight Chaos tiene identidad centralizada y las partidas nuevas conservan su ID propio', () => {
-  assert.equal(GAME_NAME, 'Midnight Chaos');
+test('Carnival of Chaos conserva la identidad interna de juego sin migrar los datos existentes', () => {
+  assert.equal(GAME_NAME, 'Carnival of Chaos');
   assert.equal(GAME_ID, 'midnight-chaos');
   assert.equal(seedState().gameId, GAME_ID);
 });

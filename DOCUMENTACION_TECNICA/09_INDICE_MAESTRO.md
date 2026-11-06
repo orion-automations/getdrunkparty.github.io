@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta documenta el código observado de ZEVYRA Games / Midnight Chaos, versión declarada 1.8.0. Las rutas y líneas se refieren a archivos del proyecto y deben contrastarse si cambian.
+Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra, versión 1.9.0, está en [14 — Auditoría e implementación Circus Zevyra](14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md); sus rutas y líneas deben contrastarse si cambian.
 
 | Documento | Contenido |
 |---|---|
@@ -13,6 +13,7 @@ Esta carpeta documenta el código observado de ZEVYRA Games / Midnight Chaos, ve
 | [07 — Estado actual y transferencia](07_ESTADO_ACTUAL_Y_TRANSFERENCIA.md) | Clasificación de funcionalidades, riesgos y orden de familiarización. |
 | [08 — Instalación y ejecución](08_GUIA_DE_INSTALACION_Y_EJECUCION.md) | Requisitos, comandos declarados y operación de PWA. |
 | [13 — Fase 2: turnos y perfil](13_FASE_2_TURNOS_Y_PERFIL.md) | Acciones del participante activo, animación sincronizada, nickname y migración 006. |
+| [14 — Circus Zevyra: auditoría e implementación](14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md) | Estado actual de identidad, navegación, biblioteca, tema, perfil, roles online, PDFs, implementación y pruebas. |
 | [10 — Historial de modificaciones](10_HISTORIAL_DE_MODIFICACIONES.md) | Cambios implementados desde la auditoría, pruebas y pendientes. |
 
 ## Mapa rápido de trazabilidad
@@ -27,4 +28,4 @@ Esta carpeta documenta el código observado de ZEVYRA Games / Midnight Chaos, ve
 - PWA: `index.html` → `manifest.json`; `js/app.js` → `sw.js` → Cache Storage.
 - Desarrollo local: `package.json` → `server.mjs`.
 
-El catálogo legado en los PDFs se conserva como fuente de archivo; esta fase no declara terminada una auditoría semántica de similitud de todos los textos de esos binarios. Las pruebas y validaciones realmente ejecutadas se detallan en `13_FASE_2_TURNOS_Y_PERFIL.md` y `10_HISTORIAL_DE_MODIFICACIONES.md`.
+Los documentos 01–13 son registros históricos; si contradicen el estado posterior, se debe usar el informe 14. Las pruebas de la lógica heredada siguen documentadas en `13_FASE_2_TURNOS_Y_PERFIL.md` y `10_HISTORIAL_DE_MODIFICACIONES.md`.

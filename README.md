@@ -1,6 +1,12 @@
-# ZEVYRA Games — THE DARK PLAYGROUND
+# Circus Zevyra — THE DARK PLAYGROUND
 
 Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, dado digital 3D con modo físico opcional, participantes, editor, manuales, respaldos JSON y PWA con caché offline. El modo local sigue funcionando sin cuenta ni conexión; el modo multijugador online usa Supabase y carga su SDK desde CDN solo para conectar salas.
+
+## Estado actual del catálogo
+
+La plataforma visible es **Circus Zevyra**. **Carnival of Chaos** conserva el ID interno `midnight-chaos` y los datos locales previos; aparece como «En desarrollo» hasta integrar y validar las reglas y cartas de sus PDFs. El catálogo y las portadas están en `js/games-catalog.js` y `assets/games/`. No iniciar Carnival desde la interfaz mientras figure en desarrollo. Consulta [la auditoría y estado técnico actual](DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md) antes de desplegar.
+
+`npm test` ejecuta pruebas del motor que ya existía. Estas pruebas no sustituyen la comprobación visual en móvil ni la validación de Supabase. La comprobación de servidor visual no se pudo completar en este entorno porque el sistema denegó escuchar el puerto 8080.
 
 ## Ejecutar en PC
 
@@ -26,16 +32,9 @@ El acceso por HTTP a una IP local sirve para desarrollo en la red, pero no permi
 
 Con la URL HTTPS abierta y conectada, espera a que el service worker termine de instalarse (en la aplicación aparece el estado local en Ajustes). Cierra Chrome o la PWA, activa modo avión y vuelve a abrirla desde su icono. Prueba una partida, participantes y el editor. La primera visita debe completarse con internet para almacenar el shell. Una versión publicada actualiza la caché de archivos; los datos personales están en otra clave de almacenamiento y no se borran al actualizar.
 
-## Usar el juego
+## Estado del juego
 
-1. Abre **Participantes**, agrega los nombres y ajusta el orden; el primer nombre activo tiene el primer turno.
-2. En **Partida**, el modo predeterminado es **Dado digital**. Pulsa **LANZAR DADO**; la cara queda elegida antes de girar y la animación termina con esa misma categoría. Las probabilidades son 35 % VERDAD, 35 % DESAFÍO, 15 % MINIJUEGO y 15 % BLOQUEADA.
-3. Al terminar la tirada, se iluminan los reversos de los tres mazos principales y solo queda habilitado el que corresponde al resultado. Pulsa ese mazo para revelar la carta. BLOQUEADA no roba carta ni genera acción y permite finalizar el turno.
-4. En VERDAD o DESAFÍO, si la regla de la carta requiere una carta auxiliar, puedes elegir un PREMIO o CASTIGO durante el turno. Solo se permite una selección auxiliar en esos turnos normales.
-5. En un MINIJUEGO, selecciona los participantes si la carta requiere una pareja. El grupo registra manualmente quién ganó, perdió o quedó neutral. La aplicación nunca decide el resultado. Solo las consecuencias configuradas en el manual generan selecciones; cada una se identifica con su destinatario y debe completarse antes de finalizar.
-6. Marca el resultado de VERDAD o DESAFÍO con los botones disponibles y pulsa **Finalizar turno**. En un minijuego sin consecuencias configuradas, registra el resultado del grupo y finaliza sin premios ni castigos.
-7. El menú permite cambiar a **Dado físico**. En ese modo eliges manualmente VERDAD, DESAFÍO, MINIJUEGO o BLOQUEADA; no se genera una tirada aleatoria digital. La opción persiste en este navegador.
-8. El botón `?` abre el manual cuando la carta tiene uno. Cerrar el manual mantiene el turno y las cartas en pantalla.
+El motor y las reglas descritas en los apartados históricos de este README corresponden a la experiencia anterior Midnight Chaos y no describen todavía Carnival of Chaos. Sus datos existentes se conservan, pero la interfaz de partida permanece deshabilitada mientras se integra la guía funcional nueva. No uses esos pasos como reglas de Carnival. El estado actual y sus pendientes verificables están en [DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md](DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md).
 
 ## Multijugador online (Supabase)
 
@@ -97,7 +96,7 @@ En **Manuales**, usa **＋ Nuevo manual** para crear reglas o **Editar manual** 
 
 El catálogo inicial de **Midnight Chaos** usa contenido propio separado en `data/midnight-catalog.js`; sus minijuegos e instrucciones están en el mismo archivo de datos. Los catálogos heredados permanecen en archivos de archivo y los registros anteriores se desactivan durante la migración local sin borrarlos. Si alguna regla requiere definir resultados o consecuencias, edita el manual correspondiente en **Manuales**.
 
-El editor admite un glifo o emoji local para icono (no HTML, SVG arbitrario ni URLs remotas). La marca de plataforma es ZEVYRA Games; el juego disponible se llama Midnight Chaos, configurado en `js/config.js`. El emblema fuente está en `assets/brand/zevyra-emblem.png`; sus variantes se referencian desde `manifest.json` y `index.html`. La paleta y presentación de plataforma están en `css/platform.css` y `css/brand.css`.
+El editor de cartas sigue admitiendo un glifo o emoji local como icono. La marca actual es Circus Zevyra y utiliza `assets/branding/logo-dark.png` / `logo-light.png`; los recursos PWA están en `assets/icons/`. `assets/brand/zevyra-emblem.png` se conserva como fuente histórica y ya no se usa en el reverso de las cartas. La presentación actual está en `css/platform.css` y `css/brand.css`.
 
 Las cartas pueden incluir opcionalmente `effects`. Es un objeto de datos; por ejemplo `{"onCompleted":[{"type":"DRAW_AUXILIARY","category":"PREMIO"},{"type":"GRANT_REWARD","key":"protection","label":"Protección futura"}]}` permite acceder a un mazo auxiliar tras confirmar el resultado y guardar una ventaja con nombre para usar manualmente. `onNotCompleted` puede declarar de la misma forma una acción auxiliar de castigo. Estos efectos no se derivan del texto de la carta.
 

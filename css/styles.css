@@ -738,6 +738,14 @@ hr {
 .card-menu-popover button { border: 0; background: transparent; color: var(--text); text-align: left; padding: 9px 10px; border-radius: 8px; }
 .card-menu-popover button:hover { background: #353541; }
 .card-menu-popover .danger { color: var(--red); }
+.editor-card { padding-right: 52px; }
+.editor-card .card-menu { position: absolute; top: 8px; right: 8px; z-index: 9; }
+.editor-card .card-menu-popover { top: 40px; right: 0; }
+.card-back:after { display: none; }
+.card-back-symbol { z-index: 1; font-size: 3.5rem; font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 48; }
+.card-back > small { bottom: 19px; z-index: 1; }
+.card-spice { display: inline-flex; align-items: center; gap: 1px; color: var(--card-color); }
+.spice-icon { font-size: 1rem; font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 20; }
 .card-inline-actions { display: flex; justify-content: center; gap: 8px; margin: 8px 0 2px; }
 .timer-inline { --timer-inline-progress: 100; display: inline-flex; align-items: center; gap: 9px; padding: 7px 11px 7px 7px; border: 1px solid #353541; border-radius: 999px; background: #111119; color: var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .timer-inline-ring { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--timer-inline-progress) * 1%), #363641 0); }

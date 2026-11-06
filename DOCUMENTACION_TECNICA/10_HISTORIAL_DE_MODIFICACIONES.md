@@ -1,5 +1,14 @@
 # Historial de modificaciones
 
+## 2026-11-06 — Circus Zevyra, auditoría de despliegue e interfaz 1.9.0
+
+- Se actualizó la identidad visible a Circus Zevyra/Carnival of Chaos, conservando el ID `midnight-chaos` y sus datos históricos.
+- Se añadieron las portadas que estaban en `Guia de despliegue/`, estados honestos de catálogo, carrusel gestual, navegación móvil de cuatro iconos, ajustes de tema y perfil Big Smile.
+- Se corrigió la posición y cierre del menú de acciones de cartas. Las cartas desactivadas continúan fuera de las extracciones.
+- Se preparó `supabase/sql/007_host_confirms_turns.sql`; no se aplicó en el proyecto remoto. Requiere ejecutarse después de 006 antes de probar turnos Carnival online.
+- Se revisaron los tres PDFs disponibles. Carnival no está habilitado: el motor y las cartas heredadas no implementan sus categorías/efectos. Las decisiones de eventos, probabilidades, importación literal y rol del anfitrión quedaron registradas en [14](14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md).
+- Verificación: `node --check` en los módulos editados y `npm test` (38 aprobadas); el servidor visual y Supabase online no se validaron en este entorno.
+
 ## 2026-11-02 — Fase 1 local/offline
 
 ### Archivos afectados
