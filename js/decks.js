@@ -1,13 +1,16 @@
 import { shuffle } from "./utils.js";
-export function drawFromDeck(cards, category, decks, random = Math.random) {
+export function drawFromDeck(cards, category, decks, random = Math.random, cemeteryIds = []) {
+  const buried = new Set(cemeteryIds);
+  const categoryCards = cards.filter((card) => card.categoryId === category && card.enabled);
   const eligible = cards.filter(
-    (card) => card.categoryId === category && card.enabled,
+    (card) => card.categoryId === category && card.enabled && !buried.has(card.id),
   );
-  if (!eligible.length) return { card: null, reason: "EMPTY" };
+  if (!eligible.length) return { card: null, reason: categoryCards.length ? "EXHAUSTED" : "EMPTY" };
   let deck = decks[category] ?? { order: [], index: 0, lastId: null };
+  const oldOrder = deck.order;
   const liveIds = new Set(eligible.map((card) => card.id));
-  let order = deck.order.filter((id) => liveIds.has(id));
-  const usedCount = Math.min(deck.index, order.length);
+  let order = oldOrder.filter((id) => liveIds.has(id) && !buried.has(id));
+  let index = Math.max(0, deck.index - oldOrder.slice(0, deck.index).filter((id) => buried.has(id) || !liveIds.has(id)).length);
   if (order.length < eligible.length)
     order = [
       ...order,
@@ -16,7 +19,7 @@ export function drawFromDeck(cards, category, decks, random = Math.random) {
         random,
       ),
     ];
-  if (deck.index >= order.length || !order.length) {
+  if (!order.length) {
     order = shuffle(
       eligible.map((c) => c.id),
       random,
@@ -26,7 +29,9 @@ export function drawFromDeck(cards, category, decks, random = Math.random) {
       [order[0], order[swap]] = [order[swap], order[0]];
     }
     deck = { order, index: 0, lastId: deck.lastId };
-  } else deck = { ...deck, order };
+  } else if (index >= order.length) {
+    return { card: null, reason: "EXHAUSTED" };
+  } else deck = { ...deck, order, index };
   const id = deck.order[deck.index];
   const card = eligible.find((c) => c.id === id);
   decks[category] = { ...deck, index: deck.index + 1, lastId: id };

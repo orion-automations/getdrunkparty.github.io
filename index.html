@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#7B2CFF" />
     <meta
       name="description"
-      content="Circus Zevyra — THE DARK PLAYGROUND. Un universo de juegos sociales."
+      content="Circus Zevyra — juegos sociales para compartir."
     />
     <script
       id="supabase-sdk"
@@ -40,15 +40,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <meta name="application-name" content="Circus Zevyra" />
     <title>Circus Zevyra</title>
   </head>
 
   <body>
+    <script>
+      if (location.protocol === "file:") {
+        document.addEventListener("DOMContentLoaded", () => {
+          const notice = document.createElement("aside");
+          notice.className = "local-run-warning";
+          notice.setAttribute("role", "alert");
+          notice.textContent =
+            "La app se abrió como archivo y sus botones no funcionarán. Inicia npm run serve en la carpeta del proyecto y abre http://localhost:8080.";
+          document.body.prepend(notice);
+        }, { once: true });
+      }
+    </script>
     <header class="topbar">
-      <a class="brand zevyra-brand" href="#inicio" aria-label="Circus Zevyra, inicio">
-        <img src="./assets/branding/logo-dark.png" alt="" width="42" height="42" />
-        <span>CIRCUS <b>ZEVYRA</b></span>
+      <div class="header-rounds" aria-label="Rondas completadas">
+        <span>RONDAS</span><strong id="header-round-count">0</strong>
+      </div>
+      <a class="brand zevyra-brand" href="#inicio" aria-label="Inicio">
+        <img src="./assets/branding/logo-dark.png" alt="Logo de Circus Zevyra" width="42" height="42" />
       </a>
       <div class="topbar-actions">
         <button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador"><span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span></button>
@@ -58,13 +73,13 @@
     <nav id="nav" class="primary-nav" aria-label="Navegación principal">
       <button data-view="home" class="nav-link active" aria-label="Inicio" title="Inicio"><span class="material-symbols-rounded" aria-hidden="true">festival</span></button>
       <button data-view="games" class="nav-link" aria-label="Juegos" title="Juegos"><span class="material-symbols-rounded" aria-hidden="true">casino</span></button>
-      <button data-view="game" class="nav-link" aria-label="Partida" title="Partida"><span class="material-symbols-rounded" aria-hidden="true">storm</span></button>
+      <button data-view="game" class="nav-link" aria-label="Partida" title="Partida"><span class="material-symbols-outlined" aria-hidden="true">sports_esports</span></button>
       <button data-view="players" class="nav-link" aria-label="Participantes" title="Participantes"><span class="material-symbols-rounded" aria-hidden="true">groups</span></button>
+      <button data-view="profile" class="nav-link nav-profile-link" aria-label="Perfil" title="Perfil"><img id="nav-profile-avatar" alt="" /><span class="sr-only">Perfil</span></button>
     </nav>
     <nav id="tools-nav" class="tools-nav" aria-label="Herramientas del juego" hidden>
-      <button data-view="profile" class="nav-link"><span class="material-symbols-rounded">person</span> Perfil</button>
-      <button data-view="multiplayer" class="nav-link"><span class="material-symbols-rounded">wifi</span> Online multijugador</button>
-      <button data-view="editor" class="nav-link"><span class="material-symbols-rounded">storm</span> Cartas</button>
+      <button data-view="multiplayer" class="nav-link"><span class="material-symbols-rounded">wifi</span> Multijugador</button>
+      <button data-view="editor" class="nav-link"><span class="material-symbols-outlined">playing_cards</span> Cartas</button>
       <button data-view="manuals" class="nav-link"><span class="material-symbols-rounded">menu_book</span> Manuales</button>
       <button data-view="settings" class="nav-link"><span class="material-symbols-rounded">settings</span> Ajustes</button>
     </nav>
@@ -72,8 +87,8 @@
       <section id="view-home" class="view active">
         <section class="platform-hero panel">
           <div class="platform-hero-copy">
-            <p class="eyebrow">THE DARK PLAYGROUND</p>
             <h1>CIRCUS <span>ZEVYRA</span></h1>
+            <p class="eyebrow home-available-label">JUEGOS DISPONIBLES</p>
             <div class="home-carousel" aria-label="Carrusel de juegos">
               <div id="home-game-stack" class="home-game-stack" aria-label="Juegos de Circus Zevyra" tabindex="0"></div>
             </div>
@@ -120,15 +135,15 @@
         <div id="games-library" class="games-library" aria-live="polite"></div>
       </section>
       <section id="view-game" class="view">
-        <section id="play-mode-screen" class="play-mode-screen panel">
+      <section id="play-mode-screen" class="play-mode-screen panel">
           <button id="back-to-games" type="button" class="text-button">← Volver a Juegos</button>
           <p id="game-name-label" class="eyebrow">Juego disponible</p>
           <h1>¿Cómo quieres jugar?</h1>
           <p class="muted">Elige una modalidad. Tu partida local permanece en este dispositivo.</p>
           <p id="mode-unavailable-notice" class="pending-badge" role="status" hidden></p>
           <div class="mode-cards">
-            <button id="start-local-game" class="mode-card" type="button"><span class="mode-card-title">OFFLINE</span><span class="muted">Una partida compartida en este dispositivo.</span></button>
-            <button id="open-online-game" class="mode-card" type="button"><span class="mode-card-title">ONLINE MULTIJUGADOR</span><span class="muted">Crea una sala o únete con un código.</span></button>
+            <button id="start-local-game" class="mode-card" type="button"><span class="mode-card-title">LOCAL</span><span class="muted">Una partida compartida en este dispositivo.</span></button>
+            <button id="open-online-game" class="mode-card" type="button"><span class="mode-card-title">MULTIJUGADOR</span><span class="muted">Crea una sala online o únete con un código.</span></button>
           </div>
         </section>
         <div id="gameplay-screen" class="hidden">
@@ -184,7 +199,7 @@
             <div class="turn-line">
               <div class="turn-player-heading">
                 <span class="eyebrow">TURNO ACTUAL</span>
-                <div class="current-player-line"><span id="current-player-avatar" class="player-avatar" aria-hidden="true">🎮</span><h2 id="current-player">Agrega participantes</h2></div>
+              <div class="current-player-line"><span id="current-player-avatar" class="player-avatar" aria-hidden="true"><span class="material-symbols-rounded">person</span></span><h2 id="current-player">Agrega participantes</h2></div>
               </div>
             </div>
             <label class="mode-picker"
@@ -203,11 +218,10 @@
               <p id="dice-hint" class="fine-print">Pulsa el dado para tirar o repetir.</p>
             </div>
             <p id="game-message" class="game-message" aria-live="polite"></p>
-            <div
-              id="category-choices"
-              class="category-choices"
-              aria-label="Mazos principales"
-            ></div>
+            <div id="all-decks-grid" class="all-decks-grid" aria-label="Seis mazos disponibles">
+              <div id="category-choices" class="category-choices" aria-label="Mazos principales"></div>
+              <div id="aux-decks" class="aux-decks"><div id="aux-category-choices" class="aux-category-choices"></div></div>
+            </div>
             <button
               id="blocked-choice"
               class="category-back-button blocked-choice hidden"
@@ -215,10 +229,6 @@
             >
               BLOQUEADA
             </button>
-            <div id="aux-decks" class="aux-decks">
-              <span class="eyebrow">MAZOS AUXILIARES</span>
-              <div id="aux-category-choices" class="aux-category-choices"></div>
-            </div>
             <div id="turn-cards" class="turn-cards hidden"></div>
             <section id="round-event-panel" class="round-event-panel hidden" aria-live="polite">
               <p class="eyebrow">EVENTO DE RONDA · <span id="round-turn-count">0 turnos</span></p>
@@ -391,14 +401,18 @@
         </div>
         <section class="settings-shortcuts" aria-label="Secciones de ajustes">
           <button class="settings-shortcut" data-view="profile" type="button"><span class="material-symbols-rounded">person</span><span><b>Perfil y cuenta</b><small>Nickname e identidad</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <section class="settings-shortcut appearance-setting"><span class="material-symbols-rounded">palette</span><span><b>Apariencia</b><small>Elige el tema de Circus Zevyra</small></span><label class="sr-only" for="appearance-mode">Tema</label><select id="appearance-mode"><option value="system">Sistema</option><option value="dark">Oscuro</option><option value="light">Claro</option></select></section>
-          <button class="settings-shortcut" data-view="editor" type="button"><span class="material-symbols-rounded">storm</span><span><b>Cartas</b><small>Administrar el catálogo de cartas</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <section class="settings-shortcut appearance-setting"><span class="material-symbols-rounded">palette</span><span><b>Apariencia</b><small id="appearance-label">Sistema</small></span><button id="appearance-cycle" class="appearance-cycle" type="button" aria-label="Cambiar tema"><span id="appearance-icon" class="appearance-icon" aria-hidden="true"></span><span class="sr-only">Cambiar tema</span></button></section>
+          <button class="settings-shortcut" data-view="editor" type="button"><span class="material-symbols-outlined">playing_cards</span><span><b>Cartas</b><small>Administrar el catálogo de cartas</small></span><span class="material-symbols-rounded">chevron_right</span></button>
           <button class="settings-shortcut" data-view="manuals" type="button"><span class="material-symbols-rounded">menu_book</span><span><b>Manuales</b><small>Consultar reglas disponibles</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-view="game" type="button"><span class="material-symbols-rounded">tune</span><span><b>Ajustes de juegos</b><small>Modalidad y opciones de partida</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-view="players" type="button"><span class="material-symbols-rounded">groups</span><span><b>Preferencias de partida</b><small>Participantes y mesa</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-view="game" type="button"><span class="material-symbols-outlined">sports_esports</span><span><b>Ajustes de juegos</b><small>Modalidad y opciones de partida</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-view="players" type="button"><span class="material-symbols-rounded">groups</span><span><b>Participantes</b><small>Jugadores y mesa</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-settings-target="settings-penalties" type="button"><span class="material-symbols-rounded">water_medium</span><span><b>Penalizaciones</b><small>Editar unidades del juego</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-settings-target="settings-reset-game" type="button"><span class="material-symbols-rounded">restart_alt</span><span><b>Reiniciar partida</b><small>Empezar de nuevo</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-settings-target="settings-backup" type="button"><span class="material-symbols-rounded">backup</span><span><b>Copia de seguridad</b><small>Importar, exportar o restaurar</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <button class="settings-shortcut" data-settings-target="settings-application" type="button"><span class="material-symbols-rounded">download</span><span><b>Aplicación</b><small>Instalar o actualizar</small></span><span class="material-symbols-rounded">chevron_right</span></button>
         </section>
         <div class="settings-grid">
-          <section class="panel">
+          <section id="settings-penalties" class="panel">
             <h2>Penalizaciones</h2>
             <p class="fine-print">
               Son unidades editables del juego, no equivalencias de alcohol ni
@@ -415,8 +429,8 @@
               ><button class="button">Añadir</button>
             </form>
           </section>
-          <section class="panel">
-            <h2>Partida</h2>
+          <section id="settings-reset-game" class="panel">
+            <h2>Reiniciar partida</h2>
             <p class="fine-print">
               Inicia una partida nueva con los participantes registrados. Se
               conservarán participantes, cartas, manuales y ajustes; se
@@ -427,7 +441,7 @@
               Reiniciar partida
             </button>
           </section>
-          <section class="panel">
+          <section id="settings-backup" class="panel">
             <h2>Copia de seguridad</h2>
             <p class="fine-print">
               El respaldo incluye participantes, cartas, manuales, bebidas,
@@ -445,22 +459,36 @@
               Restaurar datos iniciales
             </button>
           </section>
-          <section class="panel">
+          <section id="settings-application" class="panel">
             <h2>Aplicación</h2>
             <p id="storage-status" class="fine-print">
-              Almacenamiento local del navegador.
+              Preparando el uso sin conexión…
             </p>
-            <button id="install-button" class="button hidden">
-              Instalar aplicación
-            </button>
+            <div class="application-actions">
+              <button id="install-button" class="button" type="button">
+                Instalar para jugar sin conexión
+              </button>
+              <button id="update-app-button" class="button" type="button">
+                Buscar actualizaciones
+              </button>
+            </div>
+            <p id="app-update-status" class="fine-print" role="status" aria-live="polite">
+              La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.
+            </p>
             <p class="fine-print">
-              Versión <span id="app-version">1.9.0</span> · Funciona sin cuenta
-              ni servidor remoto después de la primera carga.
+              Versión <span id="app-version">2.2.0</span> · Los datos de juego
+              permanecen en este dispositivo.
             </p>
           </section>
         </div>
       </section>
     </main>
+    <button id="cemetery-open" class="cemetery-orbit" type="button" aria-label="Abrir cementerio de cartas" title="Cartas usadas"><span class="material-symbols-outlined" aria-hidden="true">cyclone</span></button>
+    <dialog id="cemetery-dialog" class="modal cemetery-dialog" aria-labelledby="cemetery-heading">
+      <div class="modal-heading"><div><p class="eyebrow">CARTAS RETIRADAS</p><h2 id="cemetery-heading">Cementerio</h2></div><button id="cemetery-close" class="icon-button" type="button" aria-label="Cerrar cementerio">×</button></div>
+      <p class="fine-print">Estas cartas ya salieron en la partida. No se vuelven a usar hasta que reinicies la partida.</p>
+      <ol id="cemetery-list" class="cemetery-list"></ol>
+    </dialog>
     <dialog id="editor-dialog" class="modal">
       <form id="card-form" method="dialog">
         <div class="modal-heading">

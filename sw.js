@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}2.0.1`;
+const CACHE_NAME = `${CACHE_PREFIX}2.2.0`;
 const SHELL = [
   "./",
   "./index.html",
@@ -65,6 +65,9 @@ self.addEventListener("install", (event) =>
       .then(() => self.skipWaiting()),
   ),
 );
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
 self.addEventListener("activate", (event) =>
   event.waitUntil(
     caches

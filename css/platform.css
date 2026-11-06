@@ -341,6 +341,10 @@ button.settings-shortcut { cursor: pointer; }
 :root[data-theme="light"] .timer-picker select { color: var(--text); background: #fff; border-color: #d8cadf; }
 :root[data-theme="light"] .timer-picker-separator { color: #7024dc; }
 .profile-avatar-controls { max-width: 620px; margin: 0 auto 16px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; text-align: left; }
+.application-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.application-actions .button { flex: 1 1 220px; }
+#app-update-status { min-height: 1.4em; }
+.local-run-warning { position: sticky; z-index: 1000; top: 0; padding: 12px 16px; color: #fff; background: #8b1d47; border-bottom: 2px solid #ff2daa; text-align: center; font-weight: 700; }
 .profile-avatar-controls label { display: grid; gap: 5px; color: var(--muted); font-size: .82rem; font-weight: 700; }
 .profile-avatar-controls select { min-width: 0; padding: 9px 8px; }
 .avatar-choice-profile { width: 42px; height: 42px; overflow: hidden; }
@@ -349,7 +353,7 @@ button.settings-shortcut { cursor: pointer; }
 .account-form label { display: grid; gap: 5px; font-size: .9rem; font-weight: 650; }
 .account-form .button-row { justify-content: center; }
 .profile-uid { margin: 12px 0 0; overflow-wrap: anywhere; text-align: center; color: var(--muted); font: .78rem ui-monospace, monospace; }
-@media (max-width: 520px) { .profile-avatar-controls { gap: 6px; } .profile-avatar-controls select { font-size: .78rem; } }
+@media (max-width: 520px) { .profile-avatar-controls { gap: 6px; } .profile-avatar-controls select { font-size: .78rem; } .application-actions { display: grid; } .application-actions .button { width: 100%; } }
 :root[data-theme="light"] .editor-card,
 :root[data-theme="light"] .modal,
 :root[data-theme="light"] dialog { color: var(--text); background: #fffaff; border-color: var(--border); }
@@ -419,3 +423,156 @@ dialog.avatar-editor-modal { width: min(560px, calc(100vw - 28px)); max-height: 
 @media (max-width: 580px) {
   :root[data-theme="light"] .primary-nav { background: #fffdf9f5; }
 }
+
+/* Header, responsive game carousel and the six connected Carnival decks */
+.topbar { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+.header-rounds { display: flex; width: max-content; align-items: baseline; gap: 8px; color: var(--muted); font-size: .65rem; font-weight: 850; letter-spacing: .14em; }
+.header-rounds strong { color: var(--text); font: 800 1rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.zevyra-brand { grid-column: 2; justify-self: center; }
+.topbar-actions { grid-column: 3; justify-self: end; }
+.zevyra-brand img { width: 43px; height: 43px; }
+.nav-profile-link img { width: 29px; height: 29px; border: 1px solid #8c55cb; border-radius: 50%; object-fit: cover; }
+.primary-nav .nav-profile-link { min-width: 68px; }
+.home-available-label { margin: 7px 0 10px; text-align: center; }
+.view-home .platform-hero { grid-template-columns: minmax(0,1fr); }
+.view-home .platform-hero-copy { width: min(100%,760px); justify-self: center; text-align: center; }
+.platform-hero-copy > h1 { text-align: center; }
+.home-carousel { width: min(100%, 340px); margin: 10px auto 0; }
+.home-game-stack { --carousel-card-width: min(66vw, 220px); position: relative; width: min(100%, 330px); height: 344px; margin: 0 auto; overflow: visible; touch-action: pan-y; }
+.home-game-card { inset: auto; top: 0; left: 50%; width: var(--carousel-card-width); height: 264px; min-height: 0; margin: 0; padding: 0; grid-template-rows: minmax(0,1fr) auto; border-radius: 16px; transform: translateX(-50%); animation: home-card-arrive .25s ease both; }
+.home-game-card.is-next { z-index: 1; opacity: .88; transform: translate(calc(-50% + 34px), 126px) scale(.82); }
+.home-game-card.is-selected { z-index: 3; opacity: 1; cursor: grab; transform: translateX(-50%); }
+.home-game-cover { min-height: 0; border-radius: 15px 15px 0 0; }
+.home-game-card-copy { gap: 3px; padding: 9px 11px 10px; }
+.home-game-card-copy strong { font-size: .9rem; }
+.home-game-card-copy .home-game-status { font-size: .58rem; }
+.home-selected-game { min-height: 65px; }
+.home-selected-game h2 { margin: 3px 0; font-size: 1.12rem; }
+.home-selected-game p { max-width: 450px; margin: 2px auto; font-size: .88rem; line-height: 1.35; }
+@keyframes home-card-arrive { from { opacity: .5; translate: var(--carousel-enter-x, 22px) 0; } to { opacity: 1; translate: 0 0; } }
+.player-avatar-edit-control { position: relative; padding: 0; border: 1px solid #8c55cb; color: var(--text); background: var(--surface2); cursor: pointer; }
+.player-avatar-edit-control:disabled { cursor: default; opacity: .75; }
+.player-avatar-image { display: grid; width: 100%; height: 100%; place-items: center; overflow: hidden; border-radius: inherit; }
+.player-avatar-edit-mark { position: absolute; right: -2px; bottom: -2px; display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--surface); border-radius: 50%; color: #fff; background: #7024dc; font-size: 11px; }
+.player-avatar-edit-control:focus-visible { outline: 2px solid #ff2daa; outline-offset: 2px; }
+.all-decks-grid { z-index: 2; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; width: min(100%,650px); margin: 14px auto; }
+.all-decks-grid .category-choices, .all-decks-grid .aux-decks, .all-decks-grid .aux-category-choices { display: contents; }
+.all-decks-grid .category-back-button, .all-decks-grid .aux-category-choices .category-back-button { width: 100%; min-height: 78px; flex: initial; padding: 8px 5px; }
+.category-back-button::before, .category-back-button::after { display: none; }
+.category-mark { display: block; font-size: 1.6rem; line-height: 1; font-variation-settings: 'FILL' 0,'wght' 350,'GRAD' 0,'opsz' 32; }
+.category-name { font-size: .58rem; letter-spacing: .04em; text-shadow: none; }
+.aux-decks.disabled-decks { opacity: 1; pointer-events: auto; }
+.aux-decks.disabled-decks .category-back-button { opacity: .48; }
+.game-panel::before { display: none; }
+.round-event-panel h3, .chain-panel h3 { color: #f4d9ff; }
+.settings-shortcut { scroll-margin-top: 88px; }
+.appearance-cycle { width: 46px; height: 42px; display: grid; place-items: center; padding: 5px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--surface2); }
+.appearance-icon { white-space: nowrap; font-family: 'Material Symbols Outlined'; font-size: 20px; font-feature-settings: 'liga'; }
+.player-avatar { display: grid; place-items: center; overflow: hidden; }
+.player-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.avatar-choice { overflow: hidden; padding: 0; }
+.avatar-choice img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.player-avatar-select { width: min(150px, 26vw); min-width: 100px; font-size: .72rem; }
+.profile-uid { text-align: left; }
+.avatar-choice { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: var(--surface2); }
+.current-player-line .player-avatar { width: 34px; height: 34px; border-radius: 50%; }
+.current-player-line .player-avatar .material-symbols-rounded { font-size: 22px; }
+.editor-card.disabled { opacity: 1; }
+.editor-card.disabled .editor-card-icon, .editor-card.disabled .editor-card-copy { opacity: .55; }
+.editor-card:has(.card-menu [aria-expanded="true"]) { z-index: 50; }
+.card-menu-popover { z-index: 100; pointer-events: auto; opacity: 1; }
+.card-menu-popover button { min-height: 42px; pointer-events: auto; touch-action: manipulation; }
+.card-fragment-symbol { position: absolute; top: 13px; left: 14px; z-index: 2; color: var(--card-color); font-size: 20px; }
+.card-penalty { display: inline-flex; align-items: center; gap: 4px; color: var(--card-color); font-weight: 800; text-transform: uppercase; }
+.card-penalty .material-symbols-outlined { font-size: 19px; }
+.card-penalty b { font-size: .9rem; }
+.card-penalty > span:last-child { font-size: .6rem; }
+.cemetery-orbit.is-receiving { animation: cemetery-pulse .65s ease-in-out infinite alternate; }
+.cemetery-orbit.is-receiving .material-symbols-outlined { animation-duration: .8s; }
+@keyframes cemetery-pulse { to { box-shadow: 0 0 24px #c89cff, inset 0 0 22px #963cff88; scale: 1.08; } }
+.editor-card { overflow: visible; isolation: isolate; }
+.editor-card .card-menu { z-index: 20; pointer-events: auto; }
+.editor-card .card-menu [data-action="menu"] { position: relative; z-index: 21; pointer-events: auto; }
+.editor-card .card-menu-popover { z-index: 100; pointer-events: auto; color: #f5f5f7; background: #211d29; opacity: 1; }
+.editor-card .card-menu-popover button { position: relative; z-index: 101; min-height: 42px; pointer-events: auto; touch-action: manipulation; }
+.cemetery-orbit { position: fixed; right: max(16px,env(safe-area-inset-right)); bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 27; width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid #9d68ff; border-radius: 50%; color: #e7d5ff; background: #17101feF; box-shadow: 0 4px 20px #0008, inset 0 0 17px #963cff50; }
+.cemetery-orbit .material-symbols-outlined { font-size: 30px; animation: cemetery-vortex 5s linear infinite; }
+@keyframes cemetery-vortex { to { transform: rotate(360deg); } }
+.cemetery-dialog { width: min(590px,calc(100vw - 28px)); max-height: 82svh; overflow: auto; }
+.cemetery-dialog .modal-heading h2 { margin: 0; }
+.cemetery-list { display: grid; gap: 8px; max-height: 52svh; overflow: auto; padding-left: 24px; }
+.cemetery-list li { padding: 9px 11px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
+.cemetery-list small { display: block; margin-top: 3px; color: var(--muted); }
+dialog#manual-editor-dialog { width: min(820px,calc(100vw - 32px)); max-height: 90svh; overflow: auto; }
+#manual-editor-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+#manual-editor-form > .modal-heading, #manual-editor-form > label:nth-of-type(2), #manual-editor-form > label:nth-of-type(3), #manual-editor-form > label:nth-of-type(4), #manual-editor-form > label:nth-of-type(5), #manual-editor-form > .form-error, #manual-editor-form > .modal-actions { grid-column: 1/-1; }
+#manual-editor-form > label { display: grid; min-width: 0; align-content: start; gap: 6px; }
+#manual-editor-form textarea { width: 100%; min-width: 0; resize: vertical; }
+
+:root[data-theme="light"] .game-panel,
+:root[data-theme="light"] #view-game .panel,
+:root[data-theme="light"] .round-event-panel,
+:root[data-theme="light"] .power-inventory-panel,
+:root[data-theme="light"] .chain-panel,
+:root[data-theme="light"] .shot-actions,
+:root[data-theme="light"] .manage-row,
+:root[data-theme="light"] .empty-card-face { color: var(--text); background: #fffaff; border-color: var(--border); }
+:root[data-theme="light"] .empty-card-face { box-shadow: 0 10px 30px #43245518; }
+:root[data-theme="light"] .empty-card-ribbon { background: #e8d9f2; border-color: #cdbbd8; }
+:root[data-theme="light"] .game-panel .fine-print,
+:root[data-theme="light"] .game-panel .card-players,
+:root[data-theme="light"] .game-panel .card-copy p,
+:root[data-theme="light"] .game-panel .card-footer { color: var(--muted); }
+:root[data-theme="light"] .dice-face { color: color-mix(in srgb,var(--face-color),#24132b 20%); background: linear-gradient(145deg,#fff,#f0e9f5 85%); border-color: color-mix(in srgb,var(--face-color),#fff 15%); box-shadow: inset 0 0 18px color-mix(in srgb,var(--face-color),transparent 88%),0 6px 18px #44225516; text-shadow: none; }
+:root[data-theme="light"] .dice-cube { filter: drop-shadow(0 8px 12px #6a4d7b25); }
+:root[data-theme="light"] .card-back { color: color-mix(in srgb,var(--card-color),#25152b 12%); background: radial-gradient(circle at 50% 35%,#fff,#eee5f4 100%); }
+:root[data-theme="light"] .card-back-symbol { color: color-mix(in srgb,var(--card-color),#281631 10%); }
+:root[data-theme="light"] .playing-card .card-front { color: var(--text); background: linear-gradient(150deg,#fff,#f6effa 90%); box-shadow: inset 0 0 26px color-mix(in srgb,var(--card-color),transparent 94%); }
+:root[data-theme="light"] .playing-card .card-players,
+:root[data-theme="light"] .playing-card .card-copy p,
+:root[data-theme="light"] .playing-card .card-footer { color: #625668; }
+:root[data-theme="light"] .category-back-button { background: linear-gradient(145deg,#fff,#f3edf7); box-shadow: 0 4px 12px #462b5510; }
+:root[data-theme="light"] .category-back-button small { color: #66596c; }
+:root[data-theme="light"] .round-event-panel, :root[data-theme="light"] .power-inventory-panel, :root[data-theme="light"] .chain-panel { color: var(--text); background: linear-gradient(145deg,#fffaff,#f0e8f6); }
+:root[data-theme="light"] .round-event-panel h3, :root[data-theme="light"] .chain-panel h3 { color: #44225b; }
+:root[data-theme="light"] .cemetery-orbit { color: #5c3480; background: #fffaff; box-shadow: 0 4px 20px #43245526,inset 0 0 17px #963cff22; }
+:root[data-theme="light"] .editor-card.disabled { opacity: 1; color: var(--muted); background: #eee8f2; }
+:root[data-theme="light"] .editor-card.disabled .editor-card-icon, :root[data-theme="light"] .editor-card.disabled .editor-card-copy { opacity: .72; }
+:root[data-theme="light"] .card-menu-popover { background: #fff; box-shadow: 0 12px 32px #4324552b; }
+:root[data-theme="light"] .card-menu-popover button:hover { background: #f1eaf5; }
+:root[data-theme="light"] .profile-avatar-edit img { background: #fff; }
+:root[data-theme="light"] .profile-uid { color: #5c4d64; }
+:root[data-theme="light"] .round-event-panel .eyebrow { color: #8e1267; }
+:root[data-theme="light"] .round-event-panel .fine-print, :root[data-theme="light"] .power-inventory-panel .fine-print, :root[data-theme="light"] .chain-panel .fine-print { color: #63566b; }
+:root[data-theme="light"] .avatar-choice { color: var(--text); background: #fff; border-color: var(--border); }
+:root[data-theme="light"] .manage-row input { color: var(--text); background: #fff; border-color: var(--border); }
+:root[data-theme="light"] .game-message, :root[data-theme="light"] .empty-deck-message { color: #42334b; }
+:root[data-theme="light"] .empty-game-prompt { color: #51445b; }
+:root[data-theme="light"] .shot-actions { color: var(--text); background: #fffaff; border-color: var(--border); }
+:root[data-theme="light"] .shot-actions .fine-print { color: var(--muted); }
+:root[data-theme="light"] .toast { color: #21152a; background: #fffaff; border-color: #cdbbd8; box-shadow: 0 8px 30px #4324552b; }
+:root[data-theme="light"] .topbar { background: #fffdf9f7; }
+:root[data-theme="light"] .zevyra-brand img { background: transparent; }
+
+@media (max-width: 580px) {
+  .primary-nav { grid-template-columns: repeat(5,minmax(0,1fr)); }
+  .primary-nav .nav-profile-link { min-width: 0; }
+  .topbar { grid-template-columns: 1fr auto 1fr; padding-inline: 10px; }
+  .header-rounds { gap: 5px; font-size: .55rem; }
+  .header-rounds strong { font-size: .86rem; }
+  .zevyra-brand img { width: 39px; height: 39px; }
+  .topbar-actions { gap: 3px; }
+  .timer-inline { gap: 5px; padding: 5px 8px 5px 5px; font-size: .76rem; }
+  .timer-inline-ring { width: 22px; height: 22px; }
+  .timer-inline-ring span { width: 15px; height: 15px; }
+  .home-game-stack { --carousel-card-width: min(66vw,215px); height: 344px; }
+  .home-game-card { height: 256px; }
+  .all-decks-grid { gap: 7px; }
+  .all-decks-grid .category-back-button { min-height: 70px; }
+  .cemetery-orbit { width: 49px; height: 49px; bottom: calc(68px + env(safe-area-inset-bottom)); }
+  #manual-editor-form { grid-template-columns: 1fr; }
+  #manual-editor-form > * { grid-column: 1; }
+  .player-avatar-select { min-width: 0; width: 55px; }
+  .avatar-choice { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+}
+:root[data-theme="light"] .primary-nav { background: #fffdf9f7; }

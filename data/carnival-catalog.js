@@ -5078,8 +5078,8 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_002",
     "categoryId": "MINIJUEGO",
-    "title": "Enredados (x2 Jokers malos o x2 Jokers buenos) Todos se toman de las man",
-    "description": "Enredados (x2 Jokers malos o x2 Jokers buenos) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido.",
+    "title": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man",
+    "description": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5203,8 +5203,8 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_007",
     "categoryId": "MINIJUEGO",
-    "title": "Hielo Caliente (x1 Joker malo al perdedor) Todos de pie en círculo",
-    "description": "Hielo Caliente (x1 Joker malo al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker malo.",
+    "title": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo",
+    "description": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker arlequín.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5329,7 +5329,7 @@ export const CARNIVAL_CARDS = [
     "id": "CC_CAOS_012",
     "categoryId": "MINIJUEGO",
     "title": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent",
-    "description": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker malo. Si lo logra, elige un pequeño premio o un reto para otra persona.",
+    "description": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker arlequín. Si lo logra, elige un pequeño premio o un reto para otra persona.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5353,8 +5353,8 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_013",
     "categoryId": "MINIJUEGO",
-    "title": "Modo Avión (x1 Joker malo) Todos ponen su celular boca arriba con notifi",
-    "description": "Modo Avión (x1 Joker malo) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker malo.",
+    "title": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi",
+    "description": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker arlequín.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5453,7 +5453,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_001",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 001",
+    "title": "Joker Bufón 001",
     "description": "Eliges a cualquier persona del grupo y le haces el reto que tú quieras (dentro de lo consentido). No puede rechazarlo.",
     "icon": {
       "type": "glyph",
@@ -5478,7 +5478,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_002",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 002",
+    "title": "Joker Bufón 002",
     "description": "Besa a la persona que tú quieras durante el tiempo que tú decidas (máximo 30 segundos).",
     "icon": {
       "type": "glyph",
@@ -5503,7 +5503,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_003",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 003",
+    "title": "Joker Bufón 003",
     "description": "Eliges un Caos Absoluto y lo juegas obligatoriamente con la persona que tú elijas. DEbe permitir al jugador que la activa escoger una carta de todo el juego",
     "icon": {
       "type": "glyph",
@@ -5528,7 +5528,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_004",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 004",
+    "title": "Joker Bufón 004",
     "description": "Durante los próximos 3 turnos, tú decides quién cumple los sacrificios que salgan.",
     "icon": {
       "type": "glyph",
@@ -5553,7 +5553,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_005",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 005",
+    "title": "Joker Bufón 005",
     "description": "La persona que tú elijas debe quedarse de rodillas frente a ti durante 2 turnos completos.",
     "icon": {
       "type": "glyph",
@@ -5578,7 +5578,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_006",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 006",
+    "title": "Joker Bufón 006",
     "description": "Puedes obligar a alguien a quitarse una prenda. Si se niega, toma 4 shots.",
     "icon": {
       "type": "glyph",
@@ -5603,7 +5603,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_007",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 007",
+    "title": "Joker Bufón 007",
     "description": "Eliges a dos personas: deben darse un beso apasionado de 20 segundos o tomar 4 shots cada una.",
     "icon": {
       "type": "glyph",
@@ -5628,7 +5628,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_008",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 008",
+    "title": "Joker Bufón 008",
     "description": "Tienes derecho a un “Castigo Personal”: inventas un sacrificio corto y se lo asignas a quien quieras.",
     "icon": {
       "type": "glyph",
@@ -5653,7 +5653,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_009",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 009",
+    "title": "Joker Bufón 009",
     "description": "Durante el resto de la ronda, cada vez que alguien tome shots, tú decides si los toma esa persona o se los pasas a otra.",
     "icon": {
       "type": "glyph",
@@ -5678,8 +5678,8 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_010",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 010",
-    "description": "Puedes robarle un Joker bueno a cualquier jugador.",
+    "title": "Joker Bufón 010",
+    "description": "Puedes robarle un Joker bufón a cualquier jugador.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5703,7 +5703,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_011",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 011",
+    "title": "Joker Bufón 011",
     "description": "La persona que tú elijas debe decir en voz alta su fantasía más sucia involucrándote a ti.",
     "icon": {
       "type": "glyph",
@@ -5728,7 +5728,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_012",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 012",
+    "title": "Joker Bufón 012",
     "description": "Eliges a alguien para que te haga un juego previo de 40 segundos (como tú indiques).",
     "icon": {
       "type": "glyph",
@@ -5753,7 +5753,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_013",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 013",
+    "title": "Joker Bufón 013",
     "description": "Todos los jugadores deben darte un chupón donde tú digas.",
     "icon": {
       "type": "glyph",
@@ -5778,8 +5778,8 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_014",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 014",
-    "description": "Puedes cancelar cualquier sacrificio o Joker malo que te toque durante los próximos 2 turnos.",
+    "title": "Joker Bufón 014",
+    "description": "Puedes cancelar cualquier sacrificio o Joker arlequín que te toque durante los próximos 2 turnos.",
     "icon": {
       "type": "glyph",
       "value": "✦"
@@ -5803,7 +5803,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_015",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 015",
+    "title": "Joker Bufón 015",
     "description": "Eliges a una persona: durante el resto de la ronda es tu “juguete”. Cualquier contacto físico debe hacerse contigo.",
     "icon": {
       "type": "glyph",
@@ -5828,7 +5828,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_016",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 016",
+    "title": "Joker Bufón 016",
     "description": "Obligar a alguien a grabar un audio gimiendo tu nombre y enviártelo.",
     "icon": {
       "type": "glyph",
@@ -5853,7 +5853,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_017",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 017",
+    "title": "Joker Bufón 017",
     "description": "Puedes mirar el celular de quien tú quieras durante 30 segundos.",
     "icon": {
       "type": "glyph",
@@ -5878,7 +5878,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_018",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 018",
+    "title": "Joker Bufón 018",
     "description": "El grupo vota quién es el más puto/puta. Esa persona se convierte en tu subordinado durante 2 turnos.",
     "icon": {
       "type": "glyph",
@@ -5903,7 +5903,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_019",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 019",
+    "title": "Joker Bufón 019",
     "description": "Puedes cambiar cualquier sacrificio que salga por uno de Maldición Gitana a tu elección.",
     "icon": {
       "type": "glyph",
@@ -5928,7 +5928,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_020",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 020",
+    "title": "Joker Bufón 020",
     "description": "Tienes inmunidad total durante 3 turnos. Nuevos:",
     "icon": {
       "type": "glyph",
@@ -5953,7 +5953,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_021",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 021",
+    "title": "Joker Bufón 021",
     "description": "Eliges a alguien y lo obligas a quedarse sin una prenda hasta que tú se la devuelvas.",
     "icon": {
       "type": "glyph",
@@ -5978,7 +5978,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_022",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 022",
+    "title": "Joker Bufón 022",
     "description": "Puedes obligar a dos personas a hacer un Caos Absoluto entre ellas.",
     "icon": {
       "type": "glyph",
@@ -6003,7 +6003,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_023",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 023",
+    "title": "Joker Bufón 023",
     "description": "Durante los próximos 2 turnos, todos los besos o toques que salgan deben involucrarte a ti.",
     "icon": {
       "type": "glyph",
@@ -6028,7 +6028,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_024",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 024",
+    "title": "Joker Bufón 024",
     "description": "Eliges a alguien para que te lame el cuello desde la clavícula hasta la oreja durante 20 segundos.",
     "icon": {
       "type": "glyph",
@@ -6053,7 +6053,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_025",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 025",
+    "title": "Joker Bufón 025",
     "description": "Puedes intercambiar tu próximo sacrificio con el de cualquier jugador.",
     "icon": {
       "type": "glyph",
@@ -6078,7 +6078,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_026",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 026",
+    "title": "Joker Bufón 026",
     "description": "Obligar a alguien a ponerse de rodillas y pedirte perdón de forma sexy por 15 segundos.",
     "icon": {
       "type": "glyph",
@@ -6103,7 +6103,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_027",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 027",
+    "title": "Joker Bufón 027",
     "description": "Eliges a tres personas: deben darte un beso en el cuello cada una.",
     "icon": {
       "type": "glyph",
@@ -6128,7 +6128,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_028",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 028",
+    "title": "Joker Bufón 028",
     "description": "Puedes hacer que alguien cumpla el próximo sacrificio con los ojos vendados.",
     "icon": {
       "type": "glyph",
@@ -6153,7 +6153,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_029",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 029",
+    "title": "Joker Bufón 029",
     "description": "Durante 2 turnos, tú eliges quién se quita prenda cuando salga esa carta.",
     "icon": {
       "type": "glyph",
@@ -6178,7 +6178,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_030",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 030",
+    "title": "Joker Bufón 030",
     "description": "Obligar a alguien a susurrarte al oído exactamente cómo te cojería durante 25 segundos.",
     "icon": {
       "type": "glyph",
@@ -6203,7 +6203,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_031",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 031",
+    "title": "Joker Bufón 031",
     "description": "Puedes activar una Cadena de Besos o Cadena de Nalgadas cuando quieras.",
     "icon": {
       "type": "glyph",
@@ -6228,7 +6228,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_032",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 032",
+    "title": "Joker Bufón 032",
     "description": "Eliges a alguien: debe quitarse una prenda y dártela. Solo tú decides cuándo devolvérsela.",
     "icon": {
       "type": "glyph",
@@ -6253,7 +6253,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_033",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 033",
+    "title": "Joker Bufón 033",
     "description": "Todos deben decir en voz alta una fantasía que tengan contigo.",
     "icon": {
       "type": "glyph",
@@ -6278,7 +6278,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_034",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 034",
+    "title": "Joker Bufón 034",
     "description": "Puedes obligar a alguien a hacer el próximo sacrificio en posición de perrito.",
     "icon": {
       "type": "glyph",
@@ -6303,7 +6303,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_BUENO_035",
     "categoryId": "PREMIO",
-    "title": "Joker Bueno 035",
+    "title": "Joker Bufón 035",
     "description": "Tienes derecho a un “Turno Extra”: juegas dos veces seguidas.",
     "icon": {
       "type": "glyph",
@@ -6328,7 +6328,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_001",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 001",
+    "title": "Joker Arlequín 001",
     "description": "Quítate 2 prendas. Si ya estás en ropa interior, el grupo elige qué hacer contigo durante 1 minuto.",
     "icon": {
       "type": "glyph",
@@ -6353,7 +6353,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_002",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 002",
+    "title": "Joker Arlequín 002",
     "description": "Ponte en cuatro y deja que todos te den una nalgada fuerte + un chupón donde quieran.",
     "icon": {
       "type": "glyph",
@@ -6378,7 +6378,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_003",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 003",
+    "title": "Joker Arlequín 003",
     "description": "El grupo elige una prenda. No te la puedes volver a poner en toda la noche.",
     "icon": {
       "type": "glyph",
@@ -6403,7 +6403,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_004",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 004",
+    "title": "Joker Arlequín 004",
     "description": "Quédate completamente de rodillas durante los próximos 3 turnos.",
     "icon": {
       "type": "glyph",
@@ -6428,7 +6428,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_005",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 005",
+    "title": "Joker Arlequín 005",
     "description": "Deja que te pongan un collar o correa. Quien tenga la correa puede darte órdenes pequeñas durante 2 turnos.",
     "icon": {
       "type": "glyph",
@@ -6453,7 +6453,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_006",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 006",
+    "title": "Joker Arlequín 006",
     "description": "Haz 20 sentadillas mientras dices “soy la putita del grupo” en cada una.",
     "icon": {
       "type": "glyph",
@@ -6478,7 +6478,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_007",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 007",
+    "title": "Joker Arlequín 007",
     "description": "El grupo escribe una palabra sucia en tu cuerpo. Debes dejarla mínimo 1 hora.",
     "icon": {
       "type": "glyph",
@@ -6503,7 +6503,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_008",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 008",
+    "title": "Joker Arlequín 008",
     "description": "Cada vez que alguien diga tu nombre durante 4 turnos, debes imitar un orgasmo.",
     "icon": {
       "type": "glyph",
@@ -6528,7 +6528,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_009",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 009",
+    "title": "Joker Arlequín 009",
     "description": "Siéntate en las piernas de quien elija el grupo durante 3 turnos.",
     "icon": {
       "type": "glyph",
@@ -6553,7 +6553,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_010",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 010",
+    "title": "Joker Arlequín 010",
     "description": "Deja que el grupo te venda los ojos durante 3 turnos.",
     "icon": {
       "type": "glyph",
@@ -6578,7 +6578,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_011",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 011",
+    "title": "Joker Arlequín 011",
     "description": "Grábate un video de 20 segundos pidiendo por favor que te usen y mándalo al grupo.",
     "icon": {
       "type": "glyph",
@@ -6603,7 +6603,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_012",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 012",
+    "title": "Joker Arlequín 012",
     "description": "El grupo elige a alguien. Debes llamarlo “dueño/a” el resto de la ronda.",
     "icon": {
       "type": "glyph",
@@ -6628,7 +6628,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_013",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 013",
+    "title": "Joker Arlequín 013",
     "description": "Quítate la camisa/blusa y quédate así hasta que alguien decida devolverte la prenda.",
     "icon": {
       "type": "glyph",
@@ -6653,7 +6653,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_014",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 014",
+    "title": "Joker Arlequín 014",
     "description": "Deja que te dibujen flechas o frases sucias en el cuerpo apuntando a zonas íntimas.",
     "icon": {
       "type": "glyph",
@@ -6678,7 +6678,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_015",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 015",
+    "title": "Joker Arlequín 015",
     "description": "Cumple el próximo sacrificio de rodillas y pidiendo “por favor” al final.",
     "icon": {
       "type": "glyph",
@@ -6703,7 +6703,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_016",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 016",
+    "title": "Joker Arlequín 016",
     "description": "El grupo elige 3 personas. Debes darles un beso en el cuello a cada una de rodillas.",
     "icon": {
       "type": "glyph",
@@ -6728,7 +6728,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_017",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 017",
+    "title": "Joker Arlequín 017",
     "description": "Durante los próximos 3 turnos no puedes rechazar ningún sacrificio.",
     "icon": {
       "type": "glyph",
@@ -6753,7 +6753,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_018",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 018",
+    "title": "Joker Arlequín 018",
     "description": "Deja que alguien del grupo te quite una prenda usando solo la boca.",
     "icon": {
       "type": "glyph",
@@ -6778,7 +6778,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_019",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 019",
+    "title": "Joker Arlequín 019",
     "description": "Di en voz alta la lista de todas las personas del grupo con las que te acostarías, en orden.",
     "icon": {
       "type": "glyph",
@@ -6803,7 +6803,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_020",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 020",
+    "title": "Joker Arlequín 020",
     "description": "El grupo te pone un apodo sexual humillante. Solo puedes responder a ese apodo. Nuevos:",
     "icon": {
       "type": "glyph",
@@ -6828,7 +6828,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_021",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 021",
+    "title": "Joker Arlequín 021",
     "description": "Quítate 1 prenda. (Se recomienda tener 4 copias de esta carta)",
     "icon": {
       "type": "glyph",
@@ -6853,7 +6853,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_022",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 022",
+    "title": "Joker Arlequín 022",
     "description": "Quítate 1 prenda.",
     "icon": {
       "type": "glyph",
@@ -6878,7 +6878,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_023",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 023",
+    "title": "Joker Arlequín 023",
     "description": "Quítate 1 prenda.",
     "icon": {
       "type": "glyph",
@@ -6903,7 +6903,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_024",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 024",
+    "title": "Joker Arlequín 024",
     "description": "Quítate 1 prenda.",
     "icon": {
       "type": "glyph",
@@ -6928,7 +6928,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_025",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 025",
+    "title": "Joker Arlequín 025",
     "description": "Ponte en cuatro y deja que te den 10 nalgadas en total (el grupo se las reparte).",
     "icon": {
       "type": "glyph",
@@ -6953,7 +6953,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_026",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 026",
+    "title": "Joker Arlequín 026",
     "description": "Deja que el grupo te escriba “USAR” o “DISPONIBLE” en el cuerpo.",
     "icon": {
       "type": "glyph",
@@ -6978,7 +6978,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_027",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 027",
+    "title": "Joker Arlequín 027",
     "description": "Durante 3 turnos debes pedir permiso de rodillas cada vez que quieras hablar.",
     "icon": {
       "type": "glyph",
@@ -7003,7 +7003,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_028",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 028",
+    "title": "Joker Arlequín 028",
     "description": "El grupo elige una zona de tu cuerpo. Cualquiera puede tocarla libremente durante 2 turnos.",
     "icon": {
       "type": "glyph",
@@ -7028,7 +7028,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_029",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 029",
+    "title": "Joker Arlequín 029",
     "description": "Graba un audio de 30 segundos describiendo cómo quieres que te usen y envíaselo a quien elija el grupo.",
     "icon": {
       "type": "glyph",
@@ -7053,7 +7053,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_030",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 030",
+    "title": "Joker Arlequín 030",
     "description": "Quédate sin ropa interior el resto de la ronda (o hasta que alguien te permita ponértela).",
     "icon": {
       "type": "glyph",
@@ -7078,7 +7078,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_031",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 031",
+    "title": "Joker Arlequín 031",
     "description": "Debes cumplir todos los sacrificios de los próximos 2 turnos en posición de perrito.",
     "icon": {
       "type": "glyph",
@@ -7103,7 +7103,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_032",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 032",
+    "title": "Joker Arlequín 032",
     "description": "El grupo elige a alguien. Debes estar sentado/a en sus piernas el resto de la ronda.",
     "icon": {
       "type": "glyph",
@@ -7128,7 +7128,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_033",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 033",
+    "title": "Joker Arlequín 033",
     "description": "Deja que te pongan hielo por dentro de la ropa y aguanta 1 minuto.",
     "icon": {
       "type": "glyph",
@@ -7153,7 +7153,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_034",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 034",
+    "title": "Joker Arlequín 034",
     "description": "Di en voz alta qué persona del grupo te pone más cachondo/a y por qué.",
     "icon": {
       "type": "glyph",
@@ -7178,7 +7178,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_JOKER_MALO_035",
     "categoryId": "CASTIGO",
-    "title": "Joker Malo 035",
+    "title": "Joker Arlequín 035",
     "description": "Durante los próximos 4 turnos, cada vez que alguien tome un shot, tú también tomas uno.",
     "icon": {
       "type": "glyph",
@@ -7203,7 +7203,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_001",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 001",
+    "title": "Horror: Pecado 001",
     "description": "¿Cuál es la cosa más asquerosa que te has metido en la boca a propósito?",
     "icon": {
       "type": "glyph",
@@ -7228,7 +7228,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_002",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 002",
+    "title": "Horror: Pecado 002",
     "description": "¿Alguna vez te has comido un moco, oreja o algo de tu propio cuerpo? Cuenta.",
     "icon": {
       "type": "glyph",
@@ -7253,7 +7253,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_003",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 003",
+    "title": "Horror: Pecado 003",
     "description": "¿Cuántos días seguidos has usado la misma ropa interior sin lavarla?",
     "icon": {
       "type": "glyph",
@@ -7278,7 +7278,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_004",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 004",
+    "title": "Horror: Pecado 004",
     "description": "¿Has olido tus propios pedos con la mano y te has gustado?",
     "icon": {
       "type": "glyph",
@@ -7303,7 +7303,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_005",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 005",
+    "title": "Horror: Pecado 005",
     "description": "¿Alguna vez te hiciste pipí o popó encima siendo adulto y lo escondiste?",
     "icon": {
       "type": "glyph",
@@ -7328,7 +7328,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_006",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 006",
+    "title": "Horror: Pecado 006",
     "description": "¿Qué es lo más asqueroso que has encontrado en tu ombligo, orejas o uñas?",
     "icon": {
       "type": "glyph",
@@ -7353,7 +7353,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_007",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 007",
+    "title": "Horror: Pecado 007",
     "description": "¿Has comido comida que llevaba días fuera de la nevera? ¿Qué era?",
     "icon": {
       "type": "glyph",
@@ -7378,7 +7378,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_008",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 008",
+    "title": "Horror: Pecado 008",
     "description": "¿Alguna vez has vomitado y luego has seguido comiendo o bebiendo en la misma noche?",
     "icon": {
       "type": "glyph",
@@ -7403,7 +7403,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_009",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 009",
+    "title": "Horror: Pecado 009",
     "description": "¿Has usado el mismo cepillo de dientes que alguien después de que se cepillara?",
     "icon": {
       "type": "glyph",
@@ -7428,7 +7428,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_010",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 010",
+    "title": "Horror: Pecado 010",
     "description": "¿Qué es lo más asqueroso que te ha salido del cuerpo y lo has tocado?",
     "icon": {
       "type": "glyph",
@@ -7453,7 +7453,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_011",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 011",
+    "title": "Horror: Pecado 011",
     "description": "¿Has orinado en la ducha y te has lavado con esa agua?",
     "icon": {
       "type": "glyph",
@@ -7478,7 +7478,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_012",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 012",
+    "title": "Horror: Pecado 012",
     "description": "¿Cuál es el olor más repugnante que has producido con tu cuerpo?",
     "icon": {
       "type": "glyph",
@@ -7503,7 +7503,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_013",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 013",
+    "title": "Horror: Pecado 013",
     "description": "¿Has tenido sexo o te has tocado sin haberte duchado en varios días?",
     "icon": {
       "type": "glyph",
@@ -7528,7 +7528,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_014",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 014",
+    "title": "Horror: Pecado 014",
     "description": "¿Qué es lo más asqueroso que te han hecho (o has hecho) en la cama?",
     "icon": {
       "type": "glyph",
@@ -7553,7 +7553,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_015",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 015",
+    "title": "Horror: Pecado 015",
     "description": "¿Has comido algo que se te cayó al suelo del baño?",
     "icon": {
       "type": "glyph",
@@ -7578,7 +7578,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_016",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 016",
+    "title": "Horror: Pecado 016",
     "description": "¿Alguna vez has limpiado vómito o caca de alguien y te has mareado?",
     "icon": {
       "type": "glyph",
@@ -7603,7 +7603,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_017",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 017",
+    "title": "Horror: Pecado 017",
     "description": "¿Qué hábito asqueroso tienes que ni tu pareja sabe?",
     "icon": {
       "type": "glyph",
@@ -7628,7 +7628,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_018",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 018",
+    "title": "Horror: Pecado 018",
     "description": "¿Has olido la ropa interior usada de alguien por curiosidad?",
     "icon": {
       "type": "glyph",
@@ -7653,7 +7653,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_019",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 019",
+    "title": "Horror: Pecado 019",
     "description": "¿Cuál es la persona más sucia e higiénicamente desagradable con la que has tenido algo?",
     "icon": {
       "type": "glyph",
@@ -7678,7 +7678,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_PECADO_020",
     "categoryId": "VERDAD",
-    "title": "Horror Pecado 020",
+    "title": "Horror: Pecado 020",
     "description": "¿Qué es lo más asqueroso que has tragado por no querer escupirlo en público?",
     "icon": {
       "type": "glyph",
@@ -7703,7 +7703,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_001",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 001",
+    "title": "Horror: Sacrificio 001",
     "description": "Come una cucharada de atún con sirope de chocolate. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7728,7 +7728,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_002",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 002",
+    "title": "Horror: Sacrificio 002",
     "description": "Come una cucharada de mayonesa mezclada con jugo de pepinillos. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7753,7 +7753,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_003",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 003",
+    "title": "Horror: Sacrificio 003",
     "description": "Come un trozo de cebolla cruda untada en sirope de chocolate. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7778,7 +7778,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_004",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 004",
+    "title": "Horror: Sacrificio 004",
     "description": "Bebe un shot de yogur con salsa de soya y kétchup sin hacer gestos. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7803,7 +7803,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_005",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 005",
+    "title": "Horror: Sacrificio 005",
     "description": "Come, sin manos, un trozo de jamón o salchicha con mostaza y miel. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7828,7 +7828,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_006",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 006",
+    "title": "Horror: Sacrificio 006",
     "description": "Lame un plato que tenga restos de mayonesa + kétchup + mostaza. O toma 2 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7853,7 +7853,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_007",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 007",
+    "title": "Horror: Sacrificio 007",
     "description": "Come una cucharada de ajo triturado con miel. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7878,7 +7878,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_008",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 008",
+    "title": "Horror: Sacrificio 008",
     "description": "Bebe un shot de jugo de atún + limón + sal. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7903,7 +7903,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_009",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 009",
+    "title": "Horror: Sacrificio 009",
     "description": "Come un trozo de pan mojado en jugo de aceitunas y mostaza. O toma 2 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7928,7 +7928,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_010",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 010",
+    "title": "Horror: Sacrificio 010",
     "description": "Con los ojos vendados, come una cucharada de la mezcla más asquerosa que prepare el grupo. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7953,7 +7953,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_011",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 011",
+    "title": "Horror: Sacrificio 011",
     "description": "Saca con la boca una gomita de un plato de yogur con atún y kétchup. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -7978,7 +7978,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_012",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 012",
+    "title": "Horror: Sacrificio 012",
     "description": "Come, sin manos, cereal con yogur, salsa de soya y un chorrito de vinagre. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8003,7 +8003,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_013",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 013",
+    "title": "Horror: Sacrificio 013",
     "description": "Come un plato pequeño de espagueti con mayonesa, kétchup y un poco de ajo. O toma 4 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8028,7 +8028,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_014",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 014",
+    "title": "Horror: Sacrificio 014",
     "description": "Come una cucharada de queso crema con jugo de pepinillos y mostaza. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8053,7 +8053,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_015",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 015",
+    "title": "Horror: Sacrificio 015",
     "description": "Bebe un shot de caldo frío de pollo mezclado con sirope de chocolate. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8078,7 +8078,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_016",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 016",
+    "title": "Horror: Sacrificio 016",
     "description": "Come un trozo pequeño de cebolla cruda + ajo + limón. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8103,7 +8103,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_017",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 017",
+    "title": "Horror: Sacrificio 017",
     "description": "Enjuágate la boca con jugo de atún y trágatelo. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8128,7 +8128,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_018",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 018",
+    "title": "Horror: Sacrificio 018",
     "description": "Deja que el grupo te ponga en la cara una mezcla de yogur + kétchup + mostaza y quédate así 2 turnos. O toma 2 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8153,7 +8153,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_019",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 019",
+    "title": "Horror: Sacrificio 019",
     "description": "Come una cucharada de gelatina con salsa de soya y mostaza. O toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8178,7 +8178,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_SACRIFICIO_020",
     "categoryId": "DESAFIO",
-    "title": "Horror Sacrificio 020",
+    "title": "Horror: Sacrificio 020",
     "description": "El grupo prepara el “Shot del Infierno” (4 ingredientes). Bébetelo completo. O toma 4 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8203,7 +8203,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_001",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 001",
+    "title": "Horror: Ruleta de la Muerte",
     "description": "Ruleta de la Muerte - 6 vasos opacos: 3 con agua, 2 con shot asqueroso normal y 1 con el Shot del Infierno. Todos eligen uno. Quien caiga en el del Infierno toma 2 shots extra.",
     "icon": {
       "type": "glyph",
@@ -8228,7 +8228,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_002",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 002",
+    "title": "Horror: Sabor a Ciegas Extremo",
     "description": "Sabor a Ciegas Extremo Con los ojos vendados pruebas 4 cucharadas (dulce, salada, ácida y “la del infierno”). Por cada error tomas 1 shot asqueroso.",
     "icon": {
       "type": "glyph",
@@ -8253,7 +8253,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_003",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 003",
+    "title": "Horror: Cara de Piedra",
     "description": "Cara de Piedra Todos prueban una cucharada cada vez más asquerosa. El primero que haga gesto, se tape la nariz o se ría toma 3 shots asquerosos y prepara la siguiente ronda.",
     "icon": {
       "type": "glyph",
@@ -8278,7 +8278,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_004",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 004",
+    "title": "Horror: Pesca Infernal",
     "description": "Pesca Infernal Se esconden 4 gomitas en un plato de yogur + atún + kétchup. Dos jugadores compiten sin manos. El que menos saque toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8303,7 +8303,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_005",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 005",
+    "title": "Horror: Yo Nunca Extremo",
     "description": "Yo Nunca Extremo Versión asquerosa total. Quien haya hecho la cosa tiene que tomar 2 shots asquerosos (no 1).",
     "icon": {
       "type": "glyph",
@@ -8328,7 +8328,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_006",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 006",
+    "title": "Horror: La Mezcla Maldita 2.0",
     "description": "La Mezcla Maldita 2.0 Cada jugador agrega un ingrediente a escondidas (incluyendo opciones fuertes como atún, ajo, vinagre, mostaza…). El que sacó la carta debe beber un sorbo por cada ingrediente que no adivine.",
     "icon": {
       "type": "glyph",
@@ -8353,7 +8353,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_007",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 007",
+    "title": "Horror: Espagueti Tóxico Extremo",
     "description": "Espagueti Tóxico Extremo Dos jugadores comen sin manos un plato de espagueti con mayonesa + kétchup + un poco de ajo triturado. El más lento toma 3 shots asquerosos.",
     "icon": {
       "type": "glyph",
@@ -8378,7 +8378,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_HORROR_CAOS_008",
     "categoryId": "MINIJUEGO",
-    "title": "Horror Caos 008",
+    "title": "Horror: Adivina o Sufre",
     "description": "Adivina o Sufre Se preparan 4 shots asquerosos distintos (incluyendo uno del Infierno). La persona elegida los prueba y tiene que ordenarlos del menos al más asqueroso. Por cada error toma 1 shot extra.",
     "icon": {
       "type": "glyph",
@@ -10368,10 +10368,10 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_002",
-    "title": "Enredados (x2 Jokers malos o x2 Jokers buenos) Todos se toman de las man",
-    "summary": "Dinámica de Enredados (x2 Jokers malos o x2 Jokers buenos) Todos se toman de las man.",
+    "title": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man",
+    "summary": "Dinámica de Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man.",
     "instructions": [
-      "Enredados (x2 Jokers malos o x2 Jokers buenos) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido."
+      "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido."
     ],
     "notes": "",
     "details": {
@@ -10433,10 +10433,10 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_007",
-    "title": "Hielo Caliente (x1 Joker malo al perdedor) Todos de pie en círculo",
-    "summary": "Dinámica de Hielo Caliente (x1 Joker malo al perdedor) Todos de pie en círculo.",
+    "title": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo",
+    "summary": "Dinámica de Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo.",
     "instructions": [
-      "Hielo Caliente (x1 Joker malo al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker malo."
+      "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker arlequín."
     ],
     "notes": "",
     "details": {
@@ -10501,7 +10501,7 @@ export const CARNIVAL_MANUALS = [
     "title": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent",
     "summary": "Dinámica de La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent.",
     "instructions": [
-      "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker malo. Si lo logra, elige un pequeño premio o un reto para otra persona."
+      "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker arlequín. Si lo logra, elige un pequeño premio o un reto para otra persona."
     ],
     "notes": "",
     "details": {
@@ -10511,10 +10511,10 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_013",
-    "title": "Modo Avión (x1 Joker malo) Todos ponen su celular boca arriba con notifi",
-    "summary": "Dinámica de Modo Avión (x1 Joker malo) Todos ponen su celular boca arriba con notifi.",
+    "title": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi",
+    "summary": "Dinámica de Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi.",
     "instructions": [
-      "Modo Avión (x1 Joker malo) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker malo."
+      "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker arlequín."
     ],
     "notes": "",
     "details": {
@@ -10563,8 +10563,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_001",
-    "title": "Horror Caos 001",
-    "summary": "Dinámica de Horror Caos 001.",
+    "title": "Horror: Ruleta de la Muerte",
+    "summary": "Dinámica: Ruleta de la Muerte.",
     "instructions": [
       "Ruleta de la Muerte - 6 vasos opacos: 3 con agua, 2 con shot asqueroso normal y 1 con el Shot del Infierno. Todos eligen uno. Quien caiga en el del Infierno toma 2 shots extra."
     ],
@@ -10576,8 +10576,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_002",
-    "title": "Horror Caos 002",
-    "summary": "Dinámica de Horror Caos 002.",
+    "title": "Horror: Sabor a Ciegas Extremo",
+    "summary": "Dinámica: Sabor a Ciegas Extremo.",
     "instructions": [
       "Sabor a Ciegas Extremo Con los ojos vendados pruebas 4 cucharadas (dulce, salada, ácida y “la del infierno”). Por cada error tomas 1 shot asqueroso."
     ],
@@ -10589,8 +10589,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_003",
-    "title": "Horror Caos 003",
-    "summary": "Dinámica de Horror Caos 003.",
+    "title": "Horror: Cara de Piedra",
+    "summary": "Dinámica: Cara de Piedra.",
     "instructions": [
       "Cara de Piedra Todos prueban una cucharada cada vez más asquerosa. El primero que haga gesto, se tape la nariz o se ría toma 3 shots asquerosos y prepara la siguiente ronda."
     ],
@@ -10602,8 +10602,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_004",
-    "title": "Horror Caos 004",
-    "summary": "Dinámica de Horror Caos 004.",
+    "title": "Horror: Pesca Infernal",
+    "summary": "Dinámica: Pesca Infernal.",
     "instructions": [
       "Pesca Infernal Se esconden 4 gomitas en un plato de yogur + atún + kétchup. Dos jugadores compiten sin manos. El que menos saque toma 3 shots asquerosos."
     ],
@@ -10615,8 +10615,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_005",
-    "title": "Horror Caos 005",
-    "summary": "Dinámica de Horror Caos 005.",
+    "title": "Horror: Yo Nunca Extremo",
+    "summary": "Dinámica: Yo Nunca Extremo.",
     "instructions": [
       "Yo Nunca Extremo Versión asquerosa total. Quien haya hecho la cosa tiene que tomar 2 shots asquerosos (no 1)."
     ],
@@ -10628,8 +10628,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_006",
-    "title": "Horror Caos 006",
-    "summary": "Dinámica de Horror Caos 006.",
+    "title": "Horror: La Mezcla Maldita 2.0",
+    "summary": "Dinámica: La Mezcla Maldita 2.0.",
     "instructions": [
       "La Mezcla Maldita 2.0 Cada jugador agrega un ingrediente a escondidas (incluyendo opciones fuertes como atún, ajo, vinagre, mostaza…). El que sacó la carta debe beber un sorbo por cada ingrediente que no adivine."
     ],
@@ -10641,8 +10641,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_007",
-    "title": "Horror Caos 007",
-    "summary": "Dinámica de Horror Caos 007.",
+    "title": "Horror: Espagueti Tóxico Extremo",
+    "summary": "Dinámica: Espagueti Tóxico Extremo.",
     "instructions": [
       "Espagueti Tóxico Extremo Dos jugadores comen sin manos un plato de espagueti con mayonesa + kétchup + un poco de ajo triturado. El más lento toma 3 shots asquerosos."
     ],
@@ -10654,8 +10654,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_HORROR_CAOS_008",
-    "title": "Horror Caos 008",
-    "summary": "Dinámica de Horror Caos 008.",
+    "title": "Horror: Adivina o Sufre",
+    "summary": "Dinámica: Adivina o Sufre.",
     "instructions": [
       "Adivina o Sufre Se preparan 4 shots asquerosos distintos (incluyendo uno del Infierno). La persona elegida los prueba y tiene que ordenarlos del menos al más asqueroso. Por cada error toma 1 shot extra."
     ],

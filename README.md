@@ -1,13 +1,15 @@
 # Circus Zevyra · Carnival of Chaos
 
+**Versión de la aplicación: 2.2.0.**
+
 Aplicación de juegos sociales mobile-first. La plataforma se llama **Circus Zevyra** y **Carnival of Chaos** es el juego disponible. El proyecto usa HTML, CSS y JavaScript nativo, conserva el modo local y conecta el modo online a Supabase.
 
 ## Estado de Carnival
 
-- 414 cartas integradas desde los PDF de Carnival: Pecados, Sacrificio, Caos, Jokers, Maldición y opciones de la Ruleta del Destino; 24 manuales de minijuego.
+- 414 cartas integradas desde los PDF de Carnival: Pecados, Sacrificio, Caos, Jokers Bufones y Jokers Arlequines, Maldición y opciones de la Ruleta del Destino; 24 manuales de minijuego.
 - Dado 3D de seis caras: 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio.
-- El Gran Circo programa 22 eventos, uno cada cinco turnos individuales. El Circo de los Horrores activa sus mazos especiales por cinco turnos; Circo el Destino activa las opciones únicas de la ruleta durante ese evento.
-- El anfitrión conserva la confirmación del resultado online. El perfil permite ajustar tono de piel, ojos y boca, y muestra un UID local o el UID de Supabase.
+- El Gran Circo programa 22 eventos, uno cada cinco rondas completas (cada vuelta de los participantes activos). El Circo de los Horrores activa sus mazos especiales por cinco turnos; Circo el Destino activa las opciones únicas de la ruleta durante ese evento.
+- El anfitrión conserva la confirmación del resultado online. El perfil y los avatares Big Smile de participantes permiten personalizar variantes y colores; se muestra un UID local o el UID de Supabase.
 - Los otros juegos de la biblioteca siguen bloqueados mientras no tengan una implementación terminada.
 
 El catálogo fuente está en `data/carnival-catalog.js`; el motor y la interfaz están en `js/game.js` y `js/app.js`. El reporte técnico vigente, con rutas y líneas verificadas, está en [DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md](DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md).
@@ -24,7 +26,7 @@ Abre [http://localhost:8080](http://localhost:8080). No abras `index.html` con `
 
 ## Pruebas y límites de despliegue
 
-`npm test` ejecuta las pruebas del catálogo, el dado, la migración, los eventos y el motor. También se deben probar visualmente el carrusel y el tema claro en un móvil, y la sala con dos usuarios antes de un despliegue público.
+`npm test` ejecuta las pruebas del catálogo, el dado, la migración, los eventos y el motor. En la actualización 2.2.0 no se ejecutó la suite ni se validó visualmente; antes de desplegar, prueba carrusel, tema claro, avatar, PWA y sala con dos usuarios.
 
 La conexión Supabase requiere las migraciones SQL del directorio `supabase/sql/` en el proyecto remoto. El estado de los archivos locales no confirma que el SQL ya esté aplicado en el Dashboard.
 

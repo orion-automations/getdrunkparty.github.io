@@ -1,101 +1,78 @@
 # Carnival of Chaos — estado actual e implementación
 
-**Actualizado:** 2026-11-06 · **Versión de aplicación:** 2.0.0 · **Estado:** integrado para pruebas locales.
+**Actualizado:** 2026-11-06 · **Versión:** 2.2.0 · **Estado:** integrado para pruebas locales; la configuración externa de Supabase todavía requiere revisión.
 
-Este documento es la referencia vigente. El informe 14 conserva la auditoría de Circus Zevyra previa a la integración de Carnival; los documentos 01–13 son antecedentes y pueden describir el juego anterior.
+Este es el documento vigente para la aplicación. Los documentos 01–14 conservan antecedentes e iteraciones anteriores; si una decisión difiere, prevalece esta versión y el código citado.
 
-## Resumen verificable
+## Resumen actual
 
-- **Carnival of Chaos está disponible** en la biblioteca y usa el motor de turnos existente con categorías y catálogo de Carnival; conserva el identificador persistente `midnight-chaos` para mantener los datos locales y salas existentes. Esto integra Carnival sobre la arquitectura actual, no es una reescritura aislada de todo el motor.
-- Se importaron **414 cartas** del catálogo fuente, con sus textos, y **24 manuales**. La migración añade IDs nuevos sin borrar cartas personalizadas y apaga por defecto las 48 cartas del evento Horrores.
-- El dado de seis caras conserva la animación 3D y usa la distribución acordada: 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio.
-- El Gran Circo avanza cada cinco **turnos individuales**. El mazo de Horrores y la Ruleta del Destino sí cambian automáticamente; los demás eventos aparecen como reglas guiadas en pantalla.
-- La portada de inicio se presenta en una tarjeta centrada con nombre y estado. Se cambia con gesto horizontal o con las flechas del teclado; no hay flechas de interfaz ni barra horizontal.
-- El perfil muestra tarjeta de identidad, avatar circular editable y UID público de ocho caracteres. El editor usa DiceBear Big Smile; el UID local persiste en el navegador y el remoto se guarda en public.profiles.public_uid.
-- La app contiene interfaz usuario/contraseña y la migración SQL local database/001_player_profiles.sql. **No se aplicó al proyecto Supabase remoto en esta tarea**; hasta entonces se muestra un UID derivado del Auth ID.
+- Carnival of Chaos está disponible; los otros juegos siguen bloqueados hasta tener una implementación (`js/games-catalog.js:1-24`). Se conserva `GAME_ID = "midnight-chaos"` para los datos existentes (`js/config.js:1-3`).
+- El inicio muestra una portada compacta y centrada. La tarjeta activa queda delante de la siguiente, que asoma más pequeña por debajo. El usuario desliza para cambiarla (`index.html:87-100`, `js/app.js:1087-1132, 2598-2614`, `css/platform.css:436-452, 568-569`).
+- El dado mantiene seis caras y la animación 3D. Las probabilidades del catálogo son 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio (`js/dice.js:1-84`; creación y orientación visual: `js/app.js:77-82, 1250-1289`).
+- Las rondas cuentan un ciclo completo por los participantes activos: la ronda termina al volver al primero de la lista en el orden vigente. Cada quinto ciclo completo activa un evento; su duración todavía se descuenta por turnos individuales (`js/game.js:664-725`).
+- Las cartas jugadas, auxiliares y descartadas terminan en el cementerio. La extracción excluye esos IDs hasta reiniciar la partida (`js/game.js:545-578`, `js/decks.js:2-36`, `js/app.js:1166-1208, 2693-2718`).
+- La interfaz admite local y multijugador; en salas online el jugador activo conserva las acciones del turno y el anfitrión confirma/cierra el resultado (`index.html:137-150`, `js/app.js:104-139, 2870-2879`, SQL `supabase/sql/007_host_confirms_turns.sql`).
+- El catálogo importa 414 cartas y 24 manuales desde la guía. Los nombres visibles de los dos mazos Joker son **Jokers Bufones** y **Jokers Arlequines**. La migración de catálogo v10 también actualiza las partidas ya guardadas (`data/carnival-catalog.js`, `data/initial-cards.js:1-5`, `js/config.js:4-11`, `js/storage.js:47-63, 272-276`).
 
-## Fuentes de Carnival
+## Flujos funcionales trazables
 
-La guía de reglas está en `Guia de despliegue/01_CARNIVAL_OF_CHAOS/CARNIVAL OF CHAOS.pdf`; el PDF con las cartas está en `Guia de despliegue/01_CARNIVAL_OF_CHAOS/cartas/Carnival of Chaos Cards.pdf`. El catálogo de la app vive en `data/carnival-catalog.js`: textos de carta importados sin reescritura, con normalización de espacios propia de la extracción del PDF. La migración convierte esas entradas al modelo de la aplicación sin alterar la redacción de la carta.
+### Inicio y biblioteca
 
-La cuenta del catálogo se comprueba en `tests/core.test.js:25-32`: Pecados/VERDAD 115, Sacrificio/DESAFIO 127, Caos/MINIJUEGO 24, Maldición/MALDICION 78 (incluye 24 opciones de Ruleta del Destino), Joker bueno/PREMIO 35 y Joker malo/CASTIGO 35. Los 24 manuales se exportan junto a las cartas en el mismo módulo fuente.
+`index.html → js/games-catalog.js → js/app.js → css/platform.css → assets/games/`
 
-Referencias de los PDF usados para esta integración:
+El marcado presenta `CIRCUS ZEVYRA` y debajo “JUEGOS DISPONIBLES” (`index.html:87-100`). `renderHomeGameStack()` crea las tarjetas desde `GAMES_CATALOG`, pone portada, título y estado; `selectHomeGame()` cambia el índice (`js/app.js:1087-1132`). Los eventos Pointer y teclado procesan el gesto horizontal (`js/app.js:2598-2614`). CSS da a la carta activa tamaño de biblioteca y deja visible una carta secundaria más pequeña (`css/platform.css:436-452, 568-569`); `.home-game-cover img` usa `object-fit: cover` (`css/platform.css:268-269`).
 
-:codex-file-citation{path="/home/orionzery/Documentos/Apps/Get Drunk Party/Guia de despliegue/01_CARNIVAL_OF_CHAOS/CARNIVAL OF CHAOS.pdf" purpose="source"}
+`renderGameLibrary()` y `renderHomeGameStack()` consumen el mismo catálogo. El acceso solo navega al juego si `available` es `true` (`js/app.js:1044-1086, 1087-1126`; `js/games-catalog.js:1-24`).
 
-:codex-file-citation{path="/home/orionzery/Documentos/Apps/Get Drunk Party/Guia de despliegue/01_CARNIVAL_OF_CHAOS/cartas/Carnival of Chaos Cards.pdf" purpose="source"}
+### Turno, dado, mazos y cartas
 
-## Flujos funcionales y archivos
+`index.html → js/app.js → js/game.js → js/dice.js / js/decks.js → js/storage.js`
 
-### Inicio, biblioteca y selección de Carnival
+`renderGame()` actualiza el jugador actual, el estado del dado y la visibilidad de los mazos (`js/app.js:1250-1309`). El cubo visual se construye con las seis caras de `DICE_FACES`; al tirar, `rollDice()` selecciona según pesos, y el motor conserva la cara/categoría resultante (`js/app.js:77-82, 1250-1289`; `js/dice.js:2-66`; `js/game.js:124-150`). `drawCategory()` solicita la carta al motor; la extracción consulta los IDs del cementerio y evita repetirlos (`js/app.js:2693-2718`; `js/game.js:20-40, 400-430`; `js/decks.js:2-36`). `makeTurnCard()` dibuja el reverso temático por categoría, el diamante de Fragmento y la cantidad de shots disponible (`js/app.js:1160-1164, 1860-1944`; `css/platform.css:485-489`).
 
-`index.html:72-84 → js/app.js:877-908 → js/games-catalog.js:1-11 → assets/games/carnival-of-chaos.png`
+Los seis mazos ocupan una cuadrícula de tres columnas en escritorio y móvil (`index.html:221`; `css/platform.css:458-465, 570-571`). Las categorías siguen guardando sus IDs históricos; `js/config.js:4-11` define etiquetas e iconos. La migración v9 quita las seis penalizaciones heredadas `MC_PENALTY_001`–`006`; la v10 cambia la nomenclatura Joker en el estado local persistido (`js/storage.js:237-276`).
 
-`renderHomeGameStack()` toma el juego seleccionado de `GAMES_CATALOG`, crea la imagen de portada, el título y el estado, y actualiza el texto descriptivo y el control PLAY. `selectHomeGame()` cambia el índice circular. Los eventos de puntero implementan el gesto horizontal y las teclas izquierda/derecha en `js/app.js:2208-2226`. La caja que contiene la tarjeta usa `overflow: hidden` y `touch-action: pan-y` en `css/platform.css:263-271`; por eso el gesto horizontal no crea barra de desplazamiento.
+### Rondas y eventos
 
-`js/games-catalog.js:1-11` define Carnival como disponible (`available: true`, `route: "game"`). La biblioteca usa esos mismos datos al crear sus tarjetas en `js/app.js:834-875`; los otros juegos siguen bloqueados o en desarrollo hasta que cada uno tenga implementación propia.
+`js/game.js → data/round-events.js → js/app.js`
 
-### Catálogo, migración y partida
+`finishTurn()` incrementa los turnos individuales y reconoce la vuelta completa cuando el próximo participante activo es el primero de la lista activa (`js/game.js:664-675`). `applyRoundProgress()` activa un nuevo evento en cada múltiplo de cinco rondas completas; `turnsRemaining` baja al cerrar cada turno (`js/game.js:698-725`). El encabezado refleja `completedRounds` (`index.html:61-70`, `js/app.js:1209-1215`).
 
-`data/carnival-catalog.js → data/initial-cards.js:1-5 / data/initial-manuals.js:1-3 → js/storage.js:1-17, 170-215 → js/app.js:1-18, 36-40 → js/game.js:1-18`
+### Cementerio
 
-`INITIAL_CARDS` y `INITIAL_MANUALS` clonan el catálogo fuente. `seedState()` los usa al crear estado nuevo. En estado existente, la migración de catálogo versión 8 agrega IDs ausentes, conserva cartas del usuario y respeta una carta actualmente en turno; las cartas de colección `horrors` quedan desactivadas salvo cuando su evento está activo.
+`js/app.js → js/game.js → js/decks.js`
 
-El juego usa IDs históricos de categoría para mantener compatibilidad: `VERDAD` representa Pecados, `DESAFIO` Sacrificio, `MINIJUEGO` Caos, `MALDICION` Maldición, `PREMIO` Joker bueno y `CASTIGO` Joker malo. `js/config.js:1-12` define las etiquetas visibles. `js/storage.js:240-262` acepta las seis categorías del catálogo. Las funciones `rollDigital()`, `drawMain()` y `completeRoll()` viven en `js/game.js:121-145` y el resto de la resolución del turno permanece en el mismo motor.
+El botón fijo con icono de vórtice abre una lista de solo lectura (`index.html:486-497`). Al cerrar un turno, el motor registra carta principal, auxiliares y descartes con categoría y participante (`js/game.js:545-578`). Antes de retirar el turno, la interfaz anima las cartas hasta el botón (`js/app.js:1186-1207, 2870-2881`), y CSS mantiene el vórtice girando (`css/platform.css:498-505`). `drawFromDeck()` descarta los IDs enterrados; si el mazo solo contiene cartas usadas, informa que se reinicie la partida (`js/decks.js:2-36`, `js/app.js:2689-2705`). Reiniciar vacía cementerio y mazos de una vez, preservando participantes y catálogo (`js/app.js:2989-3023`).
 
-### Dado y probabilidades
+### Perfil y avatar Big Smile
 
-`js/app.js:72-80 → js/dice.js:1-84 → js/game.js:134-144`
+`index.html → js/app.js → DiceBear API → js/multiplayer-auth.js / database/001_player_profiles.sql`
 
-La interfaz crea una cara visual por cada elemento de `DICE_FACES`; `rollDice()` selecciona una cara ponderada y `rollDigital()` guarda el mismo ID/categoría en el turno, para que animación y mazo coincidan. Los pesos están verificados por `categoryProbabilities()` y por `tests/core.test.js:207-220`. Las seis caras usan las superficies `front`, `back`, `right`, `left`, `top` y `bottom`, sin reemplazar el cubo 3D.
+Perfil es la quinta vista fija y su avatar se muestra en la navegación inferior (`index.html:73-79, 104-131`). La tarjeta de identidad alinea el UID a la izquierda; el editor se abre con el lápiz (`index.html:107-120`; `css/platform.css:381-390, 476`). `profileAvatarUrl()` crea una URL Big Smile con semilla y opciones; el editor obtiene las opciones de estilo y presenta controles de color y variantes (`js/app.js:162-176, 220-328`). En Participantes, cada avatar se muestra junto al nickname y abre el mismo editor para personalizar ese jugador (`js/app.js:2018-2063`; estilos `css/platform.css:453-457`). La respuesta de DiceBear requiere conexión a internet.
 
-### Eventos de El Gran Circo
+El perfil local crea un UID alfanumérico de ocho caracteres. El perfil remoto usa `public_uid` de `public.profiles` (`js/app.js:69-76, 990-1024`; `database/001_player_profiles.sql`). La contraseña se gestiona exclusivamente en Supabase Auth, no se guarda en la tabla de perfiles (`index.html:121-130`, `js/multiplayer-auth.js:1-29`).
 
-`data/round-events.js:1-35 → js/game.js:677-740 → js/app.js:1206-1226`
+### Registro online y configuración externa
 
-`applyRoundProgress()` cuenta turnos individuales al completar cada turno; cada múltiplo de cinco activa el siguiente evento durante cinco turnos y registra el historial. El panel de partida muestra nombre, turnos restantes, descripción e historial. El orden cíclico de 22 eventos está en `data/round-events.js`.
+`index.html → js/app.js → js/multiplayer.js → js/multiplayer-auth.js → js/supabase.js → Supabase Auth/Postgres`
 
-En esta versión tienen efecto automático tres eventos: **Circo Borracho** duplica la cantidad de shots para las cartas de Pecados/Sacrificio que ofrecen esa alternativa (`js/app.js:1168-1174`); **El Circo de los Horrores** habilita sus cartas y deshabilita los mazos regulares durante el evento; **Circo el Destino** activa solo las opciones `CC_DESTINO_` y hace que el dado elija Maldición (`js/game.js:134-144, 718-740`). Al cerrar esos eventos se recuperan las habilitaciones y el estado de mazos anteriores.
+`authenticateProfile()` solicita registro o inicio de sesión; `multiplayerErrorMessage()` convierte errores de Supabase en instrucciones visibles (`js/app.js:340-373, 728-756`). Para registro solo con nickname y contraseña, Auth recibe un correo sintético `usuario@accounts.zevyra.invalid`. Supabase debe tener desactivada la confirmación por correo en Email/Password; de lo contrario el proveedor no entrega una sesión para ese email reservado (`js/multiplayer-auth.js:1-29`, `supabase/README.md:9-15`). Si faltan tablas/permisos, hay que aplicar las migraciones locales en el SQL Editor. El código local no puede cambiar los ajustes ni aplicar SQL al proyecto remoto. **La creación de cuenta remota no se verificó en esta actualización.**
 
-Los otros 19 eventos muestran instrucciones para que el grupo las aplique. Aunque el motor contiene utilidades heredadas para invertir turnos y conceder poderes, esas utilidades no se enlazan a eventos de este catálogo. Por tanto, no se debe presentar aún como automatización completa de todos los efectos de la guía.
+### Tema, ajustes y PWA
 
-### Carrusel de portadas
+El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`).
 
-`index.html:77-80 → js/app.js:1028-1068, 2416-2433 → css/platform.css:263-270, 291-294`
+Ajustes separa penalizaciones, reinicio, respaldo y aplicación (`index.html:402-483`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.2.0 (`index.html:479`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
 
-`renderHomeGameStack()` toma el juego seleccionado de `GAMES_CATALOG`, crea un marco de imagen `.home-game-cover` y coloca dentro la portada junto al título y estado; después actualiza la descripción y el control PLAY. El marco usa el tamaño fijo de la fila de la tarjeta, `overflow: hidden` y bordes redondeados; la imagen ocupa el marco con `object-fit: cover` sin deformarse. `selectHomeGame()` cambia el índice circular. Los eventos de puntero permiten deslizar la portada y las teclas izquierda/derecha cambian el juego. La caja usa `touch-action: pan-y` y recorta el contenido para no mostrar scrollbar. La portada de Carnival proviene de la carpeta local.
-### Temporizador en tema claro
+## Datos y migraciones
 
-`index.html:573-590 → js/app.js:695-779, 2272-2285 → css/platform.css:329-341`
+El catálogo fuente se clona desde `data/carnival-catalog.js` a `data/initial-cards.js` y `data/initial-manuals.js`; `js/storage.js` inicializa estado nuevo y migra estado existente. La versión actual es `CATALOG_VERSION = 10` (`js/storage.js:1-17`). La migración 9 elimina las seis cartas de penalización antiguas y actualiza nombres Horror; la 10 modifica nombres de Joker en todo el estado persistido (`js/storage.js:237-276`). Las categorías del motor conservan los identificadores anteriores (`js/config.js:4-11`) para evitar romper guardados.
 
-El diálogo contiene la esfera de progreso, selectores de horas/minutos/segundos, presets y controles de iniciar/pausar/reiniciar. El CSS bajo `:root[data-theme="light"]` cambia fondo, anillo, dígitos, presets y controles a superficies claras. El anillo y el contador del header comparten el progreso del mismo temporizador. El contador permanece visible en el header en todas las vistas.
+## Instalación SQL y límites
 
-### Perfil, avatares y UID
+La documentación SQL y orden de migraciones está en `supabase/README.md`; la migración de identidad también está en `database/001_player_profiles.sql`. No se accedió al Dashboard ni se aplicó SQL remoto durante este trabajo. Para probar cuentas reales, verificar confirmación Email/Auth, tablas, RLS y RPC en el proyecto Supabase configurado en `js/supabase.js`. El formulario online depende de esa configuración y conexión.
 
-`index.html:89-115, 580-595 → js/app.js:66-72, 159-211, 225-288, 931-984, 2344-2389 → js/multiplayer.js:61-71, 198-205 → js/multiplayer-auth.js:58-89 → database/001_player_profiles.sql:5-77`
+## Verificación de esta actualización
 
-La tarjeta de identidad coloca el avatar circular con lápiz sobre un banner y muestra nickname más UID público de ocho caracteres. `localProfileUid()` genera un código local; `refreshProfileIdentity()` lee `public_uid` remoto y, antes de ejecutar la migración, deriva el código visible de ocho caracteres alfanuméricos del ID de Auth. El UUID completo solo se usa internamente.
-
-Al abrir el editor, `fetchAvatarEditorOptions()` consulta las opciones oficiales de `big-smile/options.json` y construye controles para ojos, boca, cabello, tono de piel, accesorios y colores. La vista previa arma el URL Big Smile con la misma semilla. Guardar conserva opciones y URL, actualiza avatares locales y sincroniza con `saveConnectedProfile()` dentro de una sala o `saveUserProfile()` fuera de ella. Referencias: [estilo Big Smile](https://www.dicebear.com/styles/big-smile/) y [HTTP API de DiceBear](https://www.dicebear.com/how-to-use/http-api).
-
-La interfaz de usuario/contraseña usa Supabase Auth. El recorrido es `index.html:106-113 → js/app.js:670-696 → js/multiplayer.js:46-71 → js/multiplayer-auth.js:3-29, 58-89 → Supabase Auth`. `database/001_player_profiles.sql` agrega `public_uid`, `banner_color` y políticas RLS. La tabla pública no guarda contraseñas. Como Auth usa email/teléfono como identificador, el cliente deriva un email sintético `usuario@accounts.zevyra.invalid`; la configuración requiere apagar la confirmación de email y no dispone de recuperación por correo. Véase `supabase/README.md:9-15`. La migración se creó en el proyecto pero aún debe ejecutarse en Dashboard para que el UID público quede persistido.
-### Ejecución local y PWA
-
-`package.json:1-9 → server.mjs:1-41 → index.html:618 → js/app.js`
-
-El servidor local sirve los módulos como recursos HTTP. Para probar, ejecuta `npm run serve` desde la carpeta raíz y abre `http://localhost:8080`. La ruta `file://.../index.html` no es compatible con los módulos ES de este proyecto; la captura del usuario corresponde a esa ruta y por eso no prueba el carrusel actualizado. El service worker precarga ahora `data/carnival-catalog.js` con la versión de caché `zevyra-shell-2.0.1` (`sw.js:1-59`).
-
-## Base de datos y despliegue
-
-El SDK y la configuración cliente están en `index.html:14-20` y `js/supabase.js`; el SQL fuente está en `supabase/sql/001_multiplayer_schema.sql` y migraciones posteriores. La interfaz de perfil no necesita una clave `service_role`; el cliente solo debe usar la clave pública `anon`. No ejecuté SQL en el proyecto remoto ni consulté su Dashboard, por lo que la existencia/aplicación de tablas, políticas RLS, migración 007 y ajustes de Auth debe comprobarse en Supabase.
-
-Supabase ofrece Postgres en su plan gratuito con límites de almacenamiento, proyectos y pausa por inactividad; esos límites pueden variar y se deben comprobar en la [página oficial de precios](https://supabase.com/pricing). La guía local de ejecución, SQL y ajustes de usuario está en `supabase/README.md`.
-
-## Pruebas ejecutadas y límites
-
-- `npm test`: pasa.
-- `node --check` para los módulos JavaScript principales: pasa.
-- La suite cubre IDs/cantidades del catálogo, compatibilidad de migración, tirada ponderada, eventos Horrores/Destino y restauración de mazos. Los escenarios están en `tests/core.test.js`.
-- No se pudo inspeccionar el render final en el navegador integrado de esta sesión. La confirmación visual del gesto, la portada, el tema claro y el flujo de Auth requiere abrir la URL local y probar en móvil.
-- Las interacciones de sala dependen de que el proyecto remoto ya tenga sus tablas, RPC, RLS y Realtime aplicados. La configuración del cliente no prueba por sí sola el estado remoto.
+- Se revisaron rutas, controladores y selectores de código directamente antes de documentar sus líneas.
+- No se ejecutó la suite de pruebas ni se hizo una revisión visual automatizada en esta actualización. La prueba del carrusel táctil, tema claro, editor responsive, personalización de avatar, instalación PWA y registro Supabase debe realizarse desde `http://localhost:8080` y, para Auth, con Supabase configurado.

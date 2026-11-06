@@ -42,6 +42,7 @@ let lastRenderedRoundEventId = state.game.activeRoundEvent?.id ?? null;
 let animateCardNext = false;
 let animateCardId = null;
 let rolling = false;
+let cemeteryAnimating = false;
 let syncedRollStartedAt = null;
 let timerState = { remainingMs: 30000, totalMs: 30000, endsAt: null, interval: null };
 let onlineMode = false;
@@ -58,7 +59,9 @@ const $ = (s) => document.querySelector(s),
 const diceFaceColor = (category) =>
   CATEGORIES[category]?.color ??
   (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
-const PLAYER_AVATARS = ["🎮", "🃏", "👑", "🦊", "🐼", "🐸", "🐱", "🐉", "👾", "🌙", "⭐", "🔥"];
+const PLAYER_AVATARS = Array.from({ length: 12 }, (_, index) =>
+  `https://api.dicebear.com/10.x/big-smile/svg?seed=zevyra-character-${index + 1}&borderRadius=50`,
+);
 const savedLocalAvatar = localStorage.getItem("zevyra.local.avatar") || localStorage.getItem("zevyra.profile.avatar");
 const isDicebearAvatar = (value) => typeof value === "string" && /^https:\/\/api\.dicebear\.com\/10\.x\/[a-z-]+\/svg\?/.test(value);
 let selectedLocalAvatar = PLAYER_AVATARS.includes(savedLocalAvatar) || isDicebearAvatar(savedLocalAvatar) ? savedLocalAvatar : PLAYER_AVATARS[0];
@@ -78,7 +81,7 @@ for (const face of DICE_FACES) {
   side.textContent = face.label;
   $("#dice-cube").append(side);
 }
-const blankGame = () => ({ currentIndex: 0, state: "READY", decks: {}, current: null, history: [], archives: [], rewards: [] });
+const blankGame = () => ({ currentIndex: 0, state: "READY", decks: {}, current: null, history: [], cemetery: [], archives: [], rewards: [], completedTurns: 0, completedRounds: 0, roundEventHistory: [], activeRoundEvent: null });
 function snapshotForRoom() {
   const referencedIds = new Set([
     state.game.current?.primaryCard?.cardId,
@@ -165,9 +168,9 @@ function readAvatarOptions() {
   });
   return options;
 }
-function profileAvatarUrl(seed = localStorage.getItem("zevyra.profile.avatarSeed") || "zevyra-player") {
+function profileAvatarUrl(seed = localStorage.getItem("zevyra.profile.avatarSeed") || "zevyra-player", optionsOverride = null) {
   const params = new URLSearchParams({ seed, borderRadius: "50" });
-  for (const [key, value] of Object.entries(readAvatarOptions())) {
+  for (const [key, value] of Object.entries(optionsOverride ?? readAvatarOptions())) {
     if (value !== "" && value != null) params.set(key, String(value).replace(/^#/, ""));
   }
   return `https://api.dicebear.com/10.x/big-smile/svg?${params}`;
@@ -177,9 +180,12 @@ if (typeof selectedLocalAvatar === "string" && selectedLocalAvatar.includes("/pe
   localStorage.setItem("zevyra.local.avatar", selectedLocalAvatar);
 }
 let migratedLegacyAvatars = false;
-state.participants.forEach((player) => {
+state.participants.forEach((player, index) => {
   if (typeof player.avatar === "string" && player.avatar.includes("/personas/svg?")) {
     player.avatar = profileAvatarUrl();
+    migratedLegacyAvatars = true;
+  } else if (!isDicebearAvatar(player.avatar)) {
+    player.avatar = PLAYER_AVATARS[index % PLAYER_AVATARS.length];
     migratedLegacyAvatars = true;
   }
 });
@@ -212,15 +218,50 @@ const AVATAR_OPTION_LABELS = {
   facialHairVariant: "Vello facial", eyebrowsVariant: "Cejas", backgroundColor: "Color de fondo",
 };
 let avatarDraftSeed = null;
+let avatarDraftOptions = null;
+let avatarEditingPlayerId = null;
 let avatarEditorLoadPromise = null;
 function avatarOptionLabel(key) {
   if (AVATAR_OPTION_LABELS[key]) return AVATAR_OPTION_LABELS[key];
   return key.replace(/Variant$/, "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (char) => char.toUpperCase());
 }
 function updateAvatarEditorPreview() {
-  const avatar = profileAvatarUrl(avatarDraftSeed || undefined);
+  const selectedOptions = Object.fromEntries(
+    $$("#avatar-editor-controls [data-avatar-option]").map((input) => [input.dataset.avatarOption, input.value]),
+  );
+  avatarDraftOptions = { ...(avatarDraftOptions ?? {}), ...selectedOptions };
+  const avatar = profileAvatarUrl(avatarDraftSeed || undefined, avatarDraftOptions);
   $("#avatar-editor-preview").src = avatar;
   return avatar;
+}
+function avatarDetailsFromUrl(avatar) {
+  try {
+    const url = new URL(avatar);
+    if (!isDicebearAvatar(avatar)) return { seed: crypto.randomUUID(), options: {} };
+    const seed = url.searchParams.get("seed") || crypto.randomUUID();
+    const options = {};
+    for (const [key, value] of url.searchParams.entries()) {
+      if (key === "seed" || key === "borderRadius") continue;
+      options[key] = key.toLowerCase().includes("color") ? `#${value.replace(/^#/, "")}` : value;
+    }
+    return { seed, options };
+  } catch {
+    return { seed: crypto.randomUUID(), options: {} };
+  }
+}
+function setAvatarEditorOptions(options = {}) {
+  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
+    const value = options[input.dataset.avatarOption];
+    if (input.type === "color") {
+      input.value = /^#[\da-f]{6}$/i.test(value || "") ? value : input.dataset.defaultValue;
+    } else if ([...input.options].some((option) => option.value === value)) {
+      input.value = value;
+    } else {
+      input.value = input.dataset.defaultValue;
+    }
+  });
+  avatarDraftOptions = { ...options };
+  updateAvatarEditorPreview();
 }
 function loadAvatarEditorOptions() {
   avatarEditorLoadPromise ??= fetchAvatarEditorOptions();
@@ -228,7 +269,7 @@ function loadAvatarEditorOptions() {
 }
 async function fetchAvatarEditorOptions() {
   const host = $("#avatar-editor-controls");
-  const saved = (() => { try { return JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); } catch { return {}; } })();
+  const saved = avatarDraftOptions ?? (() => { try { return JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); } catch { return {}; } })();
   try {
     const response = await fetch("https://api.dicebear.com/10.x/big-smile/options.json");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -286,18 +327,30 @@ async function fetchAvatarEditorOptions() {
     console.warn("No se pudieron cargar las opciones Big Smile", error);
   }
 }
-function renderAvatar(target, avatar, fallback = "🎮") {
+function renderAvatar(target, avatar) {
   if (!target) return;
   target.replaceChildren();
   if (typeof avatar === "string" && /^https:\/\/api\.dicebear\.com\/10\.x\/[a-z-]+\/svg\?/.test(avatar)) {
     const image = document.createElement("img");
     image.src = avatar; image.alt = ""; image.loading = "lazy";
     target.append(image);
-  } else target.textContent = avatar || fallback;
+  } else {
+    const icon = document.createElement("span");
+    icon.className = "material-symbols-rounded";
+    icon.textContent = "person";
+    target.append(icon);
+  }
 }
 function multiplayerErrorMessage(error) {
   const message = String(error?.message ?? error ?? "");
   const code = String(error?.code ?? "");
+  if (/Supabase no inició sesión|confirmación por correo/i.test(message)) return "Supabase creó o recibió la solicitud, pero exige confirmar un correo que esta cuenta de usuario no tiene. Desactiva la confirmación de correo para Email/Password en Supabase Auth y vuelve a crear la cuenta.";
+  if (/user already registered|user_already_exists|already been registered/i.test(message)) return "Ese nickname ya tiene una cuenta. Usa Iniciar sesión con su contraseña.";
+  if (/invalid login credentials|invalid_credentials/i.test(message)) return "El usuario o la contraseña no coinciden.";
+  if (/password.*(at least|characters|short)|weak password/i.test(message)) return "La contraseña debe cumplir la longitud mínima configurada en Supabase.";
+  if (/email.*invalid|invalid.*email/i.test(message)) return "Supabase está rechazando el correo interno de la cuenta. Revisa la configuración de Email Auth y la función de registro con nickname.";
+  if (/profiles|relation .* does not exist|schema cache/i.test(message) || code === "PGRST205" || code === "42P01") return "La tabla o las columnas del perfil no están aplicadas en Supabase. Ejecuta database/001_player_profiles.sql y actualiza la caché del esquema.";
+  if (/Database error saving new user|Database error creating new user/i.test(message)) return "Supabase rechazó la creación del usuario. Revisa Auth > Logs y los triggers de auth.users en el proyecto.";
   if (/ROOM_CODE_INVALID/i.test(message)) return "El código debe tener seis letras o números válidos.";
   if (/ROOM_NOT_FOUND/i.test(message)) return "No existe una sala con ese código. Revísalo e inténtalo de nuevo.";
   if (/ROOM_EXPIRED/i.test(message)) return "Esta sala venció. Pide un código nuevo al anfitrión.";
@@ -320,6 +373,7 @@ function multiplayerErrorMessage(error) {
   if (/ROOM_GAME_MISMATCH/i.test(message)) return "Esta sala pertenece a otra experiencia de ZEVYRA.";
   if (/Invalid API key|JWT/i.test(message)) return "La URL y la clave de Supabase no corresponden o no son válidas.";
   if (code === "23505") return "Esta sesión ya está registrada en la sala.";
+  if (message) return `Supabase: ${message.slice(0, 180)}`;
   return "No se pudo completar la acción online. Inténtalo de nuevo.";
 }
 function logMultiplayerError(phase, error) {
@@ -600,22 +654,26 @@ $("#profile-nickname").value = savedProfileName;
 $("#profile-display-name").textContent = savedProfileName || "Jugador";
 $("#player-name").value = savedProfileName;
 $("#profile-uid").textContent = "UID: #" + localProfileUid();
-for (const emoji of PLAYER_AVATARS) {
+for (const [index, avatar] of PLAYER_AVATARS.entries()) {
   const option = document.createElement("option");
-  option.value = emoji;
-  option.textContent = emoji;
+  option.value = avatar;
+  option.textContent = `Personaje ${index + 1}`;
   $("#multiplayer-avatar").append(option);
   const avatarButton = document.createElement("button");
   avatarButton.type = "button";
   avatarButton.className = "avatar-choice";
-  avatarButton.textContent = emoji;
-  avatarButton.dataset.avatar = emoji;
-  avatarButton.setAttribute("aria-label", `Elegir avatar ${emoji}`);
-  avatarButton.setAttribute("aria-pressed", String(emoji === selectedLocalAvatar));
+  avatarButton.dataset.avatar = avatar;
+  avatarButton.setAttribute("aria-label", `Elegir personaje ${index + 1}`);
+  avatarButton.setAttribute("aria-pressed", String(avatar === selectedLocalAvatar));
+  const avatarImage = document.createElement("img");
+  avatarImage.src = avatar;
+  avatarImage.alt = "";
+  avatarImage.loading = "lazy";
+  avatarButton.append(avatarImage);
   avatarButton.onclick = () => {
-    selectedLocalAvatar = emoji;
-    localStorage.setItem("zevyra.local.avatar", emoji);
-    $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.avatar === emoji)));
+    selectedLocalAvatar = avatar;
+    localStorage.setItem("zevyra.local.avatar", avatar);
+    $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.avatar === avatar)));
   };
   $("#player-avatar-choices").append(avatarButton);
 }
@@ -691,6 +749,7 @@ async function authenticateProfile(kind) {
     await refreshProfileIdentity();
     notify(kind === "register" ? "Cuenta creada." : "Sesión iniciada.");
   } catch (error) {
+    logMultiplayerError(`profile-${kind}`, error);
     notify(multiplayerErrorMessage(error));
   }
 }
@@ -1031,31 +1090,37 @@ function renderHomeGameStack() {
   host.replaceChildren();
   const selected = GAMES_CATALOG[selectedGameIndex];
   if (!selected) return;
-  const card = document.createElement("article");
-  card.className = `home-game-card is-selected${selected.available ? " is-available" : " is-blocked"}`;
-  const cover = document.createElement("img");
-  cover.src = selected.cover;
-  cover.alt = `${selected.name}, portada`;
-  cover.draggable = false;
-  const coverFrame = document.createElement("div");
-  coverFrame.className = "home-game-cover";
-  coverFrame.append(cover);
-  const status = document.createElement("span");
-  status.className = "home-game-status";
-  status.textContent = selected.status;
-  const copy = document.createElement("div");
-  copy.className = "home-game-card-copy";
-  const cardTitle = document.createElement("strong");
-  cardTitle.textContent = selected.name;
-  copy.append(cardTitle, status);
-  card.append(coverFrame, copy);
-  card.style.setProperty("--carousel-enter-x", homeCarouselDirection > 0 ? "26px" : "-26px");
-  card.setAttribute("aria-label", `${selected.name}, ${selected.status}`);
-  host.append(card);
+  const nextIndex = (selectedGameIndex + 1) % GAMES_CATALOG.length;
+  const makeCard = (game, position, index) => {
+    const card = document.createElement("article");
+    card.className = `home-game-card ${position}${game.available ? " is-available" : " is-blocked"}`;
+    const cover = document.createElement("img");
+    cover.src = game.cover;
+    cover.alt = `${game.name}, portada`;
+    cover.draggable = false;
+    const coverFrame = document.createElement("div");
+    coverFrame.className = "home-game-cover";
+    coverFrame.append(cover);
+    const copy = document.createElement("div");
+    copy.className = "home-game-card-copy";
+    const cardTitle = document.createElement("strong");
+    cardTitle.textContent = game.name;
+    const status = document.createElement("span");
+    status.className = "home-game-status";
+    status.textContent = game.status;
+    copy.append(cardTitle, status);
+    card.append(coverFrame, copy);
+    card.setAttribute("aria-label", `${game.name}, ${game.status}`);
+    card.setAttribute("aria-hidden", String(position !== "is-selected"));
+    card.style.setProperty("--carousel-enter-x", homeCarouselDirection > 0 ? "26px" : "-26px");
+    card.dataset.gameIndex = String(index);
+    host.append(card);
+  };
+  makeCard(GAMES_CATALOG[nextIndex], "is-next", nextIndex);
+  makeCard(selected, "is-selected", selectedGameIndex);
   $("#home-selected-game").replaceChildren();
-  const title = document.createElement("h2"); title.textContent = selected.name;
   const description = document.createElement("p"); description.textContent = selected.description;
-  $("#home-selected-game").append(title, description);
+  $("#home-selected-game").append(description);
   $("#home-play-selected").disabled = !selected.available;
   $("#home-play-selected").textContent = selected.available ? "▶ PLAY" : selected.status.toUpperCase();
   $("#home-play-selected").setAttribute("aria-label", selected.available ? `Iniciar ${selected.name}` : `${selected.name}: ${selected.status}`);
@@ -1073,6 +1138,17 @@ function applyAppearance(mode) {
   document.documentElement.dataset.theme = resolved;
   const logo = $(".zevyra-brand img");
   if (logo) logo.src = resolved === "light" ? "./assets/branding/logo-light.png" : "./assets/branding/logo-dark.png";
+  const themeButton = $("#appearance-cycle");
+  const themeIcon = $("#appearance-icon");
+  const labels = { system: "Sistema", dark: "Oscuro", light: "Claro" };
+  const icons = { system: "light_mode dark_mode", dark: "dark_mode", light: "light_mode" };
+  if (themeButton) {
+    themeButton.setAttribute("aria-label", `Tema actual: ${labels[selection]}. Cambiar al siguiente tema.`);
+    themeButton.title = `Tema: ${labels[selection]}`;
+  }
+  if (themeIcon) themeIcon.textContent = icons[selection];
+  const appearanceLabel = $("#appearance-label");
+  if (appearanceLabel) appearanceLabel.textContent = labels[selection];
 }
 function esc(text) {
   return escapeText(text);
@@ -1081,11 +1157,61 @@ function shotLabel(count) {
   const shots = Number(count);
   return `${shots} ${shots === 1 ? "Shot" : "Shots"}`;
 }
+function cardShotCount(card) {
+  if (card.penalty?.enabled && Number(card.penalty.units) > 0) return Number(card.penalty.units);
+  const counts = [...String(card.description ?? "").matchAll(/\b(\d+|un|una)\s+(?:shots?|copas?)\b/gi)]
+    .map((match) => /^(?:un|una)$/i.test(match[1]) ? 1 : Number(match[1]));
+  return counts.length ? Math.max(...counts) : 0;
+}
+function renderCemetery() {
+  const list = $("#cemetery-list");
+  list.replaceChildren();
+  const cards = state.game.cemetery ?? [];
+  if (!cards.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "Todavía no hay cartas en el cementerio.";
+    list.append(empty);
+    return;
+  }
+  for (const card of cards) {
+    const item = document.createElement("li");
+    item.textContent = card.title;
+    const details = document.createElement("small");
+    const category = CATEGORIES[card.category]?.label ?? card.category;
+    details.textContent = `${category} · ${card.playerName || "Participante"}`;
+    item.append(details);
+    list.append(item);
+  }
+}
+async function animateCardsToCemetery() {
+  if (cemeteryAnimating) return;
+  const slots = $$("#turn-cards .card-slot");
+  if (!slots.length) return;
+  const target = $("#cemetery-open").getBoundingClientRect();
+  const targetX = target.left + target.width / 2;
+  const targetY = target.top + target.height / 2;
+  cemeteryAnimating = true;
+  $("#cemetery-open").classList.add("is-receiving");
+  const animations = slots.map((slot, index) => {
+    const source = slot.getBoundingClientRect();
+    const dx = targetX - (source.left + source.width / 2);
+    const dy = targetY - (source.top + source.height / 2);
+    const baseTransform = getComputedStyle(slot).transform;
+    return slot.animate([
+      { transform: baseTransform, opacity: 1, filter: "brightness(1)" },
+      { transform: `translate(${dx}px, ${dy}px) ${baseTransform === "none" ? "" : baseTransform} scale(.08) rotate(540deg)`, opacity: 0, filter: "brightness(1.8)" },
+    ], { duration: 590, delay: index * 55, easing: "cubic-bezier(.45,0,.75,.2)", fill: "forwards" });
+  });
+  await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
+  $("#cemetery-open").classList.remove("is-receiving");
+  cemeteryAnimating = false;
+}
 function render() {
   document.title = `${GAME_NAME} — Circus Zevyra`;
   const appearance = localStorage.getItem("zevyra.appearance") || "system";
-  $("#appearance-mode").value = appearance;
   applyAppearance(appearance);
+  $("#header-round-count").textContent = String(state.game.completedRounds ?? 0);
+  $("#nav-profile-avatar").src = profileAvatarUrl();
   $("#app-version").textContent = VERSION;
   $("#game-name-label").textContent = GAME_NAME;
   const currentExperience = GAMES_CATALOG.find((game) => game.id === GAME_ID);
@@ -1170,7 +1296,7 @@ function renderGame() {
   const mainDecksVisible = digital
     ? active.length > 0
     : choosingPhysical || Boolean(cur);
-  $("#category-choices").classList.toggle("hidden", !mainDecksVisible);
+  $("#all-decks-grid").classList.toggle("hidden", !mainDecksVisible);
   $("#blocked-choice").classList.toggle("hidden", !choosingPhysical);
   $("#aux-decks").classList.toggle(
     "disabled-decks",
@@ -1371,7 +1497,7 @@ function renderRoundAndPowerState() {
   }
   lastRenderedRoundEventId = nextEventId;
   panel.classList.toggle("hidden", !event && !(state.game.completedTurns ?? 0));
-  $("#round-turn-count").textContent = `${state.game.completedTurns ?? 0} turnos completados`;
+  $("#round-turn-count").textContent = `${state.game.completedRounds ?? 0} rondas completas`;
   if (event) {
     $("#round-event-title").textContent = `${event.name} · ${event.turnsRemaining} turnos`;
     $("#round-event-description").textContent = event.description;
@@ -1754,11 +1880,11 @@ function makeTurnCard(card, item, primary, animate) {
   const back = document.createElement("div");
   back.className = "card-back";
   const backSymbol = document.createElement("span");
-  backSymbol.className = "material-symbols-rounded card-back-symbol";
+  backSymbol.className = "material-symbols-outlined card-back-symbol";
   backSymbol.setAttribute("aria-hidden", "true");
   backSymbol.textContent = ({
-    VERDAD: "visibility", DESAFIO: "bolt", MINIJUEGO: "casino", PREMIO: "redeem", CASTIGO: "warning",
-    PECADOS: "visibility", SACRIFICIO: "local_fire_department", CAOS_ABSOLUTO: "casino", JOKERS: "poker_chip", EL_GRAN_CIRCO: "festival", MALDICION_GITANA: "skull",
+    VERDAD: "heart_broken", DESAFIO: "skull", MINIJUEGO: "bomb", MALDICION: "sword_rose",
+    PREMIO: "chess_queen", CASTIGO: "comedy_mask",
   })[card.categoryId] ?? "domino_mask";
   const backLabel = document.createElement("small");
   backLabel.textContent = CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
@@ -1769,6 +1895,13 @@ function makeTurnCard(card, item, primary, animate) {
   category.className = "card-category";
   category.textContent =
     CATEGORIES[card.categoryId]?.label.toUpperCase() ?? card.categoryId;
+  if (card.fragment) {
+    const fragment = document.createElement("span");
+    fragment.className = "material-symbols-outlined card-fragment-symbol";
+    fragment.setAttribute("aria-label", "Fragmento");
+    fragment.textContent = "diamond";
+    front.append(fragment);
+  }
   const players = document.createElement("div");
   players.className = "card-players";
   const assigned = (item.targetIds ?? [])
@@ -1787,10 +1920,20 @@ function makeTurnCard(card, item, primary, animate) {
   const footer = document.createElement("div");
   footer.className = "card-footer";
   const penalty = document.createElement("span");
-  penalty.textContent =
-    card.penalty.enabled && card.penalty.units > 0
-      ? shotLabel(card.penalty.units)
-      : "";
+  const shotCount = cardShotCount(card);
+  if (shotCount > 0) {
+    penalty.className = "card-penalty";
+    const water = document.createElement("span");
+    water.className = "material-symbols-outlined";
+    water.setAttribute("aria-hidden", "true");
+    water.textContent = "water_medium";
+    const units = document.createElement("b");
+    units.textContent = String(shotCount);
+    const label = document.createElement("span");
+    label.textContent = "shots";
+    penalty.setAttribute("aria-label", shotLabel(shotCount));
+    penalty.append(water, units, label);
+  }
   const fires = document.createElement("span");
   fires.className = "card-spice";
   fires.setAttribute("aria-label", `Intensidad: ${card.spiceLevel}`);
@@ -1879,16 +2022,28 @@ function renderPlayers() {
   state.participants.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "manage-row";
-    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><span class="player-avatar">${esc(p.avatar || PLAYER_AVATARS[0])}</span><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
-    renderAvatar(row.querySelector(".player-avatar"), p.avatar || PLAYER_AVATARS[0]);
+    row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><button class="player-avatar player-avatar-edit-control" type="button" aria-label="Editar avatar de ${esc(p.name)}"><span class="player-avatar-image"></span><span class="material-symbols-rounded player-avatar-edit-mark" aria-hidden="true">edit</span></button><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
+    const avatarButton = row.querySelector(".player-avatar-edit-control");
+    renderAvatar(row.querySelector(".player-avatar-image"), p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]);
+    avatarButton.disabled = readOnly;
+    avatarButton.onclick = async () => {
+      const { seed, options } = avatarDetailsFromUrl(p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]);
+      avatarEditingPlayerId = p.id;
+      avatarDraftSeed = seed;
+      avatarDraftOptions = options;
+      $("#avatar-editor-dialog").showModal();
+      updateAvatarEditorPreview();
+      await loadAvatarEditorOptions();
+      setAvatarEditorOptions(options);
+    };
     const avatarSelect = document.createElement("select");
     avatarSelect.className = "player-avatar-select";
     avatarSelect.setAttribute("aria-label", `Avatar de ${p.name}`);
-    for (const emoji of PLAYER_AVATARS) {
+    for (const [index, avatar] of PLAYER_AVATARS.entries()) {
       const option = document.createElement("option");
-      option.value = emoji;
-      option.textContent = emoji;
-      option.selected = (p.avatar || PLAYER_AVATARS[0]) === emoji;
+      option.value = avatar;
+      option.textContent = `Personaje ${index + 1}`;
+      option.selected = (p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]) === avatar;
       avatarSelect.append(option);
     }
     const profileOption = document.createElement("option");
@@ -1896,6 +2051,13 @@ function renderPlayers() {
     profileOption.textContent = "Mi avatar";
     profileOption.selected = p.avatar === profileOption.value;
     avatarSelect.append(profileOption);
+    if (![...avatarSelect.options].some((option) => option.value === p.avatar)) {
+      const customOption = document.createElement("option");
+      customOption.value = p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length];
+      customOption.textContent = "Personalizado";
+      customOption.selected = true;
+      avatarSelect.append(customOption);
+    }
     avatarSelect.disabled = readOnly;
     avatarSelect.onchange = () => { p.avatar = avatarSelect.value; persist(); render(); };
     row.insertBefore(avatarSelect, row.querySelector("input"));
@@ -2294,6 +2456,8 @@ $("#nav").addEventListener("click", (e) => {
 $("#view-settings").addEventListener("click", (e) => {
   const shortcut = e.target.closest("[data-view]");
   if (shortcut) setView(shortcut.dataset.view);
+  const sectionShortcut = e.target.closest("[data-settings-target]");
+  if (sectionShortcut) $("#" + sectionShortcut.dataset.settingsTarget)?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 $("#tools-nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
@@ -2312,9 +2476,13 @@ $("#home-join-game").onclick = () => { playMode = "choose"; setView("game"); };
 $("#profile-avatar-preview").src = profileAvatarUrl();
 $("#profile-avatar-edit").onclick = async () => {
   avatarDraftSeed = localStorage.getItem("zevyra.profile.avatarSeed");
+  avatarEditingPlayerId = null;
+  try { avatarDraftOptions = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); }
+  catch { avatarDraftOptions = {}; }
   $("#avatar-editor-dialog").showModal();
   updateAvatarEditorPreview();
   await loadAvatarEditorOptions();
+  setAvatarEditorOptions(avatarDraftOptions);
   updateAvatarEditorPreview();
 };
 function discardAvatarEditorChanges() {
@@ -2327,12 +2495,16 @@ function discardAvatarEditorChanges() {
   });
   updateAvatarEditorPreview();
   avatarDraftSeed = null;
+  avatarDraftOptions = null;
+  avatarEditingPlayerId = null;
   $("#avatar-editor-dialog").close();
 }
 $("#avatar-editor-close").onclick = discardAvatarEditorChanges;
 $("#avatar-editor-cancel").onclick = discardAvatarEditorChanges;
 $("#avatar-editor-dialog").addEventListener("close", () => {
   avatarDraftSeed = null;
+  avatarDraftOptions = null;
+  avatarEditingPlayerId = null;
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); } catch { saved = {}; }
   $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
@@ -2344,6 +2516,16 @@ $("#avatar-editor-dialog").addEventListener("close", () => {
 $("#avatar-editor-save").onclick = async () => {
   const options = {};
   $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => { options[input.dataset.avatarOption] = input.value; });
+  if (avatarEditingPlayerId) {
+    const participant = state.participants.find((player) => player.id === avatarEditingPlayerId);
+    if (!participant) return notify("No se encontró ese participante.");
+    participant.avatar = profileAvatarUrl(avatarDraftSeed || crypto.randomUUID(), options);
+    persist();
+    $("#avatar-editor-dialog").close();
+    render();
+    notify("Avatar del participante guardado.");
+    return;
+  }
   localStorage.setItem("zevyra.profile.avatarOptions", JSON.stringify(options));
   if (avatarDraftSeed) localStorage.setItem("zevyra.profile.avatarSeed", avatarDraftSeed);
   if (!localStorage.getItem("zevyra.profile.avatarSeed")) localStorage.setItem("zevyra.profile.avatarSeed", crypto.randomUUID());
@@ -2431,7 +2613,11 @@ $("#home-game-stack").addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft") selectHomeGame(selectedGameIndex - 1);
   if (event.key === "ArrowRight") selectHomeGame(selectedGameIndex + 1);
 });
-$("#appearance-mode").onchange = (event) => applyAppearance(event.target.value);
+$("#appearance-cycle").onclick = () => {
+  const current = localStorage.getItem("zevyra.appearance") || "system";
+  const next = { system: "dark", dark: "light", light: "system" }[current] || "system";
+  applyAppearance(next);
+};
 document.addEventListener("click", (event) => {
   if (event.target.closest(".card-menu")) return;
   $$(".card-menu-popover").forEach((menu) => menu.classList.add("hidden"));
@@ -2466,7 +2652,7 @@ for (const [id, max, selected] of [
   select.onchange = syncTimerFromPicker;
 }
 renderTimer();
-const allowedViews = new Set(["home", "games", "game", "players", "multiplayer", "editor", "manuals", "settings"]);
+const allowedViews = new Set(["home", "games", "game", "players", "profile", "multiplayer", "editor", "manuals", "settings"]);
 const requestedView = location.hash.slice(1) === "inicio" ? "home" : location.hash.slice(1) === "juegos" ? "games" : location.hash.slice(1);
 setView(allowedViews.has(requestedView) ? requestedView : "home");
 TIMER_PRESETS.forEach((seconds) => {
@@ -2498,7 +2684,8 @@ function makeCategoryButton(id, category) {
   button.dataset.category = id;
   button.style.setProperty("--category-color", category.color);
   button.innerHTML =
-    '<span class="category-cross"></span><span class="category-name"></span>';
+    '<span class="material-symbols-outlined category-mark" aria-hidden="true"></span><span class="category-name"></span>';
+  button.querySelector(".category-mark").textContent = category.icon;
   button.querySelector(".category-name").textContent = category.label;
   button.onclick = () => drawCategory(id);
   return button;
@@ -2517,9 +2704,9 @@ function drawCategory(id) {
   if (result.empty) {
     persist();
     renderGame();
-    notify(
-      `El mazo ${CATEGORIES[id]?.label ?? id} no tiene cartas habilitadas.`,
-    );
+    notify(result.reason === "EXHAUSTED"
+      ? `Todas las cartas de ${CATEGORIES[id]?.label ?? id} están en el cementerio. Reinicia la partida para volver a usarlas.`
+      : `El mazo ${CATEGORIES[id]?.label ?? id} no tiene cartas habilitadas.`);
     return;
   }
   if (result.card) {
@@ -2551,7 +2738,7 @@ for (const [id, category] of Object.entries(CATEGORIES)) {
     $("#aux-category-choices").append(makeCategoryButton(id, category));
 }
 $("#blocked-choice").innerHTML =
-  '<span class="category-cross"></span><span class="category-name">BLOQUEADA</span>';
+  '<span class="material-symbols-outlined category-mark" aria-hidden="true">do_not_disturb_on</span><span class="category-name">BLOQUEADA</span>';
 $("#blocked-choice").style.setProperty("--category-color", "#a5a5b4");
 $("#blocked-choice").onclick = () => drawCategory("BLOQUEADA");
 $("#game-mode").onchange = (event) => {
@@ -2646,7 +2833,7 @@ $("#dice-cube").onkeydown = (event) => {
     activateDice();
   }
 };
-function confirmResult(result, sourceCardId) {
+async function confirmResult(result, sourceCardId) {
   if (!requireOnlineHost("Solo el anfitrión puede confirmar el resultado del turno.")) return;
   if (!engine.resolve(result, sourceCardId))
     return notify("El resultado de este turno ya fue confirmado.");
@@ -2655,6 +2842,7 @@ function confirmResult(result, sourceCardId) {
     (effect) => effect.type === "DRAW_AUXILIARY",
   );
   if (!hasAuxiliaryEffect) {
+    await animateCardsToCemetery();
     const finished = engine.finishTurn();
     if (finished) {
       persist();
@@ -2679,14 +2867,18 @@ $("#confirm-penalty").onclick = () => {
     .find((item) => item.category === "CASTIGO");
   confirmResult("COMPLETED", punishment?.cardId ?? null);
 };
-$("#finish-turn").onclick = () => {
+$("#finish-turn").onclick = async () => {
   if (!requireOnlineHost("Solo el anfitrión puede cerrar el turno.")) return;
+  if (cemeteryAnimating) return;
+  await animateCardsToCemetery();
   if (!engine.finishTurn())
     return notify("Confirma primero el resultado del turno.");
   persist();
   renderGame();
   renderRewards();
 };
+$("#cemetery-open").onclick = () => { renderCemetery(); $("#cemetery-dialog").showModal(); };
+$("#cemetery-close").onclick = () => $("#cemetery-dialog").close();
 $("#player-form").onsubmit = (e) => {
   e.preventDefault();
   if (!requireOnlineHost()) return;
@@ -2799,36 +2991,35 @@ $("#reset-game").onclick = () => {
     return notify(
       "Espera a que termine el dado antes de reiniciar la partida.",
     );
-  confirmAction(
-    "Reiniciar partida",
-    "Se archivará el historial de la partida actual y se reiniciarán turno, mazos y premios. Se conservarán participantes, cartas, manuales y ajustes.",
-    () => {
-      const archive = state.game.history?.length
-        ? { endedAt: new Date().toISOString(), history: structuredClone(state.game.history) }
-        : null;
-      state.game = {
-        currentIndex: 0,
-        state: "READY",
-        decks: {},
-        current: null,
-        history: [],
-        archives: [...(state.game.archives ?? []), ...(archive ? [archive] : [])].slice(-10),
-        rewards: [],
-      };
-      engine = gameEngine(state);
-      animateCardNext = false;
-      animateCardId = null;
-      const cube = $("#dice-cube");
-      cube.dataset.rotationX = "0";
-      cube.dataset.rotationY = "0";
-      delete cube.dataset.face;
-      cube.style.transform = "";
-      cube.style.removeProperty("--face-color");
-      persist();
-      setView("game");
-      notify("Partida reiniciada. Las cartas están disponibles de nuevo.");
-    },
-  );
+  const archive = state.game.history?.length
+    ? { endedAt: new Date().toISOString(), history: structuredClone(state.game.history) }
+    : null;
+  state.game = {
+    currentIndex: 0,
+    state: "READY",
+    decks: {},
+    current: null,
+    history: [],
+    cemetery: [],
+    archives: [...(state.game.archives ?? []), ...(archive ? [archive] : [])].slice(-10),
+    rewards: [],
+    completedTurns: 0,
+    completedRounds: 0,
+    roundEventHistory: [],
+    activeRoundEvent: null,
+  };
+  engine = gameEngine(state);
+  animateCardNext = false;
+  animateCardId = null;
+  const cube = $("#dice-cube");
+  cube.dataset.rotationX = "0";
+  cube.dataset.rotationY = "0";
+  delete cube.dataset.face;
+  cube.style.transform = "";
+  cube.style.removeProperty("--face-color");
+  persist();
+  setView("game");
+  notify("Partida reiniciada. Las cartas están disponibles de nuevo.");
 };
 $("#reset-data").onclick = () =>
   confirmAction(
@@ -2854,36 +3045,154 @@ $("#manage-deck").onclick = () => {
   setView("editor");
 };
 let installPrompt = null;
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  installPrompt = e;
-  $("#install-button").classList.remove("hidden");
+let appRegistration = null;
+let updateRequested = false;
+const installButton = $("#install-button");
+const updateButton = $("#update-app-button");
+const updateStatus = $("#app-update-status");
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.textContent = "Instalar para jugar sin conexión";
+  updateStatus.textContent =
+    "Instala la aplicación desde aquí; el navegador guardará sus archivos en este dispositivo.";
 });
-$("#install-button").onclick = async () => {
-  if (installPrompt) {
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    installPrompt = null;
-  } else
-    notify(
-      "En Android: menú de Chrome → Instalar aplicación o Añadir a pantalla de inicio.",
-    );
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  installButton.textContent = "Aplicación instalada";
+  installButton.disabled = true;
+  updateStatus.textContent =
+    "Aplicación instalada. Usa Buscar actualizaciones para comprobar si hay una versión nueva.";
+});
+installButton.onclick = async () => {
+  if (!installPrompt) {
+    updateStatus.textContent =
+      "Este navegador no ofrece instalación automática. Abre su menú y elige Instalar aplicación o Añadir a pantalla de inicio.";
+    notify("Abre el menú del navegador y elige Instalar aplicación o Añadir a pantalla de inicio.");
+    return;
+  }
+  const prompt = installPrompt;
+  installPrompt = null;
+  try {
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    updateStatus.textContent = outcome === "accepted"
+      ? "Instalación aceptada. La app quedará disponible desde la pantalla de inicio o el menú de aplicaciones."
+      : "Instalación cancelada. Puedes volver a intentarlo desde este botón.";
+  } catch {
+    updateStatus.textContent =
+      "No se pudo abrir la instalación. Usa el menú del navegador para instalar o añadir la app a la pantalla de inicio.";
+  }
 };
+
+navigator.serviceWorker?.addEventListener("controllerchange", () => {
+  if (!updateRequested) return;
+  updateRequested = false;
+  location.reload();
+});
+
+function waitForWorkerInstall(worker, timeoutMs = 15000) {
+  if (["installed", "activated", "redundant"].includes(worker.state))
+    return Promise.resolve(worker.state);
+  return new Promise((resolve) => {
+    const finish = (state) => {
+      clearTimeout(timeout);
+      worker.removeEventListener("statechange", onStateChange);
+      resolve(state);
+    };
+    const onStateChange = () => {
+      if (["installed", "activated", "redundant"].includes(worker.state))
+        finish(worker.state);
+    };
+    const timeout = setTimeout(() => finish("timeout"), timeoutMs);
+    worker.addEventListener("statechange", onStateChange);
+  });
+}
+
+updateButton.onclick = async () => {
+  updateButton.disabled = true;
+  updateStatus.textContent = "Buscando actualizaciones…";
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") {
+    updateStatus.textContent =
+      "Las actualizaciones requieren abrir la app desde localhost o HTTPS, no desde un archivo HTML.";
+    updateButton.disabled = false;
+    return;
+  }
+  if (!navigator.onLine) {
+    updateStatus.textContent =
+      "Conéctate a internet para buscar una actualización. La versión instalada seguirá disponible sin conexión.";
+    updateButton.disabled = false;
+    return;
+  }
+  try {
+    const registration = appRegistration || await navigator.serviceWorker.getRegistration();
+    if (!registration) throw new Error("No hay una instalación local registrada.");
+    let updateFound = false;
+    const markUpdateFound = () => {
+      updateFound = true;
+      updateStatus.textContent = "Descargando la actualización…";
+    };
+    registration.addEventListener("updatefound", markUpdateFound, { once: true });
+    const currentController = navigator.serviceWorker.controller;
+    updateRequested = true;
+    await registration.update();
+    let worker = registration.installing || registration.waiting;
+    if (worker) {
+      updateStatus.textContent = "Descargando la actualización…";
+      const workerState = await waitForWorkerInstall(worker);
+      if (workerState === "redundant" || workerState === "timeout") {
+        updateRequested = false;
+        throw new Error("No se pudo completar la descarga de la actualización.");
+      }
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        worker = registration.waiting;
+      }
+      if (navigator.serviceWorker.controller !== currentController) {
+        updateStatus.textContent = "Actualización instalada. Recargando…";
+        location.reload();
+        return;
+      }
+      if (worker.state === "installed") {
+        worker.postMessage({ type: "SKIP_WAITING" });
+        updateStatus.textContent =
+          "Actualización descargada. Se aplicará al activar la nueva versión.";
+        return;
+      }
+    }
+    registration.removeEventListener("updatefound", markUpdateFound);
+    if (updateFound) {
+      updateStatus.textContent = "Nueva versión descargada. Recargando la aplicación…";
+      updateRequested = false;
+      location.reload();
+      return;
+    }
+    updateRequested = false;
+    updateStatus.textContent = "Ya tienes la versión más reciente.";
+  } catch (error) {
+    updateRequested = false;
+    updateStatus.textContent = error.message || "No se pudo buscar la actualización.";
+  } finally {
+    updateButton.disabled = false;
+  }
+};
+
 if ("serviceWorker" in navigator && location.protocol !== "file:")
   navigator.serviceWorker
     .register("./sw.js")
-    .then(
-      () =>
-        ($("#storage-status").textContent =
-          "Almacenamiento local activo. App lista para instalar cuando se sirva mediante HTTPS."),
-    )
-    .catch(
-      () =>
-        ($("#storage-status").textContent =
-          "No se pudo registrar el modo offline en este origen. Usa HTTPS o localhost."),
-    );
+    .then(async (registration) => {
+      appRegistration = registration;
+      await navigator.serviceWorker.ready;
+      $("#storage-status").textContent =
+        "Modo sin conexión listo en este dispositivo. La primera carga necesita conexión.";
+    })
+    .catch(() => {
+      $("#storage-status").textContent =
+        "No se pudo activar el modo sin conexión. Abre la app desde HTTPS o http://localhost:8080.";
+    });
 else
   $("#storage-status").textContent =
-    "Service worker requiere HTTPS o localhost. No abras el HTML con file://.";
+    "Abre la app desde localhost o HTTPS para activar la instalación y el modo sin conexión.";
 $("#app-version").textContent = VERSION;
 render();

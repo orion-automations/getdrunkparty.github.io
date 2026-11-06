@@ -1,5 +1,15 @@
 # Historial de modificaciones
 
+## 2026-11-06 — Interfaz, partida y perfil 2.2.0
+
+- El carrusel de Inicio muestra tarjetas compactas superpuestas y se puede cambiar con gesto táctil o flechas del teclado; el titular ahora dice “JUEGOS DISPONIBLES”.
+- El encabezado muestra rondas completas, logo centrado, temporizador y menú. Perfil ocupa el quinto acceso fijo y enseña el avatar.
+- Los eventos se activan cada cinco rondas completas. Las cartas usadas, auxiliares y descartadas pasan al cementerio y no vuelven a salir hasta reiniciar.
+- Añadidos editor Big Smile para avatares de participantes, seis mazos en cuadrícula, etiquetas Jokers Bufones/Jokers Arlequines, cartas claras en tema claro y editor de manual responsive.
+- El reinicio de partida ahora es directo. El tema recorre Sistema → Oscuro → Claro. Se retiraron las penalizaciones heredadas MC_PENALTY_001–006 y se migró la nomenclatura de Joker en estados existentes.
+- Se actualizó la versión de app/paquete/caché a 2.2.0 y el catálogo local a versión 10.
+- No se ejecutaron pruebas ni inspección visual en esta actualización. La creación de cuentas Supabase todavía depende de la opción Confirm email y las migraciones aplicadas en el proyecto remoto.
+
 ## 2026-11-06 — Circus Zevyra, auditoría de despliegue e interfaz 1.9.0
 
 - Se actualizó la identidad visible a Circus Zevyra/Carnival of Chaos, conservando el ID `midnight-chaos` y sus datos históricos.

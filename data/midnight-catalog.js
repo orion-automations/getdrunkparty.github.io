@@ -44,13 +44,6 @@ export const MIDNIGHT_CARDS = [
   card("PRIZE_004", "PREMIO", "Pausa violeta", "Guarda una alternativa para cerrar una carta de desafío sin penalización.", "CURRENT_PLAYER", 1, { onCompleted: [{ type: "GRANT_POWER", key: "pass", label: "Pausa violeta" }] }),
   card("PRIZE_005", "PREMIO", "Pausa segura", "Obtén un poder de pausa: úsalo para terminar tu turno actual y dejar la carta sin consecuencia.", "CURRENT_PLAYER", 1, { onCompleted: [{ type: "GRANT_POWER", key: "pass", label: "Pausa segura" }] }),
   card("PRIZE_006", "PREMIO", "Doble posibilidad", "Guarda una reescritura para una carta de verdad o desafío.", "CURRENT_PLAYER", 1, { onCompleted: [{ type: "GRANT_POWER", key: "redraw", label: "Doble posibilidad" }] }),
-
-  card("PENALTY_001", "CASTIGO", "Eco teatral", "Narra una acción cotidiana como final de temporada. Puedes elegir una alternativa o pasar."),
-  card("PENALTY_002", "CASTIGO", "Titular absurdo", "El grupo propone un titular amable para tu día; puedes cambiarlo o elegir otra opción."),
-  card("PENALTY_003", "CASTIGO", "Voz de videojuego", "Describe tu próximo movimiento como narrador de videojuego, o escoge una alternativa."),
-  card("PENALTY_004", "CASTIGO", "Estatua con historia", "Haz una pose cómoda y cuenta qué título tendría la obra; también puedes declinar."),
-  card("PENALTY_005", "CASTIGO", "Palabra de salida", "El grupo elige una palabra positiva que intentarás incluir en una frase durante la próxima ronda."),
-  card("PENALTY_006", "CASTIGO", "Final alternativo", "Inventa un final distinto para una historia conocida en tres frases, o usa una alternativa."),
 ];
 
 export const MIDNIGHT_MANUALS = [

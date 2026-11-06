@@ -6,7 +6,7 @@ import {
 } from "../data/catalog-migrations.js";
 import { POWER_CATALOG } from "../data/power-catalog.js";
 import { GAME_ID } from "./config.js";
-export const CATALOG_VERSION = 8;
+export const CATALOG_VERSION = 10;
 export const STORAGE_KEY = `zevyra.${GAME_ID}.data.v1`;
 export const LEGACY_STORAGE_KEY = "gdpw.data.v1";
 export const seedState = () => ({
@@ -32,9 +32,11 @@ export const seedState = () => ({
     decks: {},
     current: null,
     history: [],
+    cemetery: [],
     archives: [],
     rewards: [],
     completedTurns: 0,
+    completedRounds: 0,
     activeRoundEvent: null,
     roundEventHistory: [],
     powers: [],
@@ -42,6 +44,24 @@ export const seedState = () => ({
     chain: null,
   },
 });
+function renameJokerTerms(value) {
+  if (typeof value === "string") {
+    return value
+      .replaceAll("Jokers malos", "Jokers Arlequines")
+      .replaceAll("Jokers buenos", "Jokers Bufones")
+      .replaceAll("Joker Malo", "Joker Arlequín")
+      .replaceAll("Joker Bueno", "Joker Bufón")
+      .replaceAll("Joker malo", "Joker arlequín")
+      .replaceAll("Joker bueno", "Joker bufón")
+      .replaceAll("joker malo", "joker arlequín")
+      .replaceAll("joker bueno", "joker bufón");
+  }
+  if (Array.isArray(value)) return value.map(renameJokerTerms);
+  if (value && typeof value === "object") {
+    for (const key of Object.keys(value)) value[key] = renameJokerTerms(value[key]);
+  }
+  return value;
+}
 export function isValidState(state) {
   try {
     if (
@@ -167,7 +187,7 @@ export function loadState() {
         parsed.catalogVersion = 5;
         saveState(parsed);
       }
-      if ((parsed.catalogVersion ?? 0) < CATALOG_VERSION) {
+      if ((parsed.catalogVersion ?? 0) < 6) {
         const liveCardIds = new Set([parsed.game.current?.primaryCard?.cardId, ...(parsed.game.current?.auxiliaryCards ?? []).map((card) => card.cardId)].filter(Boolean));
         parsed.cards.forEach((card) => {
           if (/^(VERDAD|DESAFIO|MINIJUEGO|PREMIO|CASTIGO)_PDF_/.test(card.id) || /^DESAFIO_PDF_(1[0-6][0-9]|0?[0-9]{3})$/.test(card.id)) {
@@ -214,8 +234,50 @@ export function loadState() {
         parsed.catalogVersion = 8;
         saveState(parsed);
       }
+      if ((parsed.catalogVersion ?? 0) < 9) {
+        const removedIds = new Set(Array.from({ length: 6 }, (_, index) => `MC_PENALTY_${String(index + 1).padStart(3, "0")}`));
+        const current = parsed.game.current;
+        const activeCardIds = [current?.primaryCard?.cardId, ...(current?.auxiliaryCards ?? []).map((card) => card.cardId)];
+        if (activeCardIds.some((id) => removedIds.has(id))) {
+          parsed.game.current = null;
+          parsed.game.state = "READY";
+        }
+        parsed.cards = parsed.cards.filter((card) => !removedIds.has(card.id));
+        Object.values(parsed.game.decks).forEach((deck) => {
+          if (Array.isArray(deck?.order)) deck.order = deck.order.filter((id) => !removedIds.has(id));
+        });
+        parsed.game.cemetery = (parsed.game.cemetery ?? []).filter((entry) => !removedIds.has(entry.cardId));
+        const currentCards = new Map(INITIAL_CARDS.map((card) => [card.id, card]));
+        parsed.cards.forEach((card) => {
+          const source = currentCards.get(card.id);
+          if (source && /^Horror/.test(card.title)) card.title = source.title;
+        });
+        parsed.game.cemetery.forEach((entry) => {
+          const source = currentCards.get(entry.cardId);
+          if (source && /^Horror/.test(entry.title ?? "")) entry.title = source.title;
+        });
+        const currentManuals = new Map(INITIAL_MANUALS.map((manual) => [manual.id, manual]));
+        parsed.manuals.forEach((manual) => {
+          const source = currentManuals.get(manual.id);
+          if (source && manual.id.startsWith("MANUAL_CC_HORROR_CAOS_") && /^Horror Caos/.test(manual.title)) {
+            manual.title = source.title;
+            manual.summary = source.summary;
+          }
+        });
+        parsed.game.cemetery ??= [];
+        parsed.game.completedRounds ??= 0;
+        parsed.catalogVersion = 9;
+        saveState(parsed);
+      }
+      if ((parsed.catalogVersion ?? 0) < 10) {
+        renameJokerTerms(parsed);
+        parsed.catalogVersion = 10;
+        saveState(parsed);
+      }
       parsed.gameId ??= GAME_ID;
       parsed.game.completedTurns ??= 0;
+      parsed.game.completedRounds ??= 0;
+      parsed.game.cemetery ??= [];
       parsed.game.roundEventHistory ??= [];
       parsed.game.powers ??= [];
       parsed.game.usedPowers ??= [];

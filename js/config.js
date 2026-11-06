@@ -1,13 +1,13 @@
-export const VERSION = "2.0.0";
+export const VERSION = "2.2.0";
 export const GAME_NAME = "Carnival of Chaos";
 export const GAME_ID = "midnight-chaos";
 export const CATEGORIES = {
-  VERDAD: { label: "Pecados", color: "#39E58C", icon: "◉" },
-  DESAFIO: { label: "Sacrificio", color: "#FF3CAC", icon: "✦" },
-  MINIJUEGO: { label: "Caos absoluto", color: "#36C5FF", icon: "🎲" },
-  MALDICION: { label: "Maldición gitana", color: "#B76BFF", icon: "☠" },
-  PREMIO: { label: "Joker bueno", color: "#FFD447", icon: "★" },
-  CASTIGO: { label: "Joker malo", color: "#FF4D5A", icon: "⚡" },
+  VERDAD: { label: "Pecados", color: "#39E58C", icon: "heart_broken" },
+  DESAFIO: { label: "Sacrificio", color: "#FF3CAC", icon: "skull" },
+  MINIJUEGO: { label: "Caos absoluto", color: "#36C5FF", icon: "bomb" },
+  MALDICION: { label: "Maldición gitana", color: "#B76BFF", icon: "sword_rose" },
+  PREMIO: { label: "Jokers Bufones", color: "#FFD447", icon: "chess_queen" },
+  CASTIGO: { label: "Jokers Arlequines", color: "#FF4D5A", icon: "comedy_mask" },
   SHOT: { label: "Shot", color: "#D5D5DF", icon: "◒" },
 };
 export const TARGETS = {

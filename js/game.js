@@ -1,5 +1,5 @@
 import { drawFromDeck } from "./decks.js";
-import { assignTargets, nextIndex } from "./participants.js";
+import { assignTargets } from "./participants.js";
 import { DICE_FACES, rollDice } from "./dice.js";
 import { ROUND_EVENTS } from "../data/round-events.js";
 import { CHAIN_CHALLENGES } from "../data/chain-challenges.js";
@@ -25,8 +25,8 @@ function attachCard(
   auxiliary = false,
   recipientId = null,
 ) {
-  const draw = drawFromDeck(state.cards, category, state.game.decks, random);
-  if (!draw.card) return { category, empty: true };
+  const draw = drawFromDeck(state.cards, category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
+  if (!draw.card) return { category, empty: true, reason: draw.reason };
   const targets = assignTargets(
     draw.card.target.mode,
     state.participants,
@@ -58,6 +58,8 @@ export function gameEngine(state, random = Math.random) {
     state.settings.gameMode = "digital";
   state.game.auxiliaryCards ??= [];
   state.game.completedTurns ??= 0;
+  state.game.completedRounds ??= 0;
+  state.game.cemetery ??= [];
   state.game.roundEventHistory ??= [];
   state.game.powers ??= [];
   state.game.usedPowers ??= [];
@@ -102,6 +104,7 @@ export function gameEngine(state, random = Math.random) {
       playerId: currentPlayer()?.id,
       primaryCard: null,
       auxiliaryCards: [],
+      discardedCards: [],
       participantIds: [],
       minigameResult: null,
       pendingSelections: [],
@@ -416,8 +419,8 @@ export function gameEngine(state, random = Math.random) {
       );
       if (!item || !MAIN_CATEGORIES.has(item.category))
         return { error: "INVALID_CARD" };
-      const draw = drawFromDeck(state.cards, item.category, state.game.decks, random);
-      if (!draw.card) return { category: item.category, empty: true };
+      const draw = drawFromDeck(state.cards, item.category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
+      if (!draw.card) return { category: item.category, empty: true, reason: draw.reason };
       const targets = item.playerId
         ? [item.playerId]
         : assignTargets(
@@ -427,6 +430,8 @@ export function gameEngine(state, random = Math.random) {
             state.settings.positionReversed,
             random,
           ).map((player) => player.id);
+      turn.discardedCards ??= [];
+      turn.discardedCards.push({ cardId: item.cardId, category: item.category, playerId: item.playerId ?? turn.playerId });
       item.cardId = draw.card.id;
       item.targetIds = targets;
       if (item === turn.primaryCard) {
@@ -455,8 +460,10 @@ export function gameEngine(state, random = Math.random) {
         if (!turn.primaryCard || turn.outcome) return { error: "POWER_TIMING" };
         const auxiliary = turn.auxiliaryCards?.at(-1);
         if (auxiliary) {
-          const replacement = drawFromDeck(state.cards, auxiliary.category, state.game.decks, random);
+        const replacement = drawFromDeck(state.cards, auxiliary.category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
           if (!replacement.card) return { error: "POWER_FAILED" };
+        turn.discardedCards ??= [];
+        turn.discardedCards.push({ cardId: auxiliary.cardId, category: auxiliary.category, playerId: auxiliary.playerId ?? turn.playerId });
           auxiliary.cardId = replacement.card.id;
         } else {
           if (!MAIN_CATEGORIES.has(turn.category)) return { error: "POWER_TIMING" };
@@ -555,6 +562,20 @@ export function gameEngine(state, random = Math.random) {
         ? state.cards.find((c) => c.id === chosen.cardId)
         : null;
       const blocked = turn.type === "BLOCKED";
+      state.game.cemetery ??= [];
+      for (const item of [...(turn.discardedCards ?? []), turn.primaryCard, ...(turn.auxiliaryCards ?? [])]) {
+        if (!item?.cardId) continue;
+        const drawn = state.cards.find((entry) => entry.id === item.cardId);
+        if (!drawn) continue;
+        state.game.cemetery.unshift({
+          cardId: drawn.id,
+          title: drawn.title,
+          category: item.category ?? drawn.categoryId,
+          playerId: item.playerId ?? turn.playerId,
+          playerName: state.participants.find((entry) => entry.id === (item.playerId ?? turn.playerId))?.name ?? player?.name ?? "Participante",
+          drawnAt: new Date().toISOString(),
+        });
+      }
       state.game.history.unshift({
         at: new Date().toISOString(),
         playerName: player?.name ?? "Participante",
@@ -642,14 +663,14 @@ export function gameEngine(state, random = Math.random) {
       }
       state.game.completedTurns += 1;
       const reverseOrder = state.game.activeRoundEvent?.effect === "reverse_order";
-      applyRoundProgress(state, this);
       const activeIndexes = state.participants.map((player, index) => player.active ? index : -1).filter((index) => index >= 0);
-      if (reverseOrder && activeIndexes.length > 1) {
-        const position = activeIndexes.indexOf(state.game.currentIndex);
-        state.game.currentIndex = activeIndexes[(position <= 0 ? activeIndexes.length : position) - 1];
-      } else {
-        state.game.currentIndex = nextIndex(state.game.currentIndex, state.participants.length);
-      }
+      const position = Math.max(0, activeIndexes.indexOf(state.game.currentIndex));
+      const direction = reverseOrder && activeIndexes.length > 1 ? -1 : 1;
+      const nextPosition = activeIndexes.length ? (position + direction + activeIndexes.length) % activeIndexes.length : 0;
+      const roundCompleted = activeIndexes.length > 0 && nextPosition === 0 && (position !== 0 || activeIndexes.length === 1);
+      if (roundCompleted) state.game.completedRounds += 1;
+      applyRoundProgress(state, this, roundCompleted);
+      state.game.currentIndex = activeIndexes[nextPosition] ?? 0;
       state.game.current = null;
       state.game.state = "READY";
       locked = false;
@@ -662,7 +683,7 @@ export function gameEngine(state, random = Math.random) {
     cancel() {
       const turn = state.game.current;
       if (!turn) return false;
-      for (const item of [turn.primaryCard, ...turn.auxiliaryCards]) {
+      for (const item of [...(turn.discardedCards ?? []), turn.primaryCard, ...turn.auxiliaryCards]) {
         const deck = item && state.game.decks[item.category];
         if (deck) deck.index = Math.max(0, deck.index - 1);
       }
@@ -674,8 +695,8 @@ export function gameEngine(state, random = Math.random) {
   };
 }
 
-function applyRoundProgress(state, engine) {
-  const completed = state.game.completedTurns;
+function applyRoundProgress(state, engine, roundCompleted) {
+  const completedRounds = state.game.completedRounds;
   let activeEvent = state.game.activeRoundEvent;
   if (activeEvent && ["grant_pass", "grant_redraw", "grant_shield"].includes(activeEvent.effect)) {
     const key = activeEvent.effect === "grant_pass" ? "pass" : activeEvent.effect === "grant_redraw" ? "redraw" : "shield";
@@ -692,12 +713,12 @@ function applyRoundProgress(state, engine) {
       state.game.activeRoundEvent = null;
     }
   }
-  if (completed % 5 === 0) {
-    const event = ROUND_EVENTS[(completed / 5 - 1) % ROUND_EVENTS.length];
+  if (roundCompleted && completedRounds > 0 && completedRounds % 5 === 0) {
+    const event = ROUND_EVENTS[(completedRounds / 5 - 1) % ROUND_EVENTS.length];
     activeEvent = {
       ...event,
       turnsRemaining: event.durationTurns,
-      eventRound: completed / 5,
+      eventRound: completedRounds / 5,
       participantGrants: [],
     };
     if (event.effect === "horrors" || event.effect === "destiny") activateSpecialEventDeck(state, activeEvent);

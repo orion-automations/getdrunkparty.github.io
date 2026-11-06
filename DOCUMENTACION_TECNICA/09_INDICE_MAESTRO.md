@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.0.0, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). El informe 14 documenta el estado anterior a la integración del juego.
+Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.2.0, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). El informe 14 documenta el estado anterior a la integración del juego.
 
 | Documento | Contenido |
 |---|---|
@@ -23,7 +23,7 @@ Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El
 - Estado Midnight Chaos: `js/app.js` → `js/storage.js` → `localStorage: zevyra.midnight-chaos.data.v1`; la clave anterior `gdpw.data.v1` se importa sin borrarse.
 - Salas online: `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase.
 - SQL/RLS/Realtime: `supabase/sql/001` → `002` → `003` → `004` → `005` → `006` → `007`; guía de ejecución: `supabase/README.md`.
-- Catálogo vigente: `data/carnival-catalog.js` → `data/initial-cards.js` / `data/initial-manuals.js` → `js/storage.js` (migración de catálogo versión 8). `data/midnight-catalog.js` se conserva como referencia histórica.
+- Catálogo vigente: `data/carnival-catalog.js` → `data/initial-cards.js` / `data/initial-manuals.js` → `js/storage.js` (migración de catálogo versión 10). `data/midnight-catalog.js` se conserva como referencia histórica.
 - Sistemas de partida: `js/game.js` → `data/power-catalog.js` / `data/round-events.js` / `data/chain-challenges.js`.
 - Turno: `js/app.js` → `js/game.js` → `js/dice.js` / `js/decks.js` / `js/participants.js` / `js/minigame-results.js` → `js/storage.js`.
 - PWA: `index.html` → `manifest.json`; `js/app.js` → `sw.js` → Cache Storage.

@@ -1,4 +1,4 @@
-// El Gran Circo: se revela un evento cada cinco turnos individuales.
+// El Gran Circo: se revela un evento cada cinco rondas completas.
 const EVENT_TEXT = [
   ["Circo Borracho", "Si alguien rechaza un Pecado o Sacrificio y elige tomar shots, duplica la cantidad indicada."],
   ["El Circo de los Horrores", "Durante cinco turnos, se suspenden los mazos normales y se usan Pecados asquerosos, Sacrificios asquerosos y Caos asqueroso. El PDF indica que nadie está obligado a ingerir alimentos y contempla una alternativa si alguien no puede."],
@@ -30,6 +30,6 @@ export const ROUND_EVENTS = EVENT_TEXT.map(([name, description], index) => ({
   description,
   effect: index === 1 ? "horrors" : index === 21 ? "destiny" : index === 0 ? "double_shots" : "guided",
   durationTurns: 5,
-  activation: "Cada cinco turnos individuales",
+  activation: "Cada cinco rondas completas; una ronda concluye al volver al primer participante.",
   completion: "Al completar los cinco turnos del evento.",
 }));
