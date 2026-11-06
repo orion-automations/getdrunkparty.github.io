@@ -6,7 +6,7 @@ import {
 } from "../data/catalog-migrations.js";
 import { POWER_CATALOG } from "../data/power-catalog.js";
 import { GAME_ID } from "./config.js";
-export const CATALOG_VERSION = 6;
+export const CATALOG_VERSION = 8;
 export const STORAGE_KEY = `zevyra.${GAME_ID}.data.v1`;
 export const LEGACY_STORAGE_KEY = "gdpw.data.v1";
 export const seedState = () => ({
@@ -184,8 +184,34 @@ export function loadState() {
         parsed.game.powers ??= [];
         parsed.game.usedPowers ??= [];
         parsed.game.chain ??= null;
-        parsed.catalogVersion = CATALOG_VERSION;
+        parsed.catalogVersion = 6;
         parsed.gameId ??= GAME_ID;
+        saveState(parsed);
+      }
+      if ((parsed.catalogVersion ?? 0) < 7) {
+        const liveCardIds = new Set([parsed.game.current?.primaryCard?.cardId, ...(parsed.game.current?.auxiliaryCards ?? []).map((card) => card.cardId)].filter(Boolean));
+        const carnivalIds = new Set(INITIAL_CARDS.map((card) => card.id));
+        const knownIds = new Set(parsed.cards.map((card) => card.id));
+        parsed.cards.push(...structuredClone(INITIAL_CARDS.filter((card) => !knownIds.has(card.id))));
+        parsed.cards.forEach((card) => {
+          if (carnivalIds.has(card.id)) card.enabled = true;
+          if (card.id.startsWith("MC_") && !liveCardIds.has(card.id)) card.enabled = false;
+        });
+        parsed.catalogVersion = 7;
+        saveState(parsed);
+      }
+      if ((parsed.catalogVersion ?? 0) < 8) {
+        const liveCardIds = new Set([parsed.game.current?.primaryCard?.cardId, ...(parsed.game.current?.auxiliaryCards ?? []).map((card) => card.cardId)].filter(Boolean));
+        const knownIds = new Set(parsed.cards.map((card) => card.id));
+        parsed.cards.push(...structuredClone(INITIAL_CARDS.filter((card) => !knownIds.has(card.id))));
+        const carnivalIds = new Set(INITIAL_CARDS.map((card) => card.id));
+        parsed.cards.forEach((card) => {
+          if (!carnivalIds.has(card.id) || liveCardIds.has(card.id)) return;
+          card.enabled = card.collection === "horrors"
+            ? parsed.game.activeRoundEvent?.effect === "horrors"
+            : true;
+        });
+        parsed.catalogVersion = 8;
         saveState(parsed);
       }
       parsed.gameId ??= GAME_ID;
@@ -219,6 +245,7 @@ export function validateCards(cards, manuals = []) {
       "VERDAD",
       "DESAFIO",
       "MINIJUEGO",
+      "MALDICION",
       "PREMIO",
       "CASTIGO",
     ]),

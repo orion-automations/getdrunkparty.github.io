@@ -1,4 +1,4 @@
--- Get Drunk Party multiplayer schema. Safe to re-run; it does not delete data.
+-- Circus Zevyra multiplayer schema. Safe to re-run; it does not delete data.
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null check (char_length(btrim(username)) between 1 and 32),

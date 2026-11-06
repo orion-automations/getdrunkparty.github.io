@@ -1,7 +1,9 @@
-# Circus Zevyra — auditoría, implementación y estado técnico
+# Circus Zevyra — auditoría de plataforma previa a Carnival
+
+> **Documento histórico, reemplazado como estado actual.** Describe la versión 1.9.0 anterior a la integración de Carnival y contiene decisiones que ya cambiaron (por ejemplo, juego bloqueado y catálogos pendientes). Para el estado vigente de Carnival of Chaos, consultar [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md).
 
 **Estado documentado:** 2026-11-06 · **Versión declarada:** 1.9.0  
-**Alcance:** identidad y navegación de Circus Zevyra, biblioteca, apariencia, perfil, preservación de salas y revisión de documentos de despliegue. Este documento reemplaza como referencia del estado actual las descripciones de plataforma/juego de los documentos 01–13; estos quedan como historial.
+**Alcance:** fotografía histórica de la identidad y navegación de Circus Zevyra, biblioteca, apariencia, perfil, salas y guías antes de integrar Carnival. No sustituye el estado vigente del documento 15.
 
 ## Resumen del estado
 

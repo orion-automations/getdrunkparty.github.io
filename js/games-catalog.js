@@ -2,11 +2,11 @@ export const GAMES_CATALOG = [
   {
     id: "midnight-chaos",
     name: "Carnival of Chaos",
-    description: "El caos del carnaval toma forma. La experiencia está en desarrollo mientras se integran sus reglas y cartas aprobadas.",
-    status: "En desarrollo",
-    available: false,
+    description: "Verdades, sacrificios, caos, Jokers y el Gran Circo. Desliza la portada y entra a la partida.",
+    status: "Disponible",
+    available: true,
     cover: "./assets/games/carnival-of-chaos.png",
-    route: null,
+    route: "game",
     category: "Carnaval",
   },
   {

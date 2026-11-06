@@ -1,7 +1,35 @@
-export const ROUND_EVENTS = [
-  { id: "EVENT_REVERSE", name: "Órbita inversa", description: "El orden de turnos avanza en sentido contrario durante esta ronda.", effect: "reverse_order", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
-  { id: "EVENT_POWER", name: "Luz violeta", description: "Al cerrar su turno, cada participante recibe un Pase libre.", effect: "grant_pass", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
-  { id: "EVENT_REWRITE", name: "Segunda toma", description: "Al cerrar su turno, cada participante recibe una Reescritura.", effect: "grant_redraw", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
-  { id: "EVENT_OPEN", name: "Regla abierta", description: "Al cerrar su turno, cada participante recibe un Pase libre para una carta de desafío.", effect: "grant_pass", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
-  { id: "EVENT_SPOTLIGHT", name: "Foco compartido", description: "Al cerrar su turno, cada participante recibe un Escudo violeta.", effect: "grant_shield", durationTurns: 5, activation: "Cada cinco turnos completados", completion: "Al completar los cinco turnos de la ronda." },
+// El Gran Circo: se revela un evento cada cinco turnos individuales.
+const EVENT_TEXT = [
+  ["Circo Borracho", "Si alguien rechaza un Pecado o Sacrificio y elige tomar shots, duplica la cantidad indicada."],
+  ["El Circo de los Horrores", "Durante cinco turnos, se suspenden los mazos normales y se usan Pecados asquerosos, Sacrificios asquerosos y Caos asqueroso. El PDF indica que nadie está obligado a ingerir alimentos y contempla una alternativa si alguien no puede."],
+  ["Circo de la Evidencia", "El registro de la ronda es opcional y privado para el grupo. Pide permiso antes de grabar o fotografiar; no publiques contenido sin consentimiento."],
+  ["Espejo Maldito", "Cuando un efecto asigne un castigo a otra persona, quien lo asigna también recibe el mismo efecto."],
+  ["Todos Contra Uno", "El grupo elige a una persona. Cada jugador puede asignarle como máximo una acción adicional en su turno."],
+  ["El Público Decide", "Para cada Sacrificio, el grupo vota entre una versión suave y otra intensa. La carta siempre puede rechazarse."],
+  ["Marionetas", "Forma parejas al inicio. La pareja participa voluntariamente en los Sacrificios de la otra persona."],
+  ["Gemelos del Caos", "Forma parejas. Cuando alguien recibe un Sacrificio, su pareja puede hacer una versión complementaria, si ambas personas aceptan."],
+  ["Protagonista de la Función", "Elige a una persona como protagonista. Los Jokers pueden priorizarla como objetivo, con su consentimiento."],
+  ["El Gran Jurado", "Después de un Sacrificio, el grupo puede votar si la persona desea compartir cómo le fue; no se imponen castigos por el resultado."],
+  ["El Circo Mudo", "Durante la ronda, intenta comunicarte con gestos. No hay penalización por hablar o pausar."],
+  ["El Titiritero", "Cada persona puede recibir en secreto el nombre de otro participante y proponerle un objetivo de juego voluntario."],
+  ["El Rey del Circo", "El grupo elige a un Rey que puede proponer una modificación a cada Sacrificio, sin quitar la opción de pasar."],
+  ["Circo de la Sumisión", "Quien lo desee puede añadir una pose o frase teatral al completar un Sacrificio."],
+  ["Circo de las Parejas Forzadas", "Forma parejas para esta ronda. El contacto físico solo ocurre si todas las personas implicadas lo aceptan."],
+  ["Circo del Tiempo Mortal", "Cada jugador tiene 20 segundos para empezar o pasar su carta. El temporizador no aplica presión para aceptar."],
+  ["Circo de la Confesión", "Antes de un Sacrificio, quien quiera puede compartir una anécdota relacionada; siempre puede pasar."],
+  ["Circo de la Ruleta Personal", "Al inicio de cada turno, el grupo puede elegir un modificador: duplicar una consecuencia, cambiar el objetivo o añadir una condición opcional."],
+  ["Circo de la Posesión", "Elige a una persona como protagonista de la ronda. Las demás pueden proponerle acciones, que puede aceptar o pasar."],
+  ["Circo de los Cuerpos Prestados", "Cada persona puede sortear a otra como pareja de juego para retos voluntarios; nadie está obligado a participar."],
+  ["Circo del Juicio Final", "Después de un Sacrificio, el grupo puede dar una valoración lúdica. No hay repetición forzada ni castigo por votar."],
+  ["Circo el Destino", "Durante cinco turnos, el dado activa el mazo de Ruleta del Destino. Cada jugador roba una opción distinta; el resultado se retira de la secuencia de este evento."],
 ];
+
+export const ROUND_EVENTS = EVENT_TEXT.map(([name, description], index) => ({
+  id: `CIRCUS_EVENT_${String(index + 1).padStart(2, "0")}`,
+  name,
+  description,
+  effect: index === 1 ? "horrors" : index === 21 ? "destiny" : index === 0 ? "double_shots" : "guided",
+  durationTurns: 5,
+  activation: "Cada cinco turnos individuales",
+  completion: "Al completar los cinco turnos del evento.",
+}));

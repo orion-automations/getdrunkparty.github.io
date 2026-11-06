@@ -1,163 +1,33 @@
-# Circus Zevyra — THE DARK PLAYGROUND
+# Circus Zevyra · Carnival of Chaos
 
-Aplicación de fiesta mobile-first, creada con HTML, CSS y JavaScript nativo. Incluye cinco mazos, dado digital 3D con modo físico opcional, participantes, editor, manuales, respaldos JSON y PWA con caché offline. El modo local sigue funcionando sin cuenta ni conexión; el modo multijugador online usa Supabase y carga su SDK desde CDN solo para conectar salas.
+Aplicación de juegos sociales mobile-first. La plataforma se llama **Circus Zevyra** y **Carnival of Chaos** es el juego disponible. El proyecto usa HTML, CSS y JavaScript nativo, conserva el modo local y conecta el modo online a Supabase.
 
-## Estado actual del catálogo
+## Estado de Carnival
 
-La plataforma visible es **Circus Zevyra**. **Carnival of Chaos** conserva el ID interno `midnight-chaos` y los datos locales previos; aparece como «En desarrollo» hasta integrar y validar las reglas y cartas de sus PDFs. El catálogo y las portadas están en `js/games-catalog.js` y `assets/games/`. No iniciar Carnival desde la interfaz mientras figure en desarrollo. Consulta [la auditoría y estado técnico actual](DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md) antes de desplegar.
+- 414 cartas integradas desde los PDF de Carnival: Pecados, Sacrificio, Caos, Jokers, Maldición y opciones de la Ruleta del Destino; 24 manuales de minijuego.
+- Dado 3D de seis caras: 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio.
+- El Gran Circo programa 22 eventos, uno cada cinco turnos individuales. El Circo de los Horrores activa sus mazos especiales por cinco turnos; Circo el Destino activa las opciones únicas de la ruleta durante ese evento.
+- El anfitrión conserva la confirmación del resultado online. El perfil permite ajustar tono de piel, ojos y boca, y muestra un UID local o el UID de Supabase.
+- Los otros juegos de la biblioteca siguen bloqueados mientras no tengan una implementación terminada.
 
-`npm test` ejecuta pruebas del motor que ya existía. Estas pruebas no sustituyen la comprobación visual en móvil ni la validación de Supabase. La comprobación de servidor visual no se pudo completar en este entorno porque el sistema denegó escuchar el puerto 8080.
+El catálogo fuente está en `data/carnival-catalog.js`; el motor y la interfaz están en `js/game.js` y `js/app.js`. El reporte técnico vigente, con rutas y líneas verificadas, está en [DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md](DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md).
 
-## Ejecutar en PC
+## Ejecutar para probar
 
-Requiere Node.js 18 o superior. En la carpeta del proyecto:
+Requiere Node.js 18 o posterior. En la carpeta del proyecto:
 
-```powershell
+```sh
 npm run serve
 ```
 
-Abre `http://localhost:8080`. También puedes usar Live Server de VS Code, pero para probar la PWA usa un origen HTTPS o `localhost`. No abras `index.html` con `file://`.
+Abre [http://localhost:8080](http://localhost:8080). No abras `index.html` con `file://`: los módulos JavaScript no arrancan desde ese esquema. El servidor escucha solo en el equipo por defecto. Para un teléfono en la misma red, inicia con `HOST=0.0.0.0 npm run serve` y abre la IPv4 privada del equipo en el teléfono.
 
-## Abrir en Android por Wi-Fi durante desarrollo
+## Pruebas y límites de despliegue
 
-1. Conecta el PC y el teléfono a la misma red Wi-Fi.
-2. Ejecuta `npm run serve` en el PC. El servidor escucha en `0.0.0.0:8080`.
-3. Consulta la IPv4 privada del PC con `ipconfig` (adaptador Wi-Fi), por ejemplo `192.168.1.25`.
-4. En Chrome Android abre `http://192.168.1.25:8080`.
-5. Si no conecta, permite Node.js o el puerto 8080 en el firewall para redes privadas.
+`npm test` ejecuta las pruebas del catálogo, el dado, la migración, los eventos y el motor. También se deben probar visualmente el carrusel y el tema claro en un móvil, y la sala con dos usuarios antes de un despliegue público.
 
-El acceso por HTTP a una IP local sirve para desarrollo en la red, pero no permite instalar una PWA con service worker en Chrome como lo hace HTTPS. Para instalarla de forma realista, publica los archivos estáticos en un hosting con HTTPS (por ejemplo GitHub Pages, Cloudflare Pages o Netlify). El modo local no necesita backend; el online necesita la configuración de Supabase descrita abajo. Abre el enlace HTTPS en Android, carga la aplicación una vez y usa el menú de Chrome → **Instalar aplicación** o **Añadir a pantalla de inicio**.
+La conexión Supabase requiere las migraciones SQL del directorio `supabase/sql/` en el proyecto remoto. El estado de los archivos locales no confirma que el SQL ya esté aplicado en el Dashboard.
 
-## Comprobar uso offline
+## Supabase y perfil
 
-Con la URL HTTPS abierta y conectada, espera a que el service worker termine de instalarse (en la aplicación aparece el estado local en Ajustes). Cierra Chrome o la PWA, activa modo avión y vuelve a abrirla desde su icono. Prueba una partida, participantes y el editor. La primera visita debe completarse con internet para almacenar el shell. Una versión publicada actualiza la caché de archivos; los datos personales están en otra clave de almacenamiento y no se borran al actualizar.
-
-## Estado del juego
-
-El motor y las reglas descritas en los apartados históricos de este README corresponden a la experiencia anterior Midnight Chaos y no describen todavía Carnival of Chaos. Sus datos existentes se conservan, pero la interfaz de partida permanece deshabilitada mientras se integra la guía funcional nueva. No uses esos pasos como reglas de Carnival. El estado actual y sus pendientes verificables están en [DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md](DOCUMENTACION_TECNICA/14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md).
-
-## Multijugador online (Supabase)
-
-La sección **Multijugador** está en **Participantes**. El anfitrión crea una sala y comparte el código; los demás se unen con ese código. Se necesitan al menos dos personas para iniciar. Durante la partida el anfitrión controla las acciones y los demás dispositivos reciben el estado compartido en tiempo real. Salir como anfitrión transfiere el control al siguiente miembro; **Cerrar sala** la cierra para todos.
-
-Antes de usarlo, sigue [`supabase/README.md`](supabase/README.md): ejecuta en orden los cuatro archivos `supabase/sql/001`–`004` desde el SQL Editor del proyecto Supabase y activa **Anonymous Sign-Ins**. `js/supabase.js` contiene la URL del proyecto y su clave pública `anon`; nunca pongas allí claves `service_role` o secretas. La identidad anónima se conserva en el navegador y no se recupera al borrar sus datos ni al cambiar de dispositivo. Usa dos perfiles de navegador o dispositivos distintos para verificar una sala, porque dos pestañas del mismo perfil comparten la identidad.
-
-El SDK está marcado como `async`, y los módulos de Supabase se importan solo al crear o unirse. Si el CDN o internet no están disponibles, la conexión online no funciona y el modo local permanece disponible. Para probar online se requiere un origen servido (HTTPS para despliegue; `localhost` sirve en desarrollo), no `file://`. El estado remoto usa Postgres Changes, Presence y RPCs protegidas con RLS; el historial local no se mezcla automáticamente con una sala.
-
-## Editar, añadir y administrar cartas
-
-En **Cartas** puedes buscar por texto o ID y filtrar por categoría. Para añadir una carta:
-
-1. Abre **Cartas** y pulsa **＋ Nueva carta**.
-2. Escribe un ID único con letras, números, guion o guion bajo (por ejemplo `DESAFIO_mimo_de_robot`).
-3. Selecciona categoría, título, descripción e intensidad de 0 a 5.
-4. Configura asignación y cantidad. Las parejas voluntarias se acuerdan entre jugadores; no se asignan al azar.
-5. Opcionalmente asigna manual e icono local. Para penalizar con shots, activa **Tiene penalización en shots** e indica la cantidad; la vista previa muestra el singular o plural.
-6. Revisa la vista previa y pulsa **Guardar carta**.
-
-Para editar una existente, busca o filtra la carta y pulsa **Editar**. Cambia los campos y guarda; el ID permanece estable. **Duplicar** crea otra carta con un ID nuevo. **Desactivar** la conserva en el catálogo pero la excluye de los sorteos. **Eliminar** solicita confirmación y la quita del catálogo. Exporta el catálogo antes de hacer cambios grandes; la importación valida el JSON y rechaza IDs repetidos.
-
-También puedes añadir cartas en lote desde JSON: crea un archivo con `{ "version": 1, "cards": [...] }`, agrega solo las cartas nuevas dentro de `cards`, usa IDs nuevos y pulsa **Importar cartas JSON**. Si partes de una exportación completa, conserva en el archivo que vas a importar solo las cartas nuevas, pues la importación añade y rechaza IDs que ya existen; no actualiza ni elimina cartas. Edita o elimina una existente desde el editor de **Cartas**.
-
-### Qué pasa con las cartas JSON y cómo añadirlas al código
-
-Cuando creas o editas una carta desde la app, el cambio se guarda en el `localStorage` de ese navegador y dispositivo. **Exportar cartas JSON** descarga una copia de ese catálogo; no modifica ningún archivo del proyecto. **Importar cartas JSON** agrega las cartas del archivo al catálogo guardado en el navegador actual. Para llevarlas a otro equipo, importa allí el JSON. Mantén ese archivo como respaldo: borrar los datos del sitio puede borrar las cartas locales.
-
-Para que nuevos desafíos formen parte del catálogo incluido en el código:
-
-1. Abre `data/additional-challenges.js` y agrega el texto al final de `challengeTexts`.
-2. En el mismo índice al final de `shotCounts`, agrega `1`, `2` o `3`. Ese número es la penalización que aparece abajo como Shots. No escribas «O toma X shots» en la descripción: la app muestra la cantidad desde `penalty.units`.
-3. Los IDs y títulos se generan en orden desde `DESAFIO_PDF_103` / `Desafío 103`; las 67 entradas actuales llegan hasta el 169. No reordenes ni elimines elementos de estas dos listas, porque su posición determina qué texto, cantidad e ID quedan emparejados.
-4. Incrementa `ADDITIONAL_CHALLENGE_CATALOG_VERSION` en ese archivo (ahora es `5`) para que las instalaciones existentes agreguen las nuevas cartas. La migración inserta solo los IDs faltantes y conserva las cartas y participantes locales.
-5. Incrementa la versión visible en `js/config.js`, `package.json` y el nombre de caché en `sw.js` (actualmente `1.8.0`) al preparar una actualización distribuible. Si agregas un archivo JavaScript nuevo, inclúyelo también en la lista `SHELL` de `sw.js` para que funcione offline.
-
-Para añadir por código una carta de otra categoría, agrega el objeto completo a `OTHER_ADDITIONAL_CARDS` en `data/additional-challenges.js` y aumenta la misma versión de catálogo. `data/initial-cards.js` ya combina esa lista con `PDF_CARDS`, y `js/storage.js` añade automáticamente a las instalaciones existentes las cartas adicionales cuyo ID aún no está guardado. Usa un ID único. Ejemplo de formato:
-
-```js
-{
-  id: 'PREMIO_NUEVO_001', categoryId: 'PREMIO',
-  title: 'Premio nuevo', description: 'Elige quién comienza el siguiente turno.',
-  icon: { type: 'glyph', value: '★' }, spiceLevel: 0,
-  target: { mode: 'CURRENT_PLAYER', count: 1, position: null },
-  penalty: { enabled: false, units: 0, drinkTypeId: 'NORMAL' },
-  manualId: null, enabled: true,
-},
-```
-
-No necesitas cambiar `data/pdf-catalog.js` para añadir cartas por este método. Esa lista contiene las 310 cartas originales del PDF; `data/additional-challenges.js` contiene las adiciones posteriores.
-
-El nombre e ID de Midnight Chaos están en `js/config.js`. Las categorías y colores también se configuran allí. Las seis caras, su peso y orientación están en `js/dice.js`: ajusta los valores `weight` y conserva una suma total de 100 para cambiar la distribución. El cubo, sus tamaños, iluminación y transición 3D se configuran en `css/dice.css`; las caras visibles están en `index.html`. Las fuentes históricas de cartas siguen en `data/pdf-catalog.js` y `data/additional-challenges.js`, pero ya no forman el catálogo inicial activo.
-
-## Manuales, bebidas e iconos
-
-En **Manuales**, usa **＋ Nuevo manual** para crear reglas o **Editar manual** para cambiar un manual existente. El formulario solicita título, resumen, instrucciones y, opcionalmente, un objeto JSON `details` con `objective`, `participants`, `materials`, `preparation`, `victoryCondition`, `tiebreaker`, `duration`, `resultToRecord` y `consequenceRules`. Estos campos aparecen en la ayuda de la carta cuando se rellenan. Semana inglesa queda marcada como pendiente hasta que el grupo configure sus reglas. Los IDs de manual se generan al crearlos; luego selecciónalo en el editor de cartas. El catálogo editable de bebidas y alternativas está en **Ajustes**. La penalización configurada en una carta se muestra como cantidad de Shots.
-
-`consequenceRules` es una lista opcional para minijuegos. Cada regla usa `when` (`WIN`, `LOSS` o `ANY`), `category` (`PREMIO` o `CASTIGO`), `recipients` (`WINNERS`, `LOSERS`, `PARTICIPANTS` o `GROUP`) y exactamente uno de `cardsPerRecipient` o `totalCards`. Ejemplo: `[{"when":"LOSS","category":"CASTIGO","recipients":"LOSERS","cardsPerRecipient":1},{"when":"WIN","category":"PREMIO","recipients":"WINNERS","cardsPerRecipient":1}]`. `totalCards` crea esa cantidad fija de selecciones y permite asignar cada una a un destinatario elegible. No se añade ninguna regla por defecto; una lista vacía permite registrar el resultado y finalizar sin consecuencias.
-
-El catálogo inicial de **Midnight Chaos** usa contenido propio separado en `data/midnight-catalog.js`; sus minijuegos e instrucciones están en el mismo archivo de datos. Los catálogos heredados permanecen en archivos de archivo y los registros anteriores se desactivan durante la migración local sin borrarlos. Si alguna regla requiere definir resultados o consecuencias, edita el manual correspondiente en **Manuales**.
-
-El editor de cartas sigue admitiendo un glifo o emoji local como icono. La marca actual es Circus Zevyra y utiliza `assets/branding/logo-dark.png` / `logo-light.png`; los recursos PWA están en `assets/icons/`. `assets/brand/zevyra-emblem.png` se conserva como fuente histórica y ya no se usa en el reverso de las cartas. La presentación actual está en `css/platform.css` y `css/brand.css`.
-
-Las cartas pueden incluir opcionalmente `effects`. Es un objeto de datos; por ejemplo `{"onCompleted":[{"type":"DRAW_AUXILIARY","category":"PREMIO"},{"type":"GRANT_REWARD","key":"protection","label":"Protección futura"}]}` permite acceder a un mazo auxiliar tras confirmar el resultado y guardar una ventaja con nombre para usar manualmente. `onNotCompleted` puede declarar de la misma forma una acción auxiliar de castigo. Estos efectos no se derivan del texto de la carta.
-
-El importador acepta una lista JSON o un objeto `{ "version": 1, "cards": [...] }`; valida IDs únicos, categorías y campos obligatorios antes de incorporar el lote. Un ID que ya existe cancela la importación completa con un mensaje. Las cartas recibidas conservan sus propiedades opcionales como `effects` y los campos extra del manual. El ciclo y el orden de barajado se guardan por categoría en el estado local para evitar repetir una carta antes de agotar el mazo, incluso tras recargar.
-
-Ejemplos mínimos válidos por tipo (son solo plantillas documentales, no se cargan al catálogo):
-
-```json
-[
-  {"id":"V_ejemplo","categoryId":"VERDAD","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
-  {"id":"D_ejemplo","categoryId":"DESAFIO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
-  {"id":"M_ejemplo","categoryId":"MINIJUEGO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"ALL_PLAYERS","count":0},"penalty":{"enabled":false,"units":0},"manualId":"MANUAL_MIMICA","enabled":true},
-  {"id":"P_ejemplo","categoryId":"PREMIO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true},
-  {"id":"C_ejemplo","categoryId":"CASTIGO","title":"Título","description":"Descripción","icon":{"type":"glyph","value":"✦"},"spiceLevel":0,"target":{"mode":"CURRENT_PLAYER","count":1},"penalty":{"enabled":false,"units":0},"manualId":null,"enabled":true}
-]
-```
-
-Ejemplo de carta:
-
-```js
-{
-  id: 'VERDAD_anecdota_favorita', categoryId: 'VERDAD',
-  title: 'Anécdota favorita', description: 'Comparte un recuerdo que te haga reír.',
-  icon: { type: 'glyph', value: '✦' }, spiceLevel: 1,
-  target: { mode: 'CURRENT_PLAYER', count: 1, position: null },
-  penalty: { enabled: true, units: 1 }, // 1 Shot
-  manualId: null, enabled: true,
-  effects: { onCompleted: [{ type: 'DRAW_AUXILIARY', category: 'PREMIO' }] }
-}
-```
-
-Para preparar archivos con una carta de cada categoría, usa el mismo formato y cambia el `id`, `categoryId`, `title`, `description` y `target` de cada objeto. Los cinco valores válidos para `categoryId` son `VERDAD`, `DESAFIO`, `MINIJUEGO`, `PREMIO` y `CASTIGO`. En una carta de `MINIJUEGO`, `manualId` debe apuntar a un ID existente; el manual puede agregar los campos opcionales descritos abajo.
-
-Ejemplo de manual: `{ id: 'MANUAL_MIMICA', title: 'Mímica', summary: 'Adivina con gestos', instructions: ['Una persona representa una palabra'], notes: '', pending: false }`.
-
-Ejemplo de participante: `{ id: 'player_abc123', name: 'Ana', active: true, preferences: {} }`.
-
-## Respaldos y almacenamiento
-
-En **Ajustes y respaldo**, exporta el respaldo completo o importa uno válido. El navegador guarda el estado versionado en `localStorage` del dispositivo y origen; borrar los datos del sitio puede eliminarlos. No se sincronizan entre celulares. Mantén respaldos JSON fuera del navegador. La aplicación valida archivos importados y no ejecuta contenido del JSON.
-
-En **Ajustes → Partida → Reiniciar partida**, confirma para iniciar desde el primer participante activo y restaurar el orden completo de los mazos. Se conservan participantes, cartas, manuales y ajustes; se borran el turno actual, historial y premios pendientes. La acción no se ejecuta automáticamente.
-
-Al registrar los resultados de un minijuego, las reglas de consecuencias de su manual se procesan primero. Después puedes asignar opcionalmente una carta de **Premio** a un ganador y una de **Castigo** a un perdedor, incluso si el manual no define reglas. Cada mazo auxiliar puede utilizarse una vez por minijuego.
-
-## Ejecutar directamente en Android
-
-No abras el HTML desde un administrador de archivos esperando que funcionen módulos o service workers. Para una instalación PWA usa un origen HTTPS, como se explica arriba. Para una futura ejecución totalmente local, copia los archivos a Android, instala un servidor HTTP local que sirva la carpeta y abre su origen local en Chrome; ese servidor debe soportar módulos JavaScript y tipos MIME correctos. Esta versión no incluye APK ni servidor Android empaquetado.
-
-## Pruebas
-
-```powershell
-npm test
-```
-
-La versión 1.8.0 inicializa 40 cartas nuevas: 10 verdades, 10 desafíos, 8 minijuegos, 6 premios y 6 castigos. La migración de catálogo conserva y desactiva cartas de origen anteriores en lugar de eliminarlas, mantiene las personalizadas y añade los nuevos manuales sin sobrescribir modificaciones. Los premios aportan poderes persistentes; eventos se activan cada cinco turnos; las cadenas tienen un máximo de eslabones definido en datos. El navegador debe probarse por separado para la instalación HTTPS y el comportamiento real offline.
-
-## Fase de plataforma ZEVYRA
-
-La navegación Inicio/Juegos, el catálogo basado en datos, el selector local/online, el lobby y los recursos de marca están descritos en [`DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md`](DOCUMENTACION_TECNICA/11_FASE_1_ZEVYRA_GAMES.md). La ruta nueva por turnos está en [`DOCUMENTACION_TECNICA/13_FASE_2_TURNOS_Y_PERFIL.md`](DOCUMENTACION_TECNICA/13_FASE_2_TURNOS_Y_PERFIL.md) y requiere la migración 006 antes de la prueba online actualizada.
-
-Los cambios de interfaz, emojis de avatar, diagnóstico de unión y la migración adicional preparada están en [`DOCUMENTACION_TECNICA/12_FASE_1_1_AUDITORIA_Y_UI.md`](DOCUMENTACION_TECNICA/12_FASE_1_1_AUDITORIA_Y_UI.md). La migración 005 requiere ejecución manual en el Dashboard; el fallo con una sala válida necesita confirmación contra el Supabase desplegado.
-
-
+Consulta [supabase/README.md](supabase/README.md) y ejecuta las migraciones en el orden indicado. Auth gestiona las contraseñas; la tabla `profiles` guarda UID, nickname y avatar, nunca la contraseña. Para el formulario solo-usuario/contraseña, el cliente asigna al usuario un correo sintético bajo `accounts.zevyra.invalid`; requiere desactivar la confirmación por correo en Supabase y no ofrece recuperación de contraseña por email. La clave que usa el navegador debe ser la clave pública `anon`; nunca agregues una `service_role` al cliente.

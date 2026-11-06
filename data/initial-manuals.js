@@ -1,3 +1,3 @@
-import { MIDNIGHT_MANUALS } from "./midnight-catalog.js";
+import { CARNIVAL_MANUALS } from "./carnival-catalog.js";
 
-export const INITIAL_MANUALS = structuredClone(MIDNIGHT_MANUALS);
+export const INITIAL_MANUALS = structuredClone(CARNIVAL_MANUALS);

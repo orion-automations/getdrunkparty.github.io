@@ -13,6 +13,7 @@ import { ROUND_EVENTS } from '../data/round-events.js';
 import { CHAIN_CHALLENGES } from '../data/chain-challenges.js';
 import { POWER_CATALOG } from '../data/power-catalog.js';
 import { PDF_CARDS } from '../data/pdf-catalog.js';
+import { CARNIVAL_CARDS } from '../data/carnival-catalog.js';
 import { GAME_ID, GAME_NAME } from '../js/config.js';
 
 test('Carnival of Chaos conserva la identidad interna de juego sin migrar los datos existentes', () => {
@@ -21,19 +22,45 @@ test('Carnival of Chaos conserva la identidad interna de juego sin migrar los da
   assert.equal(seedState().gameId, GAME_ID);
 });
 
-test('catálogo Midnight Chaos es original, separado por categoría y mantiene referencias válidas', () => {
-  assert.equal(INITIAL_CARDS.length, 40);
-  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, 40);
-  assert.deepEqual(Object.fromEntries(['VERDAD','DESAFIO','MINIJUEGO','PREMIO','CASTIGO'].map((category) => [category, INITIAL_CARDS.filter((c) => c.categoryId === category).length])), { VERDAD: 10, DESAFIO: 10, MINIJUEGO: 8, PREMIO: 6, CASTIGO: 6 });
+test('catálogo Carnival importa el PDF completo y conserva categorías históricas compatibles', () => {
+  assert.equal(INITIAL_CARDS.length, CARNIVAL_CARDS.length);
+  assert.equal(new Set(INITIAL_CARDS.map((c) => c.id)).size, CARNIVAL_CARDS.length);
+  assert.deepEqual(Object.fromEntries(['VERDAD','DESAFIO','MINIJUEGO','MALDICION','PREMIO','CASTIGO'].map((category) => [category, INITIAL_CARDS.filter((c) => c.categoryId === category).length])), { VERDAD: 115, DESAFIO: 127, MINIJUEGO: 24, MALDICION: 78, PREMIO: 35, CASTIGO: 35 });
   assert.equal(validateCards(INITIAL_CARDS, INITIAL_MANUALS), true);
-  assert.ok(INITIAL_CARDS.every((card) => card.id.startsWith('MC_')));
+  assert.ok(INITIAL_CARDS.every((card) => /^CC_/.test(card.id)));
+  assert.equal(INITIAL_CARDS.filter((card) => card.collection === 'horrors' && card.enabled).length, 0);
 });
 
 test('los catálogos de eventos, poderes y cadenas tienen IDs únicos y reglas explícitas', () => {
   for (const catalog of [ROUND_EVENTS, POWER_CATALOG, CHAIN_CHALLENGES]) assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
+  assert.equal(ROUND_EVENTS.length, 22);
   assert.ok(ROUND_EVENTS.every((event) => event.durationTurns === 5 && event.activation && event.completion && event.effect));
   assert.ok(POWER_CATALOG.every((power) => power.timing && power.duration && power.effect && power.cancel));
   assert.ok(CHAIN_CHALLENGES.every((chain) => chain.maxLinks >= 2 && chain.maxLinks <= 6 && chain.consent));
+});
+
+test('Circo el Destino fuerza Maldición y roba opciones sin repetir durante el evento', () => {
+  const state = seedState();
+  state.participants = [{ id: 'p', name: 'A', active: true }];
+  state.game.completedTurns = 109;
+  const engine = gameEngine(state, () => .5);
+  const trigger = engine.draw('VERDAD').card;
+  engine.resolve('COMPLETED', trigger.id);
+  engine.finishTurn();
+  assert.equal(state.game.activeRoundEvent.effect, 'destiny');
+  assert.ok(state.cards.filter((card) => card.id.startsWith('CC_DESTINO_')).every((card) => card.enabled));
+  const drawn = [];
+  for (let index = 0; index < 5; index++) {
+    assert.equal(engine.rollDigital().face.category, 'MALDICION');
+    engine.completeRoll();
+    const result = engine.draw('MALDICION');
+    assert.ok(result.card?.id.startsWith('CC_DESTINO_'));
+    drawn.push(result.card.id);
+    engine.resolve('COMPLETED', result.card.id);
+    engine.finishTurn();
+  }
+  assert.equal(new Set(drawn).size, 5);
+  assert.ok(state.cards.filter((card) => card.id.startsWith('CC_DESTINO_')).every((card) => card.enabled));
 });
 
 test('eventos de ronda se activan cada cinco turnos y el estado continúa tras recargar', () => {
@@ -54,8 +81,21 @@ test('eventos de ronda se activan cada cinco turnos y el estado continúa tras r
   }
   assert.equal(persisted.game.completedTurns, 10);
   assert.equal(persisted.game.activeRoundEvent.eventRound, 2);
+  assert.equal(persisted.game.activeRoundEvent.effect, 'horrors');
   assert.equal(persisted.game.roundEventHistory.filter((event) => event.status === 'active').length, 1);
   assert.equal(persisted.game.roundEventHistory.filter((event) => event.status === 'completed').length, 1);
+  assert.ok(persisted.cards.filter((card) => card.collection === 'horrors').every((card) => card.enabled));
+  assert.ok(persisted.cards.filter((card) => card.collection === 'normal').every((card) => !card.enabled));
+  for (let index = 0; index < 5; index++) {
+    const card = reloadedEngine.draw('VERDAD').card;
+    assert.ok(card?.collection === 'horrors');
+    reloadedEngine.resolve('COMPLETED', card.id);
+    reloadedEngine.finishTurn();
+  }
+  assert.equal(persisted.game.completedTurns, 15);
+  assert.notEqual(persisted.game.activeRoundEvent.effect, 'horrors');
+  assert.ok(persisted.cards.filter((card) => card.collection === 'horrors').every((card) => !card.enabled));
+  assert.ok(persisted.cards.filter((card) => card.collection === 'normal').every((card) => card.enabled));
 });
 
 test('inventario de poder persiste, activa una alternativa y consume una sola vez', () => {
@@ -109,10 +149,10 @@ test('migración 6 conserva cartas personalizadas y archiva desactivadas las car
   globalThis.localStorage = { getItem: () => JSON.stringify(state), setItem: (_key, value) => { saved = value; } };
   try {
     const migrated = loadState();
-    assert.equal(migrated.catalogVersion, 6);
+    assert.equal(migrated.catalogVersion, 8);
     assert.equal(migrated.cards.find((card) => card.id === legacy.id).enabled, false);
     assert.equal(migrated.cards.find((card) => card.id === custom.id).title, 'Mi carta editada');
-    assert.ok(migrated.cards.some((card) => card.id === 'MC_TRUTH_001'));
+    assert.ok(migrated.cards.some((card) => card.id === 'CC_PECADO_001'));
     assert.ok(JSON.parse(saved).cards.some((card) => card.id === custom.id));
   } finally {
     if (originalStorage === undefined) delete globalThis.localStorage;
@@ -164,15 +204,15 @@ test('avance circular y parejas sin asignar al azar', () => {
   const players = [{ id: 'a', active: true }, { id: 'b', active: true }];
   assert.deepEqual(assignTargets('PLAYER_PAIR', players, 0), []);
 });
-test('las seis caras representan los pesos 35/35/15/15 del resultado digital', () => {
+test('las seis caras respetan la distribución 1/19/40/40 de Carnival', () => {
   assert.equal(DICE_FACES.length, 6);
-  assert.deepEqual(categoryProbabilities(), { VERDAD: 35, DESAFIO: 35, MINIJUEGO: 15, BLOQUEADA: 15 });
+  assert.deepEqual(categoryProbabilities(), { MALDICION: 1, MINIJUEGO: 19, VERDAD: 40, DESAFIO: 40 });
   const counts = {};
   for (let i = 0; i < 200; i++) {
     const face = rollDice(() => (i + .25) / 200);
     counts[face.category] = (counts[face.category] ?? 0) + 1;
   }
-  assert.deepEqual(counts, { VERDAD: 70, DESAFIO: 70, MINIJUEGO: 30, BLOQUEADA: 30 });
+  assert.deepEqual(counts, { MALDICION: 2, MINIJUEGO: 38, VERDAD: 80, DESAFIO: 80 });
 });
 test('cada lanzamiento suma giros completos y termina en la orientación de la cara elegida', () => {
   for (const target of [-90, 0, 90, 180]) {
@@ -184,13 +224,13 @@ test('cada lanzamiento suma giros completos y termina en la orientación de la c
 test('permite volver a tirar antes de revelar una carta y descarta el resultado anterior', () => {
   const state = seedState();
   state.participants = [{ id: 'p', name: 'A', active: true }];
-  const values = [.01, .99];
+  const values = [0, .99];
   const engine = gameEngine(state, () => values.shift());
-  assert.equal(engine.rollDigital().face.category, 'VERDAD');
+  assert.equal(engine.rollDigital().face.category, 'MALDICION');
   const reroll = engine.rerollDigital();
-  assert.equal(reroll.face.category, 'BLOQUEADA');
+  assert.equal(reroll.face.category, 'DESAFIO');
   assert.equal(state.game.current.primaryCard, null);
-  assert.equal(engine.completeRoll().blocked, true);
+  assert.equal(engine.completeRoll().awaitingCategory, true);
 });
 test('sustituir una carta conserva la categoría y consume otra carta del mismo ciclo', () => {
   const state = seedState();
@@ -267,17 +307,15 @@ test('efectos JSON explícitos ofrecen mazo auxiliar y registran una ventaja sin
   assert.equal(engine.finishTurn(), true);
   assert.ok(state.game.rewards.some((item) => item.effectKey === 'protection' && item.title === 'Protección futura'));
 });
-test('cara bloqueada no roba cartas ni añade penalizaciones y se finaliza manualmente', () => {
+test('el mazo físico bloqueado no roba cartas ni añade penalizaciones', () => {
   const state = seedState();
   state.participants = [{ id: 'p', name: 'A', active: true }, { id: 'q', name: 'B', active: true }];
   const before = structuredClone(state.game.decks);
-  const engine = gameEngine(state, () => .99);
-  const roll = engine.rollDigital();
-  assert.equal(roll.face.category, 'BLOQUEADA');
-  assert.equal(roll.face.id, 6);
-  assert.equal(engine.rollDigital().error, 'LOCKED');
-  assert.equal(engine.completeRoll().blocked, true);
-  assert.equal(engine.completeRoll().error, 'LOCKED');
+  state.settings.gameMode = 'physical';
+  const engine = gameEngine(state);
+  const roll = engine.draw('BLOQUEADA');
+  assert.equal(roll.category, 'BLOQUEADA');
+  assert.equal(roll.blocked, true);
   assert.equal(state.game.current.primaryCard, null);
   assert.equal(engine.draw('PREMIO').error, 'LOCKED');
   assert.deepEqual(state.game.decks, before);
@@ -288,7 +326,7 @@ test('cara bloqueada no roba cartas ni añade penalizaciones y se finaliza manua
 test('el dado determina el minijuego y espera que se pulse su mazo antes de revelar carta', () => {
   const state = seedState();
   state.participants = [{ id: 'p', name: 'A', active: true }];
-  const engine = gameEngine(state, () => .75);
+  const engine = gameEngine(state, () => .15);
   const roll = engine.rollDigital();
   assert.equal(roll.face.category, 'MINIJUEGO');
   const result = engine.completeRoll();

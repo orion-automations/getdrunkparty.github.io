@@ -1,6 +1,6 @@
 import { drawFromDeck } from "./decks.js";
 import { assignTargets, nextIndex } from "./participants.js";
-import { rollDice } from "./dice.js";
+import { DICE_FACES, rollDice } from "./dice.js";
 import { ROUND_EVENTS } from "../data/round-events.js";
 import { CHAIN_CHALLENGES } from "../data/chain-challenges.js";
 import { POWER_CATALOG } from "../data/power-catalog.js";
@@ -9,7 +9,7 @@ import {
   validateMinigameOutcomes,
 } from "./minigame-results.js";
 
-const MAIN_CATEGORIES = new Set(["VERDAD", "DESAFIO", "MINIJUEGO"]);
+const MAIN_CATEGORIES = new Set(["VERDAD", "DESAFIO", "MINIJUEGO", "MALDICION"]);
 const AUX_CATEGORIES = new Set(["PREMIO", "CASTIGO"]);
 const VALID_CATEGORIES = new Set([
   ...MAIN_CATEGORIES,
@@ -132,7 +132,9 @@ export function gameEngine(state, random = Math.random) {
       return locked;
     },
     rollDigital() {
-      const face = rollDice(random);
+      const face = state.game.activeRoundEvent?.effect === "destiny"
+        ? DICE_FACES.find((entry) => entry.category === "MALDICION")
+        : rollDice(random);
       const result = beginTurn(face.category, "ROLLING");
       if (result.error) return result;
       // La misma cara elegida gobierna el resultado visual y el mazo posterior.
@@ -674,17 +676,8 @@ export function gameEngine(state, random = Math.random) {
 
 function applyRoundProgress(state, engine) {
   const completed = state.game.completedTurns;
-  const activeEvent = state.game.activeRoundEvent;
-  if (completed % 5 === 0) {
-    if (activeEvent) closeRoundEvent(state, activeEvent);
-    const event = ROUND_EVENTS[(completed / 5 - 1) % ROUND_EVENTS.length];
-    state.game.activeRoundEvent = { ...event, turnsRemaining: event.durationTurns, eventRound: completed / 5, participantGrants: [] };
-    state.game.roundEventHistory.unshift({ ...state.game.activeRoundEvent, status: "active", activatedAt: new Date().toISOString() });
-    state.game.roundEventHistory = state.game.roundEventHistory.slice(0, 20);
-    return;
-  }
-  if (!activeEvent) return;
-  if (["grant_pass", "grant_redraw", "grant_shield"].includes(activeEvent.effect)) {
+  let activeEvent = state.game.activeRoundEvent;
+  if (activeEvent && ["grant_pass", "grant_redraw", "grant_shield"].includes(activeEvent.effect)) {
     const key = activeEvent.effect === "grant_pass" ? "pass" : activeEvent.effect === "grant_redraw" ? "redraw" : "shield";
     activeEvent.participantGrants ??= [];
     if (!activeEvent.participantGrants.includes(state.game.current?.playerId)) {
@@ -692,17 +685,58 @@ function applyRoundProgress(state, engine) {
       engine.grantPower(state.game.current?.playerId, key, activeEvent.id);
     }
   }
-  activeEvent.turnsRemaining -= 1;
-  if (activeEvent.turnsRemaining <= 0) {
-    closeRoundEvent(state, activeEvent);
-    state.game.activeRoundEvent = null;
+  if (activeEvent) {
+    activeEvent.turnsRemaining -= 1;
+    if (activeEvent.turnsRemaining <= 0) {
+      closeRoundEvent(state, activeEvent);
+      state.game.activeRoundEvent = null;
+    }
+  }
+  if (completed % 5 === 0) {
+    const event = ROUND_EVENTS[(completed / 5 - 1) % ROUND_EVENTS.length];
+    activeEvent = {
+      ...event,
+      turnsRemaining: event.durationTurns,
+      eventRound: completed / 5,
+      participantGrants: [],
+    };
+    if (event.effect === "horrors" || event.effect === "destiny") activateSpecialEventDeck(state, activeEvent);
+    state.game.activeRoundEvent = activeEvent;
+    const { savedEnabledStates, savedDecks, ...historyEvent } = activeEvent;
+    state.game.roundEventHistory.unshift({ ...historyEvent, status: "active", activatedAt: new Date().toISOString() });
+    state.game.roundEventHistory = state.game.roundEventHistory.slice(0, 20);
   }
 }
 
 function closeRoundEvent(state, event) {
+  restoreEventDecks(state, event);
   const entry = state.game.roundEventHistory.find((item) => item.id === event.id && item.status === "active");
   if (entry) Object.assign(entry, { status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
   else state.game.roundEventHistory.unshift({ ...event, status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
+}
+
+function activateSpecialEventDeck(state, event) {
+  const eligible = state.cards.filter((card) => ["normal", "horrors", "curse"].includes(card.collection));
+  event.savedEnabledStates = Object.fromEntries(eligible.map((card) => [card.id, card.enabled]));
+  event.savedDecks = structuredClone(state.game.decks);
+  eligible.forEach((card) => {
+    card.enabled = event.effect === "horrors"
+      ? card.collection === "horrors"
+      : card.id.startsWith("CC_DESTINO_");
+  });
+  state.game.decks = {};
+}
+
+function restoreEventDecks(state, event) {
+  if (!event?.savedEnabledStates) return;
+  state.cards.forEach((card) => {
+    if (Object.hasOwn(event.savedEnabledStates, card.id)) {
+      card.enabled = event.savedEnabledStates[card.id];
+    }
+  });
+  event.savedEnabledStates = null;
+  state.game.decks = event.savedDecks ?? {};
+  event.savedDecks = null;
 }
 
 function normalizeEffects(effects) {

@@ -43,6 +43,26 @@ export async function getSavedProfile() {
   return auth.getProfile(user.id);
 }
 
+export async function registerProfileAccount(username, password, avatar = null) {
+  const { auth } = await services();
+  return auth.registerUsername(username, password, avatar);
+}
+
+export async function signInProfileAccount(username, password) {
+  const { auth } = await services();
+  return auth.signInUsername(username, password);
+}
+
+export async function signOutProfileAccount() {
+  const { auth } = await services();
+  return auth.signOutUser();
+}
+
+export async function getProfileIdentity() {
+  const { auth } = await services();
+  return auth.getCurrentIdentity();
+}
+
 export async function connectRoom({ mode, code, username, avatar = null, maxPlayers = 8, initialState, onSnapshot, onPresence, onStatus }) {
   await waitForSdk();
   const { auth, rooms, sync } = await services();

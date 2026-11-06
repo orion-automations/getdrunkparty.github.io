@@ -6,6 +6,14 @@
 - Anonymous Sign-Ins habilitado en **Authentication → Sign In / Providers → Anonymous**.
 - Publicar el sitio en HTTPS para sesiones persistentes y uso normal de Realtime. `file://` no es un origen de despliegue compatible.
 
+## Perfil con usuario y contraseña
+
+La vista **Mi perfil** permite crear e iniciar sesión con usuario y contraseña. Supabase Auth gestiona y verifica la contraseña; la aplicación no añade un campo de password a `public.profiles`. `profiles.id` es el UID de Auth y las columnas de perfil guardan nickname y avatar.
+
+Como Supabase Auth inicia sesión con correo o teléfono, el cliente convierte el usuario permitido (3–32 caracteres: letras minúsculas, números, `.`, `_`, `-`) en un identificador interno `usuario@accounts.zevyra.invalid`. Para esta modalidad, desactiva **Confirm email** en el proveedor Email; sin esa opción, Supabase no inicia sesión hasta una confirmación que no se puede recibir en ese dominio reservado. No hay recuperación de contraseña por correo en esta configuración. Conserva la URL del proyecto y la clave pública `anon` en `js/supabase.js`; nunca expongas claves `service_role`.
+
+El plan Free de Supabase incluye una base Postgres de hasta 500 MB y permite dos proyectos activos; los proyectos gratuitos se pausan tras una semana de inactividad. Revisa los [límites vigentes del plan Free](https://supabase.com/pricing) antes de un despliegue público.
+
 ## Orden de instalación
 
 En Supabase Dashboard, abre **SQL Editor → New query**. Ejecuta un archivo completo por consulta, en este orden:

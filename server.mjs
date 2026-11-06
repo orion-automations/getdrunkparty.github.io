@@ -33,8 +33,9 @@ const server = createServer(async (req, res) => {
     res.writeHead(404).end("Not found");
   }
 });
-server.listen(Number(process.env.PORT) || 8080, "0.0.0.0", () =>
+const host = process.env.HOST || "127.0.0.1";
+server.listen(Number(process.env.PORT) || 8080, host, () =>
   console.log(
-    `Midnight Chaos de ZEVYRA disponible en http://localhost:${server.address().port} (red local incluida)`,
+    `Carnival of Chaos · Circus Zevyra disponible en http://${host === "0.0.0.0" ? "localhost" : host}:${server.address().port}`,
   ),
 );

@@ -75,9 +75,7 @@
             <p class="eyebrow">THE DARK PLAYGROUND</p>
             <h1>CIRCUS <span>ZEVYRA</span></h1>
             <div class="home-carousel" aria-label="Carrusel de juegos">
-              <button id="home-carousel-prev" class="carousel-arrow" type="button" aria-label="Juego anterior"><span class="material-symbols-rounded">chevron_left</span></button>
               <div id="home-game-stack" class="home-game-stack" aria-label="Juegos de Circus Zevyra" tabindex="0"></div>
-              <button id="home-carousel-next" class="carousel-arrow" type="button" aria-label="Juego siguiente"><span class="material-symbols-rounded">chevron_right</span></button>
             </div>
             <div id="home-selected-game" class="home-selected-game" aria-live="polite"></div>
             <button id="home-play-selected" class="button button-primary" type="button">▶ PLAY</button>
@@ -90,13 +88,23 @@
       </section>
       <section id="view-profile" class="view">
         <div class="page-heading"><p class="eyebrow">TU IDENTIDAD ZEVYRA</p><h1>Mi perfil</h1><p class="muted">Este nickname se mostrará cuando participes en partidas online.</p></div>
-        <section class="panel profile-panel" aria-labelledby="profile-heading">
+      <section class="panel profile-panel" aria-labelledby="profile-heading">
           <div class="profile-avatar-mark"><img id="profile-avatar-preview" alt="Avatar del perfil" /></div>
-          <button id="profile-avatar-randomize" class="button profile-avatar-change" type="button">Cambiar avatar</button>
+          <div class="profile-avatar-controls" aria-label="Personaliza tu avatar">
+            <label>Tono de piel<select id="avatar-skin"><option value="eeb4a4">Claro rosado</option><option value="e7a391">Claro cálido</option><option value="e5a07e">Medio claro</option><option value="d78774">Medio</option><option value="b16a5b">Medio oscuro</option><option value="92594b">Oscuro cálido</option><option value="623d36">Oscuro</option></select></label>
+            <label>Ojos<select id="avatar-eyes"><option value="open">Abiertos</option><option value="happy">Felices</option><option value="wink">Guiño</option><option value="glasses">Gafas</option><option value="sleep">Cerrados</option><option value="sunglasses">Gafas de sol</option></select></label>
+            <label>Boca<select id="avatar-mouth"><option value="smile">Sonrisa</option><option value="bigSmile">Gran sonrisa</option><option value="smirk">Pícara</option><option value="frown">Seria</option><option value="surprise">Sorprendida</option><option value="lips">Labios</option></select></label>
+          </div>
           <form id="profile-form" class="form-grid">
-            <label>Nickname<input id="profile-nickname" maxlength="32" autocomplete="nickname" required placeholder="Elige cómo te verán" /></label>
+            <label>Usuario / nickname<input id="profile-nickname" maxlength="32" autocomplete="username" required placeholder="3–32: letras, números, . _ -" /></label>
             <button class="button" type="submit">Guardar nickname</button>
           </form>
+          <form id="account-form" class="account-form">
+            <label>Contraseña<input id="account-password" type="password" minlength="8" autocomplete="current-password" placeholder="Mínimo 8 caracteres" /></label>
+            <div class="button-row"><button id="account-register" class="button" type="button">Crear cuenta</button><button id="account-login" class="button" type="button">Iniciar sesión</button><button id="account-logout" class="button hidden" type="button">Cerrar sesión</button></div>
+            <p class="fine-print">Supabase Auth gestiona la contraseña. El perfil SQL guarda UID, nickname y avatar; no almacena contraseñas. No hay recuperación por correo configurada.</p>
+          </form>
+          <p id="profile-uid" class="profile-uid">UID: local (inicia sesión para obtener tu ID)</p>
           <p id="profile-session-info" class="fine-print" role="status">Perfil local. Se vinculará a tu identidad al iniciar una partida online.</p>
         </section>
       </section>
