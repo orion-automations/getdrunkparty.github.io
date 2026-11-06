@@ -63,6 +63,13 @@ export async function getProfileIdentity() {
   return auth.getCurrentIdentity();
 }
 
+export async function saveUserProfile(username, avatar = null) {
+  const { auth } = await services();
+  const user = await auth.getCurrentIdentity();
+  if (!user) return null;
+  return auth.saveProfile(user.id, username, avatar);
+}
+
 export async function connectRoom({ mode, code, username, avatar = null, maxPlayers = 8, initialState, onSnapshot, onPresence, onStatus }) {
   await waitForSdk();
   const { auth, rooms, sync } = await services();

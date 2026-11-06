@@ -265,7 +265,8 @@ button.mode-card:hover, button.mode-card:focus-visible { border-color: var(--col
 .home-game-card { position: absolute; inset: 0; width: var(--carousel-card-width); height: 100%; margin: auto; padding: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #7b2cff9c; border-radius: 20px; background: #111018; box-shadow: 0 18px 48px #0008; opacity: 1; cursor: grab; transform: none !important; animation: home-carousel-card-in .28s cubic-bezier(.2,.75,.3,1) both; }
 @keyframes home-carousel-card-in { from { opacity: .65; translate: var(--carousel-enter-x, 24px) 0; } to { opacity: 1; translate: 0 0; } }
 .home-game-card.is-selected { z-index: 2; opacity: 1; cursor: grab; }
-.home-game-card img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; object-position: center; background: #0b0b10; }
+.home-game-cover { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; border-radius: 16px 16px 0 0; background: #0b0b10; }
+.home-game-cover img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: center; }
 .home-game-card-copy { display: grid; gap: 5px; padding: 13px 15px 15px; text-align: left; background: linear-gradient(180deg, #17121f, #111018); }
 .home-game-card-copy strong { color: var(--text); font-size: 1.1rem; line-height: 1.2; }
 .home-game-card-copy .home-game-status { padding: 0; color: #e2d2ff; background: transparent; font-size: .68rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
@@ -367,6 +368,53 @@ button.settings-shortcut { cursor: pointer; }
 :root[data-theme="light"] .current-player-line, :root[data-theme="light"] .fine-print, :root[data-theme="light"] .muted { color: var(--muted); }
 :root[data-theme="light"] .home-game-card { border-color: #d4bee6; }
 :root[data-theme="light"] .home-game-card span { color: #39274a; }
+
+/* Profile identity card and Big Smile editor */
+.profile-panel { width: min(100%, 620px); padding: clamp(14px, 3vw, 24px); }
+.player-id-card { overflow: hidden; border: 1px solid #7042a080; border-radius: 18px; background: linear-gradient(145deg, #191621, #101016 75%); box-shadow: 0 14px 35px #0003; }
+.player-id-banner { height: 72px; background: radial-gradient(ellipse at 22% 100%, #ff2daa88, transparent 42%), linear-gradient(110deg, #26113d, var(--profile-banner-color, #41166e) 55%, #13111b); border-bottom: 1px solid #a45aff55; }
+.player-id-main { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 15px; padding: 0 18px 16px; }
+.profile-avatar-edit { position: relative; display: block; width: 92px; height: 92px; margin-top: -37px; padding: 0; overflow: visible; border: 3px solid #21152e; border-radius: 50%; color: #fff; background: #170e24; cursor: pointer; box-shadow: 0 0 0 1px #9a4cff; }
+.profile-avatar-edit img { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 50%; object-fit: cover; background: #170e24; }
+.profile-avatar-edit .material-symbols-rounded { position: absolute; right: -3px; bottom: -3px; display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #14111a; border-radius: 50%; color: #fff; background: #7b2cff; font-size: 17px; }
+.profile-avatar-edit:focus-visible { outline: 3px solid #ff2daa; outline-offset: 4px; }
+.player-id-copy { min-width: 0; padding-top: 10px; }
+.player-id-copy .eyebrow { margin: 0 0 4px; color: #ff2daa; font-size: .66rem; }
+.player-id-copy h2 { overflow: hidden; margin: 0; font-size: clamp(1.2rem, 4vw, 1.65rem); text-overflow: ellipsis; white-space: nowrap; }
+.profile-uid { margin: 4px 0 0; color: var(--muted); font: 700 .75rem ui-monospace, monospace; letter-spacing: .08em; }
+.profile-nickname-form { margin-top: 16px; }
+.profile-nickname-form label, .account-form label { min-width: 0; }
+.profile-session-info { margin: 15px 0 0; text-align: left; }
+dialog.avatar-editor-modal { width: min(560px, calc(100vw - 28px)); max-height: min(88svh, 760px); padding: clamp(16px, 4vw, 25px); overflow: auto; }
+.avatar-editor-modal .modal-heading { align-items: flex-start; }
+.avatar-editor-modal .modal-heading h2 { margin: 0; }
+.avatar-editor-layout { display: grid; grid-template-columns: 118px minmax(0, 1fr); align-items: start; gap: 18px; }
+.avatar-editor-preview { position: sticky; top: 0; width: 112px; aspect-ratio: 1; overflow: hidden; border: 1px solid #7b2cff88; border-radius: 50%; background: #170e24; box-shadow: 0 0 28px #7b2cff33; }
+.avatar-editor-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-controls { max-width: none; max-height: min(50svh, 420px); margin: 0; padding: 2px 3px 5px 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; text-align: left; }
+.profile-avatar-controls label { display: grid; min-width: 0; align-content: start; gap: 6px; color: var(--muted); font-size: .8rem; font-weight: 700; }
+.profile-avatar-controls select, .profile-avatar-controls input[type="color"] { width: 100%; min-width: 0; min-height: 42px; padding: 7px 9px; }
+.profile-avatar-controls input[type="color"] { height: 42px; padding: 4px; cursor: pointer; }
+.avatar-randomize { grid-column: 1 / -1; }
+.avatar-editor-error { grid-column: 1 / -1; }
+.avatar-editor-modal .modal-actions { justify-content: flex-end; margin-top: 19px; }
+:root[data-theme="light"] .player-id-card { color: var(--text); border-color: #d8c5e7; background: linear-gradient(145deg, #fffaff, #f2eafa); }
+:root[data-theme="light"] .player-id-banner { background: radial-gradient(ellipse at 22% 100%, #ff2daa55, transparent 42%), linear-gradient(110deg, #ead8fb, var(--profile-banner-color, #d7b3ff) 55%, #f8f1ff); border-color: #c99fe8; }
+:root[data-theme="light"] .profile-avatar-edit { border-color: #fffaff; background: #fff; }
+:root[data-theme="light"] .profile-avatar-edit .material-symbols-rounded { border-color: #fffaff; }
+:root[data-theme="light"] .avatar-editor-preview { background: #fff; }
+@media (max-width: 520px) {
+  .profile-panel { padding: 13px; }
+  .player-id-banner { height: 62px; }
+  .player-id-main { grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 0 13px 13px; }
+  .profile-avatar-edit { width: 76px; height: 76px; margin-top: -30px; }
+  .profile-avatar-edit .material-symbols-rounded { width: 27px; height: 27px; font-size: 15px; }
+  .profile-panel .form-grid { grid-template-columns: 1fr; }
+  .profile-panel .form-grid .button { width: 100%; }
+  .avatar-editor-layout { grid-template-columns: 1fr; justify-items: center; gap: 12px; }
+  .avatar-editor-preview { position: static; width: 92px; }
+  .profile-avatar-controls { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 42svh; }
+}
 
 @media (max-width: 580px) {
   :root[data-theme="light"] .primary-nav { background: #fffdf9f5; }

@@ -67,15 +67,23 @@ export async function saveProfile(userId, username, avatar = null) {
     .select("id, username, avatar, created_at, updated_at")
     .single();
   if (error) throw error;
-  return data;
+  const extendedProfile = await getProfile(userId);
+  return extendedProfile ?? data;
 }
 
 export async function getProfile(userId) {
-  const { data, error } = await supabase
+  const extended = await supabase
+    .from("profiles")
+    .select("id, username, avatar, public_uid, banner_color, created_at, updated_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!extended.error) return extended.data;
+  if (!/public_uid|banner_color|schema cache|column/i.test(String(extended.error.message || ""))) throw extended.error;
+  const legacy = await supabase
     .from("profiles")
     .select("id, username, avatar, created_at, updated_at")
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw error;
-  return data;
+  if (legacy.error) throw legacy.error;
+  return legacy.data;
 }

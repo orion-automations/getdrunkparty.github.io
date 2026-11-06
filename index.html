@@ -87,15 +87,23 @@
         </section>
       </section>
       <section id="view-profile" class="view">
-        <div class="page-heading"><p class="eyebrow">TU IDENTIDAD ZEVYRA</p><h1>Mi perfil</h1><p class="muted">Este nickname se mostrará cuando participes en partidas online.</p></div>
-      <section class="panel profile-panel" aria-labelledby="profile-heading">
-          <div class="profile-avatar-mark"><img id="profile-avatar-preview" alt="Avatar del perfil" /></div>
-          <div class="profile-avatar-controls" aria-label="Personaliza tu avatar">
-            <label>Tono de piel<select id="avatar-skin"><option value="eeb4a4">Claro rosado</option><option value="e7a391">Claro cálido</option><option value="e5a07e">Medio claro</option><option value="d78774">Medio</option><option value="b16a5b">Medio oscuro</option><option value="92594b">Oscuro cálido</option><option value="623d36">Oscuro</option></select></label>
-            <label>Ojos<select id="avatar-eyes"><option value="open">Abiertos</option><option value="happy">Felices</option><option value="wink">Guiño</option><option value="glasses">Gafas</option><option value="sleep">Cerrados</option><option value="sunglasses">Gafas de sol</option></select></label>
-            <label>Boca<select id="avatar-mouth"><option value="smile">Sonrisa</option><option value="bigSmile">Gran sonrisa</option><option value="smirk">Pícara</option><option value="frown">Seria</option><option value="surprise">Sorprendida</option><option value="lips">Labios</option></select></label>
-          </div>
-          <form id="profile-form" class="form-grid">
+        <div class="page-heading"><p class="eyebrow">TU IDENTIDAD ZEVYRA</p><h1 id="profile-heading">Mi perfil</h1><p class="muted">Este nickname se mostrará cuando participes en partidas online.</p></div>
+        <section class="panel profile-panel" aria-labelledby="profile-heading">
+          <article class="player-id-card" aria-label="Tarjeta de identidad del jugador">
+            <div class="player-id-banner" aria-hidden="true"></div>
+            <div class="player-id-main">
+              <button id="profile-avatar-edit" class="profile-avatar-edit" type="button" aria-label="Editar avatar">
+                <img id="profile-avatar-preview" alt="Avatar del perfil" />
+                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+              </button>
+              <div class="player-id-copy">
+                <p class="eyebrow">JUGADOR ZEVYRA</p>
+                <h2 id="profile-display-name">Jugador</h2>
+                <p id="profile-uid" class="profile-uid">UID: #00000000</p>
+              </div>
+            </div>
+          </article>
+          <form id="profile-form" class="form-grid profile-nickname-form">
             <label>Usuario / nickname<input id="profile-nickname" maxlength="32" autocomplete="username" required placeholder="3–32: letras, números, . _ -" /></label>
             <button class="button" type="submit">Guardar nickname</button>
           </form>
@@ -104,8 +112,7 @@
             <div class="button-row"><button id="account-register" class="button" type="button">Crear cuenta</button><button id="account-login" class="button" type="button">Iniciar sesión</button><button id="account-logout" class="button hidden" type="button">Cerrar sesión</button></div>
             <p class="fine-print">Supabase Auth gestiona la contraseña. El perfil SQL guarda UID, nickname y avatar; no almacena contraseñas. No hay recuperación por correo configurada.</p>
           </form>
-          <p id="profile-uid" class="profile-uid">UID: local (inicia sesión para obtener tu ID)</p>
-          <p id="profile-session-info" class="fine-print" role="status">Perfil local. Se vinculará a tu identidad al iniciar una partida online.</p>
+          <p id="profile-session-info" class="fine-print profile-session-info" role="status">Perfil local. Se vinculará a tu identidad al iniciar una partida online.</p>
         </section>
       </section>
       <section id="view-games" class="view">
@@ -569,6 +576,22 @@
         <p id="manual-form-error" class="form-error" role="alert"></p>
         <div class="button-row modal-actions"><button type="button" class="button close-dialog">Cancelar</button><button class="button button-primary">Guardar manual</button></div>
       </form>
+    </dialog>
+    <dialog id="avatar-editor-dialog" class="modal avatar-editor-modal" aria-labelledby="avatar-editor-heading">
+      <div class="modal-heading">
+        <div><p class="eyebrow">PERSONALIZACIÓN DE PERSONAJE</p><h2 id="avatar-editor-heading">Avatar Big Smile</h2></div>
+        <button id="avatar-editor-close" type="button" class="icon-button" aria-label="Cerrar editor de avatar" title="Cerrar">×</button>
+      </div>
+      <div class="avatar-editor-layout">
+        <div class="avatar-editor-preview"><img id="avatar-editor-preview" alt="Vista previa del avatar" /></div>
+        <div id="avatar-editor-controls" class="profile-avatar-controls" aria-label="Características del avatar">
+          <p class="fine-print">Cargando opciones de Big Smile…</p>
+        </div>
+      </div>
+      <div class="button-row modal-actions">
+        <button id="avatar-editor-cancel" type="button" class="button">Cancelar</button>
+        <button id="avatar-editor-save" type="button" class="button button-primary">Guardar avatar</button>
+      </div>
     </dialog>
     <dialog id="timer-dialog" class="modal timer-modal">
       <div class="modal-heading timer-heading"><div><p class="eyebrow">HERRAMIENTA INDEPENDIENTE</p><h2>Temporizador</h2></div><button id="timer-close" type="button" class="icon-button" aria-label="Cerrar temporizador" title="Cerrar">×</button></div>

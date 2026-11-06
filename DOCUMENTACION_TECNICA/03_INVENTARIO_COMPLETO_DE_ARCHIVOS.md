@@ -64,6 +64,8 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 |---|---|
 | `tests/core.test.js` | Pruebas node:test de catálogo, mazos, targets, dado, ciclo de juego, minijuegos, migración y JSON. Aún no incluye prueba de integración Supabase ni navegador. |
 | `supabase/sql/001_multiplayer_schema.sql` | Tablas `profiles`, `rooms`, `room_players`, `game_states`, índices y RLS habilitado. |
+| `database/001_player_profiles.sql` | Añade UID público de ocho caracteres, color de banner, backfill y políticas RLS para perfiles; no almacena contraseñas. |
+| `database/README.md` | Orden de aplicación de la tabla de perfiles y explicación de Supabase Auth. |
 | `supabase/sql/002_multiplayer_policies.sql` | Grants mínimos, helpers y políticas RLS de lectura de miembros y Presence privada. |
 | `supabase/sql/003_multiplayer_functions.sql` | RPC transaccionales de crear/unirse/iniciar/guardar/heartbeat/salir/transferir/cerrar sala. |
 | `supabase/sql/004_multiplayer_realtime.sql` | Replica identity y publicación de tablas de sala/estado. |

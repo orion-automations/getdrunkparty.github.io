@@ -31,12 +31,12 @@ La integración Supabase se separa en `js/multiplayer-auth.js` (identidad y perf
 
 | Tabla | Uso | RLS/lectura |
 |---|---|---|
-| `profiles` | Nombre y avatar opcional por `auth.users.id`. | Cada usuario lee/escribe su propio perfil. |
+| `profiles` | Nickname, avatar, UID público de ocho caracteres y color de banner por `auth.users.id`. | Cada usuario lee/escribe su propio perfil; las salas comparten copias de nickname/avatar. |
 | `rooms` | Código, host, estado, límite y vencimiento de sala. | Lectura solo de miembros. Creación/mutación por RPC. |
 | `room_players` | Roster, rol, avatar/nombre y heartbeat. | Lectura solo de miembros. Mutación por RPC. |
 | `game_states` | Snapshot JSON de partida, temporizador y versión optimista. | Lectura solo de miembros. El participante activo guarda el estado del juego; el host actualiza por separado el temporizador, todo por RPC versionada. |
 
-El DDL está en `supabase/sql/001_multiplayer_schema.sql`; políticas/grants en 002; RPCs de sala en 003; publicación en 004. Las diagnósticas/unión están en 005 y las acciones de turno, perfil y temporizador separado en 006. El orden de instalación es 001 → 002 → 003 → 004 → 005 → 006. La guía `supabase/README.md` explica los pasos y las precondiciones.
+El esquema base está en `supabase/sql/001_multiplayer_schema.sql`; `database/001_player_profiles.sql` agrega `public_uid`, `banner_color` y las políticas RLS del perfil antes de `supabase/sql/002_multiplayer_policies.sql`. Después siguen RPCs de sala en 003, publicación en 004, diagnóstico/unión en 005, acciones de turno/perfil/temporizador en 006 y confirmación del anfitrión en 007. El orden y el procedimiento para una instalación existente están en `supabase/README.md`.
 
 ### Persistencia y sincronización
 

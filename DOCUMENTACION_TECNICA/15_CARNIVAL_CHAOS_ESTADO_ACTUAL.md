@@ -11,8 +11,8 @@ Este documento es la referencia vigente. El informe 14 conserva la auditoría de
 - El dado de seis caras conserva la animación 3D y usa la distribución acordada: 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio.
 - El Gran Circo avanza cada cinco **turnos individuales**. El mazo de Horrores y la Ruleta del Destino sí cambian automáticamente; los demás eventos aparecen como reglas guiadas en pantalla.
 - La portada de inicio se presenta en una tarjeta centrada con nombre y estado. Se cambia con gesto horizontal o con las flechas del teclado; no hay flechas de interfaz ni barra horizontal.
-- El perfil permite elegir tono de piel, ojos y boca; su avatar se muestra junto a participantes locales y de sala. El UID local se guarda en el navegador y el UID online procede de Supabase Auth.
-- La app contiene interfaz usuario/contraseña y SQL de perfiles. **No se aplicaron migraciones al proyecto Supabase remoto en esta tarea**; el contenido de esta carpeta solo documenta y prepara los archivos locales.
+- El perfil muestra tarjeta de identidad, avatar circular editable y UID público de ocho caracteres. El editor usa DiceBear Big Smile; el UID local persiste en el navegador y el remoto se guarda en public.profiles.public_uid.
+- La app contiene interfaz usuario/contraseña y la migración SQL local database/001_player_profiles.sql. **No se aplicó al proyecto Supabase remoto en esta tarea**; hasta entonces se muestra un UID derivado del Auth ID.
 
 ## Fuentes de Carnival
 
@@ -62,10 +62,9 @@ Los otros 19 eventos muestran instrucciones para que el grupo las aplique. Aunqu
 
 ### Carrusel de portadas
 
-`index.html:72-84 → js/app.js:877-914, 2208-2226 → css/platform.css:263-274, 291-294`
+`index.html:77-80 → js/app.js:1028-1068, 2416-2433 → css/platform.css:263-270, 291-294`
 
-La vista crea una tarjeta de portada centrada con nombre y estado dentro; el gesto horizontal cambia el índice y vuelve a pintar una tarjeta. El contenedor recorta el contenido sobrante para no mostrar scrollbar. La vista de inicio ocupa al menos la altura visible del móvil (`css/platform.css:88`, `211-222`). La imagen de Carnival proviene de la carpeta local, así que no depende de descargar una portada desde otro servidor.
-
+`renderHomeGameStack()` toma el juego seleccionado de `GAMES_CATALOG`, crea un marco de imagen `.home-game-cover` y coloca dentro la portada junto al título y estado; después actualiza la descripción y el control PLAY. El marco usa el tamaño fijo de la fila de la tarjeta, `overflow: hidden` y bordes redondeados; la imagen ocupa el marco con `object-fit: cover` sin deformarse. `selectHomeGame()` cambia el índice circular. Los eventos de puntero permiten deslizar la portada y las teclas izquierda/derecha cambian el juego. La caja usa `touch-action: pan-y` y recorta el contenido para no mostrar scrollbar. La portada de Carnival proviene de la carpeta local.
 ### Temporizador en tema claro
 
 `index.html:573-590 → js/app.js:695-779, 2272-2285 → css/platform.css:329-341`
@@ -74,12 +73,13 @@ El diálogo contiene la esfera de progreso, selectores de horas/minutos/segundos
 
 ### Perfil, avatares y UID
 
-`index.html:89-109, 293-302 → js/app.js:60-70, 157-175, 1719-1745, 2149-2176 → js/multiplayer.js:40-64 → js/multiplayer-auth.js:3-29, 58-80 → supabase/sql/001_multiplayer_schema.sql:1-8, 22-33`
+`index.html:89-115, 580-595 → js/app.js:66-72, 159-211, 225-288, 931-984, 2344-2389 → js/multiplayer.js:61-71, 198-205 → js/multiplayer-auth.js:58-89 → database/001_player_profiles.sql:5-77`
 
-El UID local es un UUID guardado en `localStorage`. El generador `profileAvatarUrl()` utiliza una semilla guardada y los valores seleccionados de piel/ojos/boca; el selector los persiste y actualiza las filas de participantes. Cuando hay sesión, `refreshProfileIdentity()` muestra el UID real de Auth y `saveProfile()` sincroniza nickname y URL del avatar con `public.profiles`. La tabla relaciona el perfil con `auth.users(id)`; **no guarda contraseñas**.
+La tarjeta de identidad coloca el avatar circular con lápiz sobre un banner y muestra nickname más UID público de ocho caracteres. `localProfileUid()` genera un código local; `refreshProfileIdentity()` lee `public_uid` remoto y, antes de ejecutar la migración, deriva el código visible de ocho caracteres alfanuméricos del ID de Auth. El UUID completo solo se usa internamente.
 
-La interfaz de usuario/contraseña se apoya en Supabase Auth. El recorrido es `index.html:98-108 → js/app.js:523-568 → js/multiplayer.js:46-63 → js/multiplayer-auth.js:3-29 → Supabase Auth`; el perfil se escribe con `saveProfile()` en `js/multiplayer-auth.js:58-80`. Como Auth usa email/teléfono como identificador, el cliente deriva un email sintético de `usuario@accounts.zevyra.invalid`; la configuración requiere apagar la confirmación de email y no dispone de recuperación por correo. Véase `supabase/README.md:9-15`. El avatar Persona se sirve desde DiceBear, por lo que cambiarlo o mostrarlo requiere conexión de red: [opciones oficiales de Personas](https://www.dicebear.com/styles/personas/).
+Al abrir el editor, `fetchAvatarEditorOptions()` consulta las opciones oficiales de `big-smile/options.json` y construye controles para ojos, boca, cabello, tono de piel, accesorios y colores. La vista previa arma el URL Big Smile con la misma semilla. Guardar conserva opciones y URL, actualiza avatares locales y sincroniza con `saveConnectedProfile()` dentro de una sala o `saveUserProfile()` fuera de ella. Referencias: [estilo Big Smile](https://www.dicebear.com/styles/big-smile/) y [HTTP API de DiceBear](https://www.dicebear.com/how-to-use/http-api).
 
+La interfaz de usuario/contraseña usa Supabase Auth. El recorrido es `index.html:106-113 → js/app.js:670-696 → js/multiplayer.js:46-71 → js/multiplayer-auth.js:3-29, 58-89 → Supabase Auth`. `database/001_player_profiles.sql` agrega `public_uid`, `banner_color` y políticas RLS. La tabla pública no guarda contraseñas. Como Auth usa email/teléfono como identificador, el cliente deriva un email sintético `usuario@accounts.zevyra.invalid`; la configuración requiere apagar la confirmación de email y no dispone de recuperación por correo. Véase `supabase/README.md:9-15`. La migración se creó en el proyecto pero aún debe ejecutarse en Dashboard para que el UID público quede persistido.
 ### Ejecución local y PWA
 
 `package.json:1-9 → server.mjs:1-41 → index.html:618 → js/app.js`
