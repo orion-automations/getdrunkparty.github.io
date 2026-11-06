@@ -41,21 +41,8 @@ revoke all on function public.gdp_can_access_realtime_topic() from public, anon;
 grant execute on function public.gdp_is_room_member(uuid) to authenticated;
 grant execute on function public.gdp_can_access_realtime_topic() to authenticated;
 
-revoke all on table public.profiles, public.rooms, public.room_players, public.game_states from anon, authenticated;
-grant select, insert, update on table public.profiles to authenticated;
+revoke all on table public.rooms, public.room_players, public.game_states from anon, authenticated;
 grant select on table public.rooms, public.room_players, public.game_states to authenticated;
-
-drop policy if exists profiles_read_self on public.profiles;
-create policy profiles_read_self on public.profiles
-  for select to authenticated using (id = (select auth.uid()));
-drop policy if exists profiles_insert_self on public.profiles;
-create policy profiles_insert_self on public.profiles
-  for insert to authenticated with check (id = (select auth.uid()));
-drop policy if exists profiles_update_self on public.profiles;
-create policy profiles_update_self on public.profiles
-  for update to authenticated
-  using (id = (select auth.uid()))
-  with check (id = (select auth.uid()));
 
 drop policy if exists rooms_read_members on public.rooms;
 create policy rooms_read_members on public.rooms

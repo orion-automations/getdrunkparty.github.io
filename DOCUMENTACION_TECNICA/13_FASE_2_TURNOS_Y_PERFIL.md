@@ -41,7 +41,7 @@ El temporizador conserva control de anfitrión, pero ahora usa `gdp_save_shared_
 - El último botón de navegación ahora es un icono SVG de usuario y abre `#view-profile`.
 - `#profile-form` guarda el nickname localmente en `zevyra.profile.name`; el formulario de multijugador muestra ese valor en modo de solo lectura.
 - Antes de crear o unirse a una sala, `connectOnlineRoom()` recupera el nombre local o consulta el perfil de la identidad anónima persistida. Si aún no hay nickname, solicita configurarlo en Perfil.
-- Con una sala conectada, guardar el perfil actualiza `profiles`, llama a `gdp_refresh_room_profile` y sincroniza `username_snapshot` y el nombre visible del participante, sin cambiar su UUID ni los nombres históricos de resultados ya guardados.
+- La cuenta personal se guarda en SQLite local. Al cambiar nickname/avatar durante una sala, la RPC `gdp_refresh_room_profile` actualiza solo `username_snapshot`/`avatar_snapshot` en salas activas; no actualiza una tabla remota de perfiles ni cambia el UUID ni los nombres históricos ya guardados.
 - El perfil muestra un fragmento del identificador anónimo de Supabase cuando la sesión está conectada. No agrega contraseña ni mecanismo de recuperación de identidad.
 
 ## Migración necesaria

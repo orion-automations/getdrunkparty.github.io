@@ -67,6 +67,10 @@ const isDicebearAvatar = (value) => typeof value === "string" && /^https:\/\/api
 let selectedLocalAvatar = PLAYER_AVATARS.includes(savedLocalAvatar) || isDicebearAvatar(savedLocalAvatar) ? savedLocalAvatar : PLAYER_AVATARS[0];
 if (!localStorage.getItem("zevyra.profile.avatarSeed")) localStorage.setItem("zevyra.profile.avatarSeed", crypto.randomUUID());
 function localProfileUid() {
+  try {
+    const account = JSON.parse(localStorage.getItem("zevyra.local.account.session") || "null")?.user;
+    if (/^[A-Z0-9]{8}$/.test(account?.public_uid || "")) return account.public_uid;
+  } catch { /* use this browser's guest UID */ }
   let uid = localStorage.getItem("zevyra.profile.publicUid");
   if (!uid) {
     uid = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
@@ -344,13 +348,9 @@ function renderAvatar(target, avatar) {
 function multiplayerErrorMessage(error) {
   const message = String(error?.message ?? error ?? "");
   const code = String(error?.code ?? "");
-  if (/Supabase no inició sesión|confirmación por correo/i.test(message)) return "Supabase creó o recibió la solicitud, pero exige confirmar un correo que esta cuenta de usuario no tiene. Desactiva la confirmación de correo para Email/Password en Supabase Auth y vuelve a crear la cuenta.";
-  if (/user already registered|user_already_exists|already been registered/i.test(message)) return "Ese nickname ya tiene una cuenta. Usa Iniciar sesión con su contraseña.";
+  if (/user already registered|user_already_exists|already been registered/i.test(message)) return "Ese nickname ya está registrado.";
   if (/invalid login credentials|invalid_credentials/i.test(message)) return "El usuario o la contraseña no coinciden.";
-  if (/password.*(at least|characters|short)|weak password/i.test(message)) return "La contraseña debe cumplir la longitud mínima configurada en Supabase.";
-  if (/email.*invalid|invalid.*email/i.test(message)) return "Supabase está rechazando el correo interno de la cuenta. Revisa la configuración de Email Auth y la función de registro con nickname.";
-  if (/profiles|relation .* does not exist|schema cache/i.test(message) || code === "PGRST205" || code === "42P01") return "La tabla o las columnas del perfil no están aplicadas en Supabase. Ejecuta database/001_player_profiles.sql y actualiza la caché del esquema.";
-  if (/Database error saving new user|Database error creating new user/i.test(message)) return "Supabase rechazó la creación del usuario. Revisa Auth > Logs y los triggers de auth.users en el proyecto.";
+  if (/relation .* does not exist|schema cache|rooms|room_players|game_states/i.test(message) || code === "PGRST205" || code === "42P01") return "Falta una tabla o función de las salas multijugador. Aplica las migraciones de supabase/sql/ en orden.";
   if (/ROOM_CODE_INVALID/i.test(message)) return "El código debe tener seis letras o números válidos.";
   if (/ROOM_NOT_FOUND/i.test(message)) return "No existe una sala con ese código. Revísalo e inténtalo de nuevo.";
   if (/ROOM_EXPIRED/i.test(message)) return "Esta sala venció. Pide un código nuevo al anfitrión.";
@@ -361,7 +361,7 @@ function multiplayerErrorMessage(error) {
   if (code === "42501" || /ROOM_MEMBERSHIP_REQUIRED/i.test(message)) return "Tu sesión no tiene permiso para entrar a esta sala.";
   if (code === "PGRST202" || /could not find the function/i.test(message)) {
     return /gdp_act_turn|gdp_refresh_room_profile|gdp_save_shared_timer/i.test(message)
-      ? "Supabase necesita la migración 006_turn_actions_and_profile.sql para turnos y perfil."
+      ? "Supabase necesita la migración 006_turn_actions_and_profile.sql para acciones de turno y alias de sala."
       : "Supabase no tiene actualizadas las funciones de sala. Aplica la migración 005_room_join_diagnostics.sql y vuelve a intentarlo.";
   }
   if (/Failed to fetch|NetworkError|Load failed/i.test(message)) return "No hay conexión con Supabase. Revisa internet e inténtalo de nuevo.";
@@ -716,12 +716,16 @@ $("#profile-form").onsubmit = async (event) => {
       render();
       notify("Nickname actualizado en tu perfil y en las salas activas.");
     } catch (error) {
-      notify(multiplayerErrorMessage(error));
+      notify(error.status ? error.message : multiplayerErrorMessage(error));
     }
   } else {
-    void getProfileIdentity()
-      .then((identity) => identity ? saveUserProfile(username, profileAvatarUrl()) : null)
-      .catch((error) => logMultiplayerError("save-profile-name", error));
+    try {
+      const identity = await getProfileIdentity();
+      if (identity) await saveUserProfile(username, profileAvatarUrl());
+    } catch (error) {
+      logMultiplayerError("save-profile-name", error);
+      return notify(error.message || "No se pudo actualizar la cuenta local.");
+    }
     notify("Nickname guardado. Se usará automáticamente al entrar a una sala.");
   }
 };
@@ -733,24 +737,24 @@ async function authenticateProfile(kind) {
     const user = kind === "register"
       ? await registerProfileAccount(username, password, profileAvatarUrl())
       : await signInProfileAccount(username, password);
-    const saved = await getSavedProfile();
+    const saved = user;
     const displayName = saved?.username || username;
     localStorage.setItem("zevyra.profile.name", displayName);
-    localStorage.setItem("zevyra.profile.avatar", profileAvatarUrl());
+    const accountAvatar = saved?.avatar || profileAvatarUrl();
+    localStorage.setItem("zevyra.profile.avatar", accountAvatar);
     $("#profile-nickname").value = displayName;
     $("#multiplayer-name").value = displayName;
     $("#profile-display-name").textContent = displayName;
-    const profile = saved || {};
-    const publicUid = String(profile.public_uid || user.id.replace(/[^a-z\d]/gi, "").slice(0, 8)).toUpperCase().slice(0, 8);
+    const publicUid = String(saved?.public_uid || localProfileUid()).toUpperCase().slice(0, 8);
     $("#profile-uid").textContent = "UID: #" + publicUid;
-    $("#profile-session-info").textContent = "Cuenta online conectada. El UID identifica tu perfil en las salas.";
+    $("#profile-session-info").textContent = "Cuenta local guardada en SQLite. El UID identifica tu perfil en esta instalación.";
     $("#account-password").value = "";
     render();
     await refreshProfileIdentity();
     notify(kind === "register" ? "Cuenta creada." : "Sesión iniciada.");
   } catch (error) {
     logMultiplayerError(`profile-${kind}`, error);
-    notify(multiplayerErrorMessage(error));
+    notify(error.message || "No se pudo guardar la cuenta local.");
   }
 }
 $("#account-register").onclick = () => authenticateProfile("register");
@@ -768,7 +772,7 @@ $("#account-logout").onclick = async () => {
     $("#account-register").classList.remove("hidden");
     $("#account-login").classList.remove("hidden");
     render();
-  } catch (error) { notify(multiplayerErrorMessage(error)); }
+  } catch (error) { notify(error.message || "No se pudo cerrar la cuenta local."); }
 };
 $("#multiplayer-create-form").onsubmit = async (event) => {
   event.preventDefault();
@@ -994,50 +998,43 @@ async function refreshProfileIdentity() {
   try {
     const identity = await getProfileIdentity();
     if (!identity) {
-      $("#profile-session-info").textContent = "Perfil local. Crea una cuenta para sincronizar tu identidad entre dispositivos.";
+      $("#profile-session-info").textContent = "Perfil local. Crear una cuenta guardará tu nickname y avatar en la base SQLite de este dispositivo.";
       $("#account-logout").classList.add("hidden");
       $("#account-register").classList.remove("hidden");
       $("#account-login").classList.remove("hidden");
       return;
     }
-    const anonymous = Boolean(identity.is_anonymous || identity.app_metadata?.provider === "anonymous");
-    $("#profile-session-info").textContent = anonymous
-      ? "Identidad temporal de Supabase para esta instalación. Crea una cuenta para recuperarla con usuario y contraseña."
-      : "Cuenta conectada. Este UID identifica tu perfil en las partidas online.";
-    $("#account-logout").classList.toggle("hidden", anonymous);
-    $("#account-register").classList.toggle("hidden", !anonymous);
-    $("#account-login").classList.toggle("hidden", !anonymous);
-    try {
-      const profile = await getSavedProfile();
-      const publicUid = String(profile?.public_uid || identity.id.replace(/[^a-z\d]/gi, "").slice(0, 8)).toUpperCase().slice(0, 8);
-      $("#profile-uid").textContent = "UID: #" + publicUid;
-      applyProfileBannerColor(profile?.banner_color);
-      if (profile?.username) {
-        $("#profile-nickname").value = profile.username;
-        $("#multiplayer-name").value = profile.username;
-        $("#profile-display-name").textContent = profile.username;
-        localStorage.setItem("zevyra.profile.name", profile.username);
+    const profile = identity;
+    $("#profile-session-info").textContent = "Cuenta local conectada. Sus datos están guardados en database/zevyra.sqlite.";
+    $("#account-logout").classList.remove("hidden");
+    $("#account-register").classList.add("hidden");
+    $("#account-login").classList.add("hidden");
+    const publicUid = String(profile.public_uid || localUid).toUpperCase().slice(0, 8);
+    $("#profile-uid").textContent = "UID: #" + publicUid;
+    if (profile.username) {
+      $("#profile-nickname").value = profile.username;
+      $("#multiplayer-name").value = profile.username;
+      $("#profile-display-name").textContent = profile.username;
+      localStorage.setItem("zevyra.profile.name", profile.username);
+    }
+    if (profile.avatar && isDicebearAvatar(profile.avatar) && profile.avatar.includes("/big-smile/")) {
+      rememberAvatarSettings(profile.avatar);
+      $("#profile-avatar-preview").src = profile.avatar;
+      $("#nav-profile-avatar").src = profile.avatar;
+      profileAvatarChoice.dataset.avatar = profile.avatar;
+      profileAvatarImage.src = profile.avatar;
+      const profileOption = [...$("#multiplayer-avatar").options].find((option) => option.textContent === "Mi avatar");
+      if (profileOption) profileOption.value = profile.avatar;
+      localStorage.setItem("zevyra.profile.avatar", profile.avatar);
+      const localAvatar = localStorage.getItem("zevyra.local.avatar");
+      if (!localAvatar || isDicebearAvatar(localAvatar)) {
+        selectedLocalAvatar = profile.avatar;
+        localStorage.setItem("zevyra.local.avatar", profile.avatar);
+        $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button === profileAvatarChoice)));
       }
-      if (profile?.avatar && isDicebearAvatar(profile.avatar) && profile.avatar.includes("/big-smile/")) {
-        rememberAvatarSettings(profile.avatar);
-        $("#profile-avatar-preview").src = profile.avatar;
-        profileAvatarChoice.dataset.avatar = profile.avatar;
-        profileAvatarImage.src = profile.avatar;
-        const profileOption = [...$("#multiplayer-avatar").options].find((option) => option.textContent === "Mi avatar");
-        if (profileOption) profileOption.value = profile.avatar;
-        localStorage.setItem("zevyra.profile.avatar", profile.avatar);
-        const localAvatar = localStorage.getItem("zevyra.local.avatar");
-        if (!localAvatar || isDicebearAvatar(localAvatar)) {
-          selectedLocalAvatar = profile.avatar;
-          localStorage.setItem("zevyra.local.avatar", profile.avatar);
-          $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button === profileAvatarChoice)));
-        }
-      }
-    } catch (error) {
-      logMultiplayerError("load-profile-screen", error);
     }
   } catch (error) {
-    $("#profile-session-info").textContent = "Cuenta online no disponible ahora. El perfil local sigue funcionando.";
+    $("#profile-session-info").textContent = "No se pudo abrir la base SQLite local. Inicia la aplicación con npm run serve.";
     logMultiplayerError("profile-identity", error);
   }
 }
@@ -1229,9 +1226,13 @@ function render() {
   if (profileSession) {
     $("#profile-nickname").value = profileSession.profile.username;
     $("#profile-display-name").textContent = profileSession.profile.username || "Jugador";
-    const publicUid = String(profileSession.profile.public_uid || profileSession.user.id.replace(/[^a-z\d]/gi, "").slice(0, 8)).toUpperCase().slice(0, 8);
+    const publicUid = String(profileSession.profile.public_uid || localProfileUid()).toUpperCase().slice(0, 8);
     $("#profile-uid").textContent = "UID: #" + publicUid;
-    $("#profile-session-info").textContent = `Sesión anónima conectada · ${profileSession.user.id.slice(0, 8)} · el nickname se sincroniza en las salas activas.`;
+    let localAccount = null;
+    try { localAccount = JSON.parse(localStorage.getItem("zevyra.local.account.session") || "null")?.user; } catch { /* no local account session */ }
+    $("#profile-session-info").textContent = localAccount
+      ? `Conectado a una sala como ${profileSession.profile.username}. La cuenta y el UID están en SQLite local.`
+      : `Conectado a una sala como ${profileSession.profile.username}. El alias de esta sala no crea una cuenta local.`;
   } else {
     $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
   }
@@ -2557,13 +2558,15 @@ async function saveAvatarCustomization() {
   const session = getMultiplayerSession();
   if (session) {
     try { await saveConnectedProfile(session.profile.username, avatar); }
-    catch (error) { notify(multiplayerErrorMessage(error)); return false; }
+    catch (error) { notify(error.status ? error.message : multiplayerErrorMessage(error)); return false; }
   } else {
     try {
       const identity = await getProfileIdentity();
       if (identity) await saveUserProfile(localStorage.getItem("zevyra.profile.name") || "Jugador", avatar);
     } catch (error) {
       logMultiplayerError("save-profile-avatar", error);
+      notify(error.message || "No se pudo actualizar el avatar en SQLite local.");
+      return false;
     }
   }
   if (!onlineMode) persist();

@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.2.0, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). El informe 14 documenta el estado anterior a la integración del juego.
+Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.3.0, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). El informe 14 documenta el estado anterior a la integración del juego.
 
 | Documento | Contenido |
 |---|---|
@@ -22,7 +22,8 @@ Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El
 - Entrada y vistas: `index.html` → `js/app.js`.
 - Estado Midnight Chaos: `js/app.js` → `js/storage.js` → `localStorage: zevyra.midnight-chaos.data.v1`; la clave anterior `gdpw.data.v1` se importa sin borrarse.
 - Salas online: `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase.
-- SQL/RLS/Realtime: `supabase/sql/001` → `002` → `003` → `004` → `005` → `006` → `007`; guía de ejecución: `supabase/README.md`.
+- Cuentas locales: `js/app.js` → `js/local-accounts.js` → `server.mjs` → `database/local_users.py` → `database/001_users.sql` → `database/zevyra.sqlite`.
+- SQL/RLS/Realtime de salas: `supabase/sql/001` → `002` → `003` → `004` → `005` → `006` → `007` → `008`; guía: `supabase/README.md`.
 - Catálogo vigente: `data/carnival-catalog.js` → `data/initial-cards.js` / `data/initial-manuals.js` → `js/storage.js` (migración de catálogo versión 10). `data/midnight-catalog.js` se conserva como referencia histórica.
 - Sistemas de partida: `js/game.js` → `data/power-catalog.js` / `data/round-events.js` / `data/chain-challenges.js`.
 - Turno: `js/app.js` → `js/game.js` → `js/dice.js` / `js/decks.js` / `js/participants.js` / `js/minigame-results.js` → `js/storage.js`.

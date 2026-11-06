@@ -1,3 +1,13 @@
+import {
+  getCachedLocalAccount,
+  getLocalAccount,
+  hasLocalAccountSession,
+  registerLocalAccount,
+  signInLocalAccount,
+  signOutLocalAccount,
+  updateLocalAccount,
+} from "./local-accounts.js";
+
 let session = null;
 let servicesPromise = null;
 
@@ -38,36 +48,29 @@ export function getMultiplayerSession() {
 }
 
 export async function getSavedProfile() {
-  const { auth } = await services();
-  const user = await auth.ensureAnonymousIdentity();
-  return auth.getProfile(user.id);
+  try { return await getLocalAccount(); }
+  catch { return getCachedLocalAccount(); }
 }
 
 export async function registerProfileAccount(username, password, avatar = null) {
-  const { auth } = await services();
-  return auth.registerUsername(username, password, avatar);
+  return registerLocalAccount(username, password, avatar);
 }
 
 export async function signInProfileAccount(username, password) {
-  const { auth } = await services();
-  return auth.signInUsername(username, password);
+  return signInLocalAccount(username, password);
 }
 
 export async function signOutProfileAccount() {
-  const { auth } = await services();
-  return auth.signOutUser();
+  return signOutLocalAccount();
 }
 
 export async function getProfileIdentity() {
-  const { auth } = await services();
-  return auth.getCurrentIdentity();
+  return getLocalAccount();
 }
 
 export async function saveUserProfile(username, avatar = null) {
-  const { auth } = await services();
-  const user = await auth.getCurrentIdentity();
-  if (!user) return null;
-  return auth.saveProfile(user.id, username, avatar);
+  if (!hasLocalAccountSession()) return null;
+  return updateLocalAccount(username, avatar);
 }
 
 export async function connectRoom({ mode, code, username, avatar = null, maxPlayers = 8, initialState, onSnapshot, onPresence, onStatus }) {
@@ -75,10 +78,15 @@ export async function connectRoom({ mode, code, username, avatar = null, maxPlay
   const { auth, rooms, sync } = await services();
   onStatus?.("Conectando…");
   const user = await auth.ensureAnonymousIdentity();
-  const existingProfile = await auth.getProfile(user.id);
+  const existingProfile = await getSavedProfile();
   const profileName = String(username ?? "").trim() || existingProfile?.username;
   if (!profileName) throw new Error("Escribe tu nombre para jugar online.");
-  const profile = await auth.saveProfile(user.id, profileName, avatar ?? existingProfile?.avatar ?? null);
+  const profile = {
+    id: existingProfile?.id ?? user.id,
+    public_uid: existingProfile?.public_uid ?? null,
+    username: profileName,
+    avatar: avatar ?? existingProfile?.avatar ?? null,
+  };
   let roomInfo;
   if (mode === "create") {
     roomInfo = await rooms.createRoom(profile.username, profile.avatar, maxPlayers, initialState);
@@ -197,9 +205,12 @@ export function scheduleRoomAction(state, timer = null, onError = () => {}) {
 
 export async function saveConnectedProfile(username, avatar = null) {
   if (!session) throw new Error("Conéctate a una sala para guardar el perfil online.");
-  const { auth, rooms } = await services();
-  const profile = await auth.saveProfile(session.user.id, username, avatar);
-  await rooms.refreshRoomProfile(profile.username, profile.avatar);
+  const { rooms } = await services();
+  const localProfile = hasLocalAccountSession()
+    ? await updateLocalAccount(username, avatar)
+    : null;
+  await rooms.refreshRoomProfile(username, avatar);
+  const profile = { ...session.profile, ...localProfile, username, avatar };
   session.profile = profile;
   await refreshRoom();
   return profile;

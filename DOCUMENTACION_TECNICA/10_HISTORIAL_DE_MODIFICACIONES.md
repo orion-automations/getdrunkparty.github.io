@@ -1,5 +1,13 @@
 # Historial de modificaciones
 
+## 2026-11-06 — Base local de usuarios y carrusel 2.3.0
+
+- El registro/inicio de sesión usa SQLite local en `database/zevyra.sqlite`; la contraseña se almacena con hash PBKDF2 y ya no se registra en Supabase.
+- Se añadieron endpoints locales en `server.mjs`, el backend SQLite de Python y sesiones con tokens almacenados como hash. El archivo de datos se excluye de Git y no se sirve como archivo estático.
+- Supabase queda para salas; las identidades anónimas técnicas y snapshots de nickname/avatar se usan durante la sala. Se añadió migración 008 para parar escritura del perfil persistente anterior sin borrar datos históricos.
+- El carrusel Home ahora usa la huella de una tarjeta de la cuadrícula Juegos, con la siguiente carta reducida y medio oculta por debajo. Se subió la caché PWA a 2.3.0.
+- No se ejecutó la suite ni inspección visual en esta actualización.
+
 ## 2026-11-06 — Interfaz, partida y perfil 2.2.0
 
 - El carrusel de Inicio muestra tarjetas compactas superpuestas y se puede cambiar con gesto táctil o flechas del teclado; el titular ahora dice “JUEGOS DISPONIBLES”.

@@ -1,18 +1,19 @@
 # Carnival of Chaos — estado actual e implementación
 
-**Actualizado:** 2026-11-06 · **Versión:** 2.2.0 · **Estado:** integrado para pruebas locales; la configuración externa de Supabase todavía requiere revisión.
+**Actualizado:** 2026-11-06 · **Versión:** 2.3.0 · **Estado:** cuentas locales SQLite y carrusel corregido; las salas online siguen requiriendo Supabase.
 
 Este es el documento vigente para la aplicación. Los documentos 01–14 conservan antecedentes e iteraciones anteriores; si una decisión difiere, prevalece esta versión y el código citado.
 
 ## Resumen actual
 
 - Carnival of Chaos está disponible; los otros juegos siguen bloqueados hasta tener una implementación (`js/games-catalog.js:1-24`). Se conserva `GAME_ID = "midnight-chaos"` para los datos existentes (`js/config.js:1-3`).
-- El inicio muestra una portada compacta y centrada. La tarjeta activa queda delante de la siguiente, que asoma más pequeña por debajo. El usuario desliza para cambiarla (`index.html:87-100`, `js/app.js:1087-1132, 2598-2614`, `css/platform.css:436-452, 568-569`).
+- El inicio usa una tarjeta con la huella de una columna del mosaico Juegos, con la siguiente más pequeña asomando por debajo; se desliza con el dedo (`index.html:87-100`, `js/app.js:1087-1132, 2598-2614`, `css/platform.css:123-135, 227-230, 580-610`).
 - El dado mantiene seis caras y la animación 3D. Las probabilidades del catálogo son 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio (`js/dice.js:1-84`; creación y orientación visual: `js/app.js:77-82, 1250-1289`).
 - Las rondas cuentan un ciclo completo por los participantes activos: la ronda termina al volver al primero de la lista en el orden vigente. Cada quinto ciclo completo activa un evento; su duración todavía se descuenta por turnos individuales (`js/game.js:664-725`).
 - Las cartas jugadas, auxiliares y descartadas terminan en el cementerio. La extracción excluye esos IDs hasta reiniciar la partida (`js/game.js:545-578`, `js/decks.js:2-36`, `js/app.js:1166-1208, 2693-2718`).
 - La interfaz admite local y multijugador; en salas online el jugador activo conserva las acciones del turno y el anfitrión confirma/cierra el resultado (`index.html:137-150`, `js/app.js:104-139, 2870-2879`, SQL `supabase/sql/007_host_confirms_turns.sql`).
 - El catálogo importa 414 cartas y 24 manuales desde la guía. Los nombres visibles de los dos mazos Joker son **Jokers Bufones** y **Jokers Arlequines**. La migración de catálogo v10 también actualiza las partidas ya guardadas (`data/carnival-catalog.js`, `data/initial-cards.js:1-5`, `js/config.js:4-11`, `js/storage.js:47-63, 272-276`).
+- Las cuentas personales y sus contraseñas se administran en SQLite local. Supabase se usa solo para salas online y copias de nickname/avatar en el roster activo.
 
 ## Flujos funcionales trazables
 
@@ -46,33 +47,33 @@ El botón fijo con icono de vórtice abre una lista de solo lectura (`index.html
 
 ### Perfil y avatar Big Smile
 
-`index.html → js/app.js → DiceBear API → js/multiplayer-auth.js / database/001_player_profiles.sql`
+`index.html → js/app.js → js/multiplayer.js → js/local-accounts.js → server.mjs → database/local_users.py → database/001_users.sql → database/zevyra.sqlite`
 
-Perfil es la quinta vista fija y su avatar se muestra en la navegación inferior (`index.html:73-79, 104-131`). La tarjeta de identidad alinea el UID a la izquierda; el editor se abre con el lápiz (`index.html:107-120`; `css/platform.css:381-390, 476`). `profileAvatarUrl()` crea una URL Big Smile con semilla y opciones; el editor obtiene las opciones de estilo y presenta controles de color y variantes (`js/app.js:162-176, 220-328`). En Participantes, cada avatar se muestra junto al nickname y abre el mismo editor para personalizar ese jugador (`js/app.js:2018-2063`; estilos `css/platform.css:453-457`). La respuesta de DiceBear requiere conexión a internet.
+Perfil es la quinta vista fija y su avatar se muestra en la navegación inferior (`index.html:73-79, 104-131`). La tarjeta de identidad alinea el UID a la izquierda; el editor se abre con el lápiz (`index.html:107-120`; `css/platform.css:381-390, 476`). `profileAvatarUrl()` crea una URL Big Smile con semilla y opciones; el editor obtiene opciones y presenta controles para personalizar (`js/app.js:162-176, 220-328`). En Participantes, cada avatar abre el editor para ese jugador (`js/app.js:2018-2063`). DiceBear requiere conexión para obtener sus imágenes.
 
-El perfil local crea un UID alfanumérico de ocho caracteres. El perfil remoto usa `public_uid` de `public.profiles` (`js/app.js:69-76, 990-1024`; `database/001_player_profiles.sql`). La contraseña se gestiona exclusivamente en Supabase Auth, no se guarda en la tabla de perfiles (`index.html:121-130`, `js/multiplayer-auth.js:1-29`).
+`authenticateProfile()` llama al registro o inicio local (`js/app.js:732-775`). `js/local-accounts.js:18-91` envía JSON a `/api/users/register`, `/login`, `/me` y `/session`; `server.mjs:44-113` ejecuta `database/local_users.py:32-190`, que crea/aplica el esquema `database/001_users.sql:5-28`. La base local está inicializada como `database/zevyra.sqlite`; si se elimina, el siguiente acceso vuelve a crearla. `local_users` contiene UID, nickname y avatar, y una sal/hash PBKDF2; `local_sessions` guarda el hash del token con vencimiento. La contraseña en claro no se escribe en SQLite.
 
-### Registro online y configuración externa
+### Salas online
 
-`index.html → js/app.js → js/multiplayer.js → js/multiplayer-auth.js → js/supabase.js → Supabase Auth/Postgres`
+`js/app.js → js/multiplayer.js → js/multiplayer-auth.js (identidad anónima) → js/multiplayer-rooms.js → Supabase`
 
-`authenticateProfile()` solicita registro o inicio de sesión; `multiplayerErrorMessage()` convierte errores de Supabase en instrucciones visibles (`js/app.js:340-373, 728-756`). Para registro solo con nickname y contraseña, Auth recibe un correo sintético `usuario@accounts.zevyra.invalid`. Supabase debe tener desactivada la confirmación por correo en Email/Password; de lo contrario el proveedor no entrega una sesión para ese email reservado (`js/multiplayer-auth.js:1-29`, `supabase/README.md:9-15`). Si faltan tablas/permisos, hay que aplicar las migraciones locales en el SQL Editor. El código local no puede cambiar los ajustes ni aplicar SQL al proyecto remoto. **La creación de cuenta remota no se verificó en esta actualización.**
+El modo multijugador usa una identidad anónima técnica de Supabase para permisos y sincronización. El cliente envía nickname/avatar solo a RPC de sala, que los conserva como snapshot en `room_players`; no envía la contraseña ni el UID de cuenta local (`js/multiplayer.js`; `supabase/sql/003_multiplayer_functions.sql`). La migración 008 bloquea el perfil persistente legado en instalaciones antiguas sin borrar sus filas (`supabase/sql/008_local_accounts_only.sql`).
 
 ### Tema, ajustes y PWA
 
-El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`).
+El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`). El service worker no almacena en caché las respuestas privadas de `/api/` (`sw.js:1-2, 86-94`).
 
-Ajustes separa penalizaciones, reinicio, respaldo y aplicación (`index.html:402-483`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.2.0 (`index.html:479`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
+Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:402-483`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.0 (`index.html:479`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
 
 ## Datos y migraciones
 
 El catálogo fuente se clona desde `data/carnival-catalog.js` a `data/initial-cards.js` y `data/initial-manuals.js`; `js/storage.js` inicializa estado nuevo y migra estado existente. La versión actual es `CATALOG_VERSION = 10` (`js/storage.js:1-17`). La migración 9 elimina las seis cartas de penalización antiguas y actualiza nombres Horror; la 10 modifica nombres de Joker en todo el estado persistido (`js/storage.js:237-276`). Las categorías del motor conservan los identificadores anteriores (`js/config.js:4-11`) para evitar romper guardados.
 
-## Instalación SQL y límites
+## Bases de datos y límites
 
-La documentación SQL y orden de migraciones está en `supabase/README.md`; la migración de identidad también está en `database/001_player_profiles.sql`. No se accedió al Dashboard ni se aplicó SQL remoto durante este trabajo. Para probar cuentas reales, verificar confirmación Email/Auth, tablas, RLS y RPC en el proyecto Supabase configurado en `js/supabase.js`. El formulario online depende de esa configuración y conexión.
+El esquema SQLite local está en `database/001_users.sql`; `database/local_users.py` lo ejecuta al primer acceso y reconstruye el archivo `database/zevyra.sqlite` si se elimina. El registro requiere `npm run serve` y Python 3. Supabase se conserva solo para el backend de salas; el orden de migraciones se describe en `supabase/README.md`. En proyectos existentes hay que ejecutar 008 para desactivar los perfiles persistentes antiguos. No se eliminaron filas históricas del proyecto remoto.
 
 ## Verificación de esta actualización
 
-- Se revisaron rutas, controladores y selectores de código directamente antes de documentar sus líneas.
-- No se ejecutó la suite de pruebas ni se hizo una revisión visual automatizada en esta actualización. La prueba del carrusel táctil, tema claro, editor responsive, personalización de avatar, instalación PWA y registro Supabase debe realizarse desde `http://localhost:8080` y, para Auth, con Supabase configurado.
+- Se actualizaron las rutas de cuenta: perfil → cliente local → API Node → SQLite/Python. El token de sesión se almacena como hash y la contraseña como hash PBKDF2 con sal.
+- No se ejecutó la suite ni una revisión visual automatizada. El registro local y el carrusel redimensionado deben probarse desde `http://localhost:8080`; las salas multijugador requieren además Supabase y migración 008.

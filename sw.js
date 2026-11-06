@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}2.2.0`;
+const CACHE_NAME = `${CACHE_PREFIX}2.3.0`;
 const SHELL = [
   "./",
   "./index.html",
@@ -20,6 +20,7 @@ const SHELL = [
   "./js/multiplayer-auth.js",
   "./js/multiplayer-rooms.js",
   "./js/multiplayer-sync.js",
+  "./js/local-accounts.js",
   "./js/config.js",
   "./js/utils.js",
   "./js/storage.js",
@@ -88,6 +89,7 @@ self.addEventListener("fetch", (event) => {
     new URL(event.request.url).origin !== self.location.origin
   )
     return;
+  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
   event.respondWith(
     fetch(event.request, { cache: "no-cache" })
       .then((response) => {

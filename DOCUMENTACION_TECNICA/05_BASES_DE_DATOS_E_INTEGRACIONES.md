@@ -25,18 +25,19 @@ El esquema se inicializa en `storage.js:12-35`; validación estructural en `37-8
 
 ## APIs / servicios externos
 
-La integración Supabase se separa en `js/multiplayer-auth.js` (identidad y perfil), `js/multiplayer-rooms.js` (lecturas/RPCs), `js/multiplayer-sync.js` (Postgres Changes y Presence), coordinados por `js/multiplayer.js`. `js/supabase.js` recibe la URL y clave pública `anon` del proyecto. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`, y los módulos que lo importan se cargan dinámicamente desde `multiplayer.js` solo al iniciar conexión. El servidor `server.mjs` sigue sirviendo archivos; no tiene endpoint de aplicación.
+Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de `server.mjs`, que delega las consultas a `database/local_users.py` y SQLite nativo. `js/multiplayer-auth.js` solo mantiene identidad anónima técnica para salas. `js/multiplayer-rooms.js` gestiona RPC/lecturas y `js/multiplayer-sync.js` gestiona Postgres Changes y Presence. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`; los módulos online se importan solo al iniciar una conexión.
 
 ### Tablas remotas
 
 | Tabla | Uso | RLS/lectura |
 |---|---|---|
-| `profiles` | Nickname, avatar, UID público de ocho caracteres y color de banner por `auth.users.id`. | Cada usuario lee/escribe su propio perfil; las salas comparten copias de nickname/avatar. |
 | `rooms` | Código, host, estado, límite y vencimiento de sala. | Lectura solo de miembros. Creación/mutación por RPC. |
-| `room_players` | Roster, rol, avatar/nombre y heartbeat. | Lectura solo de miembros. Mutación por RPC. |
+| `room_players` | Roster y nickname/avatar copiados para la sesión de sala, rol y heartbeat. | Lectura solo de miembros. Mutación por RPC. |
 | `game_states` | Snapshot JSON de partida, temporizador y versión optimista. | Lectura solo de miembros. El participante activo guarda el estado del juego; el host actualiza por separado el temporizador, todo por RPC versionada. |
 
-El esquema base está en `supabase/sql/001_multiplayer_schema.sql`; `database/001_player_profiles.sql` agrega `public_uid`, `banner_color` y las políticas RLS del perfil antes de `supabase/sql/002_multiplayer_policies.sql`. Después siguen RPCs de sala en 003, publicación en 004, diagnóstico/unión en 005, acciones de turno/perfil/temporizador en 006 y confirmación del anfitrión en 007. El orden y el procedimiento para una instalación existente están en `supabase/README.md`.
+La base de cuentas local usa `database/001_users.sql` para crear `local_users` y `local_sessions`; `database/local_users.py` aplica el esquema, verifica hashes PBKDF2 y ejecuta consultas SQLite. `server.mjs` expone `/api/users/register`, `/login`, `/me` y `/session`; bloquea la descarga directa del archivo `database/zevyra.sqlite`. No se envía la contraseña ni el UID de cuenta a Supabase.
+
+El esquema online de sala está en `supabase/sql/001_multiplayer_schema.sql`; después siguen políticas/RPC/realtime en 002–004, diagnóstico/unión en 005, acciones y alias de roster en 006, confirmación de anfitrión en 007, y `008_local_accounts_only.sql` para dejar de guardar perfiles persistentes en instalaciones antiguas. El detalle está en `supabase/README.md`.
 
 ### Persistencia y sincronización
 

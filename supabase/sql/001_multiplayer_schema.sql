@@ -1,11 +1,4 @@
 -- Circus Zevyra multiplayer schema. Safe to re-run; it does not delete data.
-create table if not exists public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
-  username text not null check (char_length(btrim(username)) between 1 and 32),
-  avatar text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
 
 create table if not exists public.rooms (
   id uuid primary key default gen_random_uuid(),
@@ -48,7 +41,6 @@ create index if not exists room_players_user_status_idx
 create index if not exists room_players_room_status_idx
   on public.room_players (room_id, status, joined_at);
 
-alter table public.profiles enable row level security;
 alter table public.rooms enable row level security;
 alter table public.room_players enable row level security;
 alter table public.game_states enable row level security;

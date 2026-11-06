@@ -20,11 +20,6 @@ begin
   if p_max_players < 2 or p_max_players > 30 then raise exception 'INVALID_CAPACITY'; end if;
   if char_length(btrim(coalesce(p_username, ''))) not between 1 and 32 then raise exception 'INVALID_USERNAME'; end if;
 
-  insert into public.profiles (id, username, avatar, updated_at)
-  values (v_user_id, btrim(p_username), p_avatar, now())
-  on conflict (id) do update set username = excluded.username,
-    avatar = excluded.avatar, updated_at = now();
-
   for v_attempt in 1..12 loop
     select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', floor(random() * 32)::integer + 1, 1), '')
       into v_code from generate_series(1, 6);

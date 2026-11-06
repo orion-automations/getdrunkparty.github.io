@@ -125,9 +125,9 @@
           <form id="account-form" class="account-form">
             <label>Contraseña<input id="account-password" type="password" minlength="8" autocomplete="current-password" placeholder="Mínimo 8 caracteres" /></label>
             <div class="button-row"><button id="account-register" class="button" type="button">Crear cuenta</button><button id="account-login" class="button" type="button">Iniciar sesión</button><button id="account-logout" class="button hidden" type="button">Cerrar sesión</button></div>
-            <p class="fine-print">Supabase Auth gestiona la contraseña. El perfil SQL guarda UID, nickname y avatar; no almacena contraseñas. No hay recuperación por correo configurada.</p>
+            <p class="fine-print">La cuenta se guarda en SQLite en este dispositivo. La contraseña se almacena como hash, nunca en texto legible; no se sincroniza con Supabase.</p>
           </form>
-          <p id="profile-session-info" class="fine-print profile-session-info" role="status">Perfil local. Se vinculará a tu identidad al iniciar una partida online.</p>
+          <p id="profile-session-info" class="fine-print profile-session-info" role="status">El perfil de cuenta se guarda en la base SQLite local.</p>
         </section>
       </section>
       <section id="view-games" class="view">
@@ -476,7 +476,7 @@
               La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.
             </p>
             <p class="fine-print">
-              Versión <span id="app-version">2.2.0</span> · Los datos de juego
+              Versión <span id="app-version">2.3.0</span> · Los datos de juego
               permanecen en este dispositivo.
             </p>
           </section>
