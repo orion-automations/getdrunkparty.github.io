@@ -1,4 +1,4 @@
-export const VERSION = "2.3.18";
+export const VERSION = "2.3.19";
 export const GAME_NAME = "Carnival of Chaos";
 export const GAME_ID = "midnight-chaos";
 export const CATEGORIES = {

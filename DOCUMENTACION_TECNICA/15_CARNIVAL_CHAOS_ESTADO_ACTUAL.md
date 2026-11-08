@@ -1,6 +1,6 @@
 # Carnival of Chaos — estado actual e implementación
 
-**Actualizado:** 2026-11-07 · **Versión:** 2.3.17 · **Estado:** acceso local persistente y pasaporte Zevyra; las salas online siguen requiriendo Supabase.
+**Actualizado:** 2026-11-07 · **Versión:** 2.3.19 · **Estado:** acceso persistente local, cuenta IndexedDB para GitHub Pages y salas online vía Supabase.
 
 Este es el documento vigente para la aplicación. Los documentos 01–14 conservan antecedentes e iteraciones anteriores; si una decisión difiere, prevalece esta versión y el código citado.
 
@@ -13,7 +13,8 @@ Este es el documento vigente para la aplicación. Los documentos 01–14 conserv
 - Las cartas jugadas, auxiliares y descartadas terminan en el cementerio. La extracción excluye esos IDs hasta reiniciar la partida (`js/game.js:545-578`, `js/decks.js:2-36`, `js/app.js:1166-1208, 2693-2718`).
 - La interfaz admite local y multijugador; en salas online el jugador activo conserva las acciones del turno y el anfitrión confirma/cierra el resultado (`index.html:137-150`, `js/app.js:104-139, 2870-2879`, SQL `supabase/sql/007_host_confirms_turns.sql`).
 - El catálogo importa 414 cartas y 24 manuales desde la guía. Los nombres visibles de los dos mazos Joker son **Jokers Bufones** y **Jokers Arlequines**. La migración de catálogo v10 también actualiza las partidas ya guardadas (`data/carnival-catalog.js`, `data/initial-cards.js:1-5`, `js/config.js:4-11`, `js/storage.js:47-63, 272-276`).
-- Las cuentas personales y sus contraseñas se administran en SQLite local. Supabase se usa solo para salas online y copias de nickname/avatar en el roster activo.
+- Las cuentas personales usan SQLite al correr Node local y IndexedDB al publicar como web estática. La cuenta de GitHub Pages solo existe en ese navegador; Supabase se usa para salas online y copias de nickname/avatar en el roster activo.
+- `js/local-accounts.js:1-46` detecta la API local por su cabecera `X-Zevyra-Local-Accounts: sqlite-v1` (o una respuesta 401 reconocida del servidor anterior); las respuestas genéricas 404/405 JSON ya no seleccionan SQLite. El hash de la cuenta está en IndexedDB/SQLite; el estado de sesión va a `localStorage`.
 
 ## Flujos funcionales trazables
 
@@ -47,13 +48,13 @@ El botón fijo con icono de vórtice abre una lista de solo lectura (`index.html
 
 ### Perfil y avatar Big Smile
 
-`index.html → js/app.js → js/multiplayer.js → js/local-accounts.js → server.mjs → database/local_users.py → database/001_users.sql → database/zevyra.sqlite`
+`index.html → js/app.js → js/multiplayer.js → js/local-accounts.js → (GitHub Pages: IndexedDB; Node local: server.mjs → database/local_users.py → database/001_users.sql → database/zevyra.sqlite)`
 
 El acceso inicial bloquea la interfaz con `#auth-gate`. Sus pestañas llaman a `setAuthenticationMode()` y el formulario envía exclusivamente nickname y contraseña a `authenticateProfile()` (`index.html:82-97`; `js/app.js:748-786`; `css/platform.css:1023-1053`). `initializeAccountAccess()` valida la sesión guardada al arrancar; el token y perfil público se conservan en `localStorage` (`js/app.js:1061-1079`; `js/local-accounts.js:1-63`). El token local permanece válido hasta cerrar sesión; la inicialización extiende las sesiones existentes (`database/local_users.py:24-25, 35-50, 148-157, 200-212`). Al cerrar sesión, `#account-logout` revoca el token y vuelve a abrir el acceso (`index.html:189`; `js/app.js:787-803`).
 
 Después del acceso, `#view-profile` contiene solo el Pasaporte Zevyra: banner, avatar editable, nickname, UID alineado a la izquierda y selector de nacionalidad (`index.html:116-189`). `updateProfileCard()` rellena la tarjeta desde el usuario autenticado; al cambiar nacionalidad, la interfaz guarda el código de país en la cuenta (`js/app.js:87-120, 805-815`). El editor Big Smile sigue permitiendo ajustar el avatar (`js/app.js:2640-2738`).
 
-`js/local-accounts.js:1-93` envía JSON a `/api/users/register`, `/login`, `/me` y `/session`; `server.mjs:69-75` enruta esos endpoints a `database/local_users.py`. `connect_db()` aplica la migración SQLite y `new_uid()` genera `zevy` más seis caracteres aleatorios (`database/local_users.py:35-50, 190-197`). El esquema conserva usuarios anteriores y añade nacionalidad, `cartasPremio` y `fragmentos` (`database/local_users.py:53-145`; `database/001_users.sql:7-35`). Las contraseñas se guardan como sal y hash PBKDF2; `local_sessions` conserva el hash del token y permanece válido hasta el cierre explícito de sesión. La contraseña en claro no se escribe en SQLite.
+`js/local-accounts.js` selecciona el backend al consultar `api/users/me` relativo a la ruta de la app. En local, `server.mjs` identifica su API con una cabecera y enruta esos endpoints a `database/local_users.py`; el UID usa el prefijo `zevy` y seis caracteres. En Pages, `openBrowserDatabase()` crea un almacén IndexedDB con índices únicos; `registerInBrowser()` crea el UID y deriva hash PBKDF2. No hay API SQLite en Pages, y un nick allí solo es único dentro de ese almacenamiento local.
 
 ### Salas online
 
@@ -65,7 +66,7 @@ El modo multijugador usa una identidad anónima técnica de Supabase para permis
 
 El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`). El service worker no almacena en caché las respuestas privadas de `/api/` (`sw.js:1-2, 86-94`).
 
-Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:461-485`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.17 (`index.html:517`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
+Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:461-485`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.19 (`index.html:552`, `package.json:3`, `js/config.js:1`, `sw.js:1-2`).
 
 ## Datos y migraciones
 
@@ -73,9 +74,15 @@ El catálogo fuente se clona desde `data/carnival-catalog.js` a `data/initial-ca
 
 ## Bases de datos y límites
 
-El esquema SQLite local está en `database/001_users.sql`; `database/local_users.py` lo ejecuta al primer acceso y reconstruye el archivo `database/zevyra.sqlite` si se elimina. El registro requiere `npm run serve` y Python 3. Supabase se conserva solo para el backend de salas; el orden de migraciones se describe en `supabase/README.md`. En proyectos existentes hay que ejecutar 008 para desactivar los perfiles persistentes antiguos. No se eliminaron filas históricas del proyecto remoto.
+El esquema SQLite local está en `database/001_users.sql`; `database/local_users.py` lo ejecuta al primer acceso del modo Node y reconstruye el archivo `database/zevyra.sqlite` si se elimina. Ese modo requiere `npm run serve` y Python 3. GitHub Pages usa IndexedDB y no ejecuta esa API. Supabase se conserva para el backend de salas; el orden de migraciones se describe en `supabase/README.md`. En proyectos existentes hay que ejecutar 008 para desactivar los perfiles persistentes antiguos. No se eliminaron filas históricas del proyecto remoto.
+
+## Despliegue estático de cuentas y multijugador
+
+GitHub Pages solo sirve los archivos estáticos: no puede arrancar `server.mjs`, Python ni SQLite. En ese hosting el registro/login opera sobre IndexedDB; el perfil y su sesión se conservan en el mismo navegador. Para permitir cuentas sincronizadas entre dispositivos se necesitaría un backend de cuentas; las tablas SQLite de `database/` no se suben a Supabase ni sustituyen ese backend. Las salas online son independientes: Supabase Auth anónimo, RPC, RLS, tablas y Realtime deben estar habilitados y las migraciones 001–008 aplicadas; 009 configura el borrado programado opcional descrito en `supabase/README.md`.
+
+El antiguo falso positivo de API estaba en el detector del cliente: cualquier JSON o respuesta 200 era aceptada como API, así que servidores estáticos con 405 JSON podían mandar al formulario hacia `/api/users/register` y devolver 405. Ahora el servidor Node marca sus respuestas con `X-Zevyra-Local-Accounts: sqlite-v1`; en ausencia de esa señal, el cliente usa IndexedDB, excepto por el 401 de compatibilidad de la versión anterior.
 
 ## Verificación de esta actualización
 
-- Se actualizaron las rutas de cuenta: perfil → cliente local → API Node → SQLite/Python. El token de sesión se almacena como hash y la contraseña como hash PBKDF2 con sal.
-- No se ejecutó la suite ni se creó una cuenta de prueba. Se comprobaron sintaxis JavaScript/Python y se verificó visualmente la pantalla de acceso inicial en `http://localhost:8000`. El registro y el carrusel deben probarse con los datos reales del usuario; las salas multijugador requieren además Supabase y migración 008.
+- Se actualizó la detección entre API Node/SQLite e IndexedDB estático para que los 404/405 genéricos no se interpreten como API de cuentas.
+- `node --check` pasó para los módulos editados. No se creó una cuenta ni se ejecutó la suite. El servidor local no estaba activo y el entorno de esta sesión rechazó abrir el puerto con `EPERM`; la prueba de dos clientes online sigue pendiente después de publicar y confirmar Supabase.

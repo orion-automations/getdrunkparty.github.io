@@ -8,21 +8,21 @@
 
 ## Servidor local
 
-Desde raíz, el script declarado es `npm run serve` (`package.json:8-11`) y ejecuta `node server.mjs`. Servidor usa `PORT` si está definido y 8080 por defecto, escucha en `0.0.0.0` (`server.mjs:38-40`); navegador local en `http://localhost:8080`. No abrir con `file://`: app usa módulos y service worker condicionado por origen.
+Desde raíz, `npm run serve` (`package.json:6-9`) ejecuta `node server.mjs`. El servidor usa `PORT` si está definido y 8000 por defecto (`server.mjs:122-127`); abre `http://localhost:8000`. Ese modo incluye la API de cuentas SQLite. No abras con `file://`: la app usa módulos y un service worker condicionado por origen.
 
 ## Pruebas automatizadas
 
-`npm test` ejecuta `node --test tests/*.test.js`. En esta revisión terminó correctamente; la salida de Node reporta un archivo de pruebas aprobado. No hay comando build, lint o deploy declarado en `package.json`.
+`npm test` ejecuta `node --test tests/*.test.js`. No hay comando build, lint o deploy declarado en `package.json`.
 
 ## PWA
 
-Para instalación real y offline, publicar archivos estáticos en hosting HTTPS; el proyecto no contiene configuración de proveedor o pipeline de despliegue. En carga inicial, navegador registra `./sw.js` y precachea `SHELL`. Después probar con red, cerrar y abrir offline. README detalla Android por Wi-Fi y menú de instalación; HTTP por IP local sirve para desarrollo y no habilita instalación PWA estándar en Chrome.
+Para GitHub Pages, publica `index.html`, `js/`, `data/`, `css/`, `assets/`, `manifest.json` y `sw.js` desde una rama/carpeta de Pages con HTTPS. Pages no ejecuta `server.mjs`, Python ni SQLite: el cliente detecta que no existe la API y guarda la cuenta en IndexedDB del navegador. Las cuentas son distintas por navegador/dispositivo; no sirven para login global. Las salas online sí se comparten por Supabase y requieren conexión, Anonymous Sign-Ins y migraciones SQL 001–008 aplicadas (009 es el trabajo opcional de limpieza mensual). En carga inicial se registra `./sw.js` y precachea `SHELL`; al publicar una actualización, sube las versiones de `js/config.js` y `sw.js` juntas.
 
 ## Archivos que componen la entrega
 
 Servir la raíz conservando estructura/rutas. `index.html`, `js/`, `data/`, `css/`, `assets/icons/`, `manifest.json` y `sw.js` son necesarios. `server.mjs` solo se necesita para el servidor Node local. PDFs no están en lista de caché del SW.
 
-No se inventan pasos de despliegue: hosting, dominio, TLS, cabeceras y pipeline no están configurados en el repositorio inspeccionado.
+El proyecto no contiene un pipeline de publicación. Para instrucciones de GitHub Pages y Supabase, sigue `README.md` y `supabase/README.md`.
 
 ## Actualización fase 1
 
@@ -31,9 +31,9 @@ No se requieren paquetes ni configuración nuevos para las mejoras locales. El t
 ## Configurar el modo multijugador
 
 1. En Supabase Dashboard habilita **Authentication → Sign In / Providers → Anonymous**.
-2. En **SQL Editor**, ejecuta cada archivo completo en este orden: `supabase/sql/001_multiplayer_schema.sql`, `002_multiplayer_policies.sql`, `003_multiplayer_functions.sql` y `004_multiplayer_realtime.sql`.
-3. Comprueba tablas/RLS/publicación con las consultas en `supabase/README.md`.
+2. En **SQL Editor**, para un proyecto nuevo ejecuta completos `supabase/sql/001` hasta `008` en el orden listado en `supabase/README.md` (009 es opcional y configura la limpieza mensual de salas inactivas).
+3. Comprueba tablas/RLS/publicación y las URLs del sitio en Supabase con la guía `supabase/README.md`.
 4. Sirve la app en HTTPS o `localhost`. En **Participantes → Multijugador**, crea una sala, comparte el código y únete desde otro dispositivo o perfil de navegador con identidad anónima distinta.
 5. Inicia desde el host y verifica que el segundo cliente reciba jugador actual, dado/carta y temporizador. Este paso debe hacerse en sesión real; la comprobación de sintaxis o pruebas del motor no prueban Realtime.
 
-La URL y clave pública del proyecto ya están en `js/supabase.js`; no uses claves secretas en cliente. Si cambia el proyecto, actualiza solo la URL y la clave `anon`. La identidad anónima se guarda en el navegador y no puede recuperarse al borrar los datos del sitio o cambiar de dispositivo. Para salas online el SDK requiere internet, aunque el modo local permanece disponible offline.
+La URL y clave pública `anon` del proyecto están en `js/supabase.js`; no uses claves secretas en cliente. Si cambia el proyecto, actualiza solo la URL y la clave `anon`. La identidad anónima se guarda en el navegador y puede perderse al borrar los datos del sitio o cambiar de dispositivo. Para salas online el SDK requiere internet; la partida local permanece en el dispositivo.

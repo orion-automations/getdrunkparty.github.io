@@ -19,6 +19,7 @@ function sendJson(res, status, value) {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
+    "X-Zevyra-Local-Accounts": "sqlite-v1",
   });
   res.end(JSON.stringify(value));
 }

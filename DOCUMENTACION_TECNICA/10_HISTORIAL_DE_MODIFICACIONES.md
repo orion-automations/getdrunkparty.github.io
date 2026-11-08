@@ -1,5 +1,14 @@
 # Historial de modificaciones
 
+## 2026-11-07 — GitHub Pages, cuenta local del navegador y guía multijuego 2.3.19
+
+- El selector de backend de cuentas reconoce la API Node mediante `X-Zevyra-Local-Accounts: sqlite-v1`; JSON genérico, 404 y 405 de hosting estático seleccionan IndexedDB en vez de llamar a SQLite (`js/local-accounts.js`, `server.mjs`).
+- Las solicitudes de la API se resuelven respecto a la ruta base de la app. Pages no requiere Node, Python ni SQLite; sus cuentas siguen confinadas a ese navegador.
+- El paquete, la configuración visible y el caché PWA usan versión 2.3.19; el aviso para `file://` apunta a `http://localhost:8000`.
+- Se añadió la guía detallada de integración de nuevos juegos: `DOCUMENTACION_TECNICA/16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md`.
+- README y documentación técnica explican la separación entre SQLite/IndexedDB para cuentas y Supabase para salas. No se publicaron cambios en GitHub ni se aplicaron migraciones remotas.
+- Verificación: `node --check` de los módulos editados. El servidor no estaba activo y el entorno rechazó escuchar en localhost (`EPERM`); no se creó una cuenta ni se ejecutó `npm test`.
+
 ## 2026-11-06 — Base local de usuarios y carrusel 2.3.0
 
 - El registro/inicio de sesión usa SQLite local en `database/zevyra.sqlite`; la contraseña se almacena con hash PBKDF2 y ya no se registra en Supabase.
@@ -163,3 +172,14 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - Se añadió pantalla Perfil con SVG clásico, nickname local persistente y sincronización del perfil/roster en salas conectadas, conservando UUID e historial (`index.html`, `js/app.js`, `js/multiplayer.js`, `js/multiplayer-rooms.js`).
 - El reverso de cartas ahora usa el emblema ZEVYRA en vez de GDP. Se bumpó la versión de app/caché a 1.7.0.
 - `npm test` y `node --check` pasaron. Sin verificación SQL remota ni prueba actualizada de dos dispositivos; aplicar `supabase/sql/006_turn_actions_and_profile.sql` y seguir la prueba descrita en el documento 13.
+# Historial de modificaciones
+
+## 2026-11-07 — GitHub Pages, cuenta local del navegador y guía multijuego 2.3.19
+
+- El selector de backend de cuentas ahora reconoce la API Node mediante `X-Zevyra-Local-Accounts: sqlite-v1`; las respuestas genéricas JSON, 404 o 405 de un servidor estático seleccionan IndexedDB en vez de intentar el endpoint SQLite (`js/local-accounts.js`, `server.mjs`).
+- Las solicitudes de la API local se resuelven bajo la ruta base de la aplicación para admitir montaje en subruta. El modo GitHub Pages no requiere Node, Python, ni SQLite; sus cuentas siguen confinadas a ese navegador.
+- El paquete, el cliente y el caché PWA se sincronizan en versión 2.3.19; el aviso para `file://` muestra `http://localhost:8000`.
+- Se añadió la guía de integración de nuevos juegos, incluyendo catálogo/portada, motor, estado, interfaz, sincronización, RPC/RLS, PWA y publicación: `DOCUMENTACION_TECNICA/16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md`.
+- Se actualizaron README y documentos técnicos para explicar la separación: SQLite local/IndexedDB para cuenta personal, Supabase para salas. No se publicaron cambios en GitHub ni se aplicaron migraciones remotas.
+- Verificación: `node --check` de los módulos JavaScript tocados y revisión del endpoint local en el servidor que ya corría en el puerto 8000. No se creó usuario ni se ejecutó `npm test`.
+

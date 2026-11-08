@@ -2,6 +2,8 @@
 
 > Actualización de Fase 2: consultar [13 — Fase 2](13_FASE_2_TURNOS_Y_PERFIL.md) para el nombre, catálogo, clave de almacenamiento, poderes/eventos/cadenas y rutas actuales. Esta matriz conserva verificaciones de fases anteriores; el multijugador nuevo todavía requiere aplicar 006 y validar dos sesiones.
 
+> Despliegue 2026-11-07: las cuentas tienen dos backends. Node local usa SQLite; GitHub Pages usa IndexedDB de cada navegador. El cliente distingue la API por su cabecera propia y ya no toma una respuesta JSON 404/405 por una API válida. El multijugador de Pages permanece en Supabase y requiere conexión, Anonymous Sign-Ins y las migraciones remotas. La cuenta de navegador no sincroniza con otros equipos.
+
 ## Matriz de estado
 
 | Funcionalidad | Clasificación | Evidencia / límite |
@@ -10,13 +12,13 @@
 | Sorteo/ciclo por mazo y asignación de jugadores | IMPLEMENTADA Y VERIFICADA en lógica | `decks.js`, `participants.js`; tests |
 | Máquina de turnos, dado, estados y resolución | IMPLEMENTADA Y VERIFICADA en lógica | `game.js`, `dice.js`; tests |
 | Identidad Midnight Chaos y catálogo inicial separado | IMPLEMENTADA Y VERIFICADA en lógica | `config.js`, `data/midnight-catalog.js`, `storage.js`; migración local conserva cartas de usuario |
-| Perfil/nickname asociado a identidad y salas | IMPLEMENTADO EN REPOSITORIO; RPC NUEVA NO DESPLEGADA | `app.js`, `multiplayer.js`, migración 006 |
+| Perfil personal local | IMPLEMENTADO EN SQLITE LOCAL E INDEXEDDB ESTÁTICO | `js/local-accounts.js`, `server.mjs`, `database/local_users.py`; en Pages el registro vive solo en IndexedDB local |
 | Poderes, ronda por cada cinco turnos y cadenas finitas | IMPLEMENTADOS Y VERIFICADOS en lógica | `data/*-catalog.js`, `game.js`, `tests/core.test.js`; falta prueba visual y online real |
 | Consecuencias configurables de minijuegos | IMPLEMENTADA Y VERIFICADA en lógica | `minigame-results.js`, `game.js`; tests |
 | Editor/importación/exportación/gestión de manuales | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN DOM | Handlers en `app.js`; validadores probados parcialmente |
 | UI responsive | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN | CSS y HTML presentes; no se realizó inspección visual/browser |
 | Instalación PWA y offline | IMPLEMENTADA, PERO NO VERIFICADA EN EJECUCIÓN | Manifest/SW y registro presentes; requiere servir origen seguro |
-| Estructura Supabase / Auth / RLS / Realtime | IMPLEMENTADA EN REPOSITORIO, CONFIGURACIÓN EXTERNA PENDIENTE | `supabase/sql/001`–`004`, `supabase/README.md`; falta aplicar SQL y habilitar Anonymous Sign-Ins en Dashboard |
+| Estructura Supabase / Auth / RLS / Realtime | IMPLEMENTADA EN REPOSITORIO, CONFIGURACIÓN EXTERNA PENDIENTE | Aplicar migraciones enumeradas en `supabase/README.md` y habilitar Anonymous Sign-Ins en Dashboard |
 | Multijugador online de extremo a extremo | IMPLEMENTACIÓN DEL TURNO POR JUGADOR EN REPOSITORIO; PENDIENTE APLICAR 006 Y VOLVER A PROBAR | `gdp_act_turn` valida identidad del jugador actual y versión; controles remotos se bloquean. El usuario reportó pruebas online previas correctas, pero esta actualización no se verificó entre dos sesiones |
 | Cara BLOQUEADA | IMPLEMENTADA Y VERIFICADA en lógica | El motor inicia turno sin robo; caso test |
 | Código `js/icons.js` | INACTIVA O SIN REFERENCIAS APARENTES | No hay consumidores encontrados |

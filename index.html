@@ -53,7 +53,7 @@
           notice.className = "local-run-warning";
           notice.setAttribute("role", "alert");
           notice.textContent =
-            "La app se abrió como archivo y sus botones no funcionarán. Inicia npm run serve en la carpeta del proyecto y abre http://localhost:8080.";
+            "La app se abrió como archivo y sus botones no funcionarán. Inicia npm run serve en la carpeta del proyecto y abre http://localhost:8000.";
           document.body.prepend(notice);
         }, { once: true });
       }
@@ -549,7 +549,7 @@
                 <button id="update-app-button" class="button" type="button">Buscar actualizaciones</button>
               </div>
               <p id="app-update-status" class="fine-print" role="status" aria-live="polite">La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.</p>
-              <p class="fine-print">Versión <span id="app-version">2.3.17</span> · Los datos de juego permanecen en este dispositivo.</p>
+              <p class="fine-print">Versión <span id="app-version">2.3.19</span> · Los datos de juego permanecen en este dispositivo.</p>
             </section>
           </details>
         </section>

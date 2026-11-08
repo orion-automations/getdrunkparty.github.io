@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}2.3.18`;
+const CACHE_NAME = `${CACHE_PREFIX}2.3.19`;
 const SHELL = [
   "./",
   "./index.html",

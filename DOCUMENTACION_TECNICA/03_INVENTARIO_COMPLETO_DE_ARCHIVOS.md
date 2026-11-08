@@ -25,7 +25,7 @@ Las líneas apuntan a los archivos del proyecto (números verificados con `nl -b
 | `js/supabase.js` | Crea cliente SDK v2 desde URL del proyecto + clave pública `anon`; expone `window.gdpSupabase`. | Importado dinámicamente por los servicios Auth/RPC/Realtime tras cargar el SDK. |
 | `js/multiplayer.js` | `waitForSdk`, `connectRoom`, `startRoom`, `scheduleRoomState`, `refreshRoom`, `disconnectRoom`, wrappers de cuenta local. | Coordina salas Supabase y enlaza CRUD de cuenta a `local-accounts.js`. |
 | `js/multiplayer-auth.js` | `ensureAnonymousIdentity`. | Crea identidad anónima técnica para permisos de sala; no autentica las cuentas personales. |
-| `js/local-accounts.js` | `registerLocalAccount`, `signInLocalAccount`, `getLocalAccount`, `updateLocalAccount`, `signOutLocalAccount`. | Solicita la API local de SQLite; la contraseña no se envía a Supabase. |
+| `js/local-accounts.js` | `detectAccountBackend`, `registerLocalAccount`, `signInLocalAccount`, `getLocalAccount`, `updateLocalAccount`, `signOutLocalAccount`. | Usa API Node/SQLite local o IndexedDB en hosting estático; la contraseña no se envía a Supabase. |
 | `js/multiplayer-rooms.js` | `createRoom`, `joinRoom`, `readRoom`, `beginRoomGame`, `saveRoomGame`, `leaveRoom`, `touchRoom`, `claimHost`, `closeRoom`. | Importa cliente Supabase; consume RPCs y tablas en Supabase. |
 | `js/multiplayer-sync.js` | `subscribeRoom`, `unsubscribeRoom`; Postgres Changes y Presence. | Importa cliente Supabase; `multiplayer.js` consume el canal. |
 | `js/config.js:1-20` | `VERSION`, mapas `CATEGORIES`, `TARGETS`. | Importado por app; activo. |

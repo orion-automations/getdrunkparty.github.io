@@ -25,7 +25,7 @@ El esquema se inicializa en `storage.js:12-35`; validación estructural en `37-8
 
 ## APIs / servicios externos
 
-Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de `server.mjs`, que delega las consultas a `database/local_users.py` y SQLite nativo. `npm run serve` inicia esa API y ahora usa el puerto 8000 por defecto (`PORT` puede sobrescribirlo). Un 405 al registrar significa que la petición POST no llegó a esta ruta/API; no es un error SQL de Supabase ni SQLite. `js/multiplayer-auth.js` solo mantiene identidad anónima técnica para salas. `js/multiplayer-rooms.js` gestiona RPC/lecturas y `js/multiplayer-sync.js` gestiona Postgres Changes y Presence. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`; los módulos online se importan solo al iniciar una conexión.
+Las cuentas personales se gestionan en `js/local-accounts.js`. `detectAccountBackend()` identifica la API SQLite mediante `X-Zevyra-Local-Accounts: sqlite-v1` o la respuesta 401 conocida de versiones anteriores; un JSON genérico, 404 o 405 de un servidor estático ya no se interpreta como API. En Node se usa `server.mjs` → `database/local_users.py` → SQLite. En GitHub Pages se usa IndexedDB del navegador, con índices únicos de nickname/UID y hash PBKDF2. Pages no ejecuta Node ni SQLite; esas cuentas son por navegador y no sincronizan credenciales entre dispositivos. `npm run serve` inicia la API en el puerto 8000 por defecto (`PORT` puede sobrescribirlo). `js/multiplayer-auth.js` mantiene una identidad anónima técnica independiente para salas; `js/multiplayer-rooms.js` gestiona RPC/lecturas y `js/multiplayer-sync.js` gestiona Postgres Changes y Presence. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`; los módulos online se importan solo al iniciar una conexión.
 
 ### Tablas remotas
 
@@ -37,7 +37,7 @@ Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de
 
 La limpieza opcional de salas está en `supabase/sql/009_monthly_inactive_room_cleanup.sql`: Supabase Cron ejecuta el primer día de cada mes `public.gdp_cleanup_inactive_rooms()`. Borra salas con más de 30 días de antigüedad únicamente cuando ningún participante unido o desconectado ha enviado heartbeat en los últimos 30 días. Las claves foráneas eliminan en cascada `room_players` y `game_states`; no toca cuentas locales ni usuarios de Supabase.
 
-La base de cuentas local usa `database/001_users.sql:1-33` para crear `local_users` y `local_sessions`; `database/local_users.py:40-50` aplica el esquema y `database/local_users.py:53-130` migra esquemas existentes. `database/local_users.py:260-282` crea cuentas con hash PBKDF2 y UID `zevy` más seis caracteres aleatorios. `server.mjs:67-97` expone `/api/users/register`, `/login`, `/me` y `/session`, y bloquea la descarga directa del archivo SQLite. El nickname, el avatar y los datos de identidad se guardan en SQLite; el token y el perfil devuelto se mantienen también en `localStorage` (`js/local-accounts.js:1-15`). La contraseña no se conserva en texto legible ni se envía a Supabase.
+La base de cuentas de Node usa `database/001_users.sql` para crear `local_users` y `local_sessions`; `database/local_users.py` aplica/migra el esquema, crea las cuentas con hash PBKDF2 y UID `zevy` más seis caracteres; `server.mjs` expone `/api/users/register`, `/login`, `/me` y `/session` y bloquea la descarga directa de SQLite. En Pages, `openBrowserDatabase()` crea `users` en IndexedDB; `registerInBrowser()` guarda sal/hash PBKDF2 y los mismos campos de perfil. `saveSession()` conserva el token y perfil de sesión en `localStorage`. La contraseña no se conserva en texto legible ni se envía a Supabase. El modelo del navegador es almacenamiento local, no autenticación segura centralizada ni identidad global.
 
 ### Registro en dos pasos, pasaporte y avatar
 
@@ -61,7 +61,7 @@ JSON de cartas: array o `{version:1,cards:[...]}`; IDs, categorías, required fi
 
 ## Cache Storage PWA
 
-El SW precachea recursos de shell bajo `zevyra-shell-2.3.18` (`sw.js:1-2`); incluye los módulos JavaScript y catálogos nuevos, pero no el SDK CDN. Para GET del mismo origen intenta red y usa caché como alternativa; `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
+El SW precachea recursos de shell bajo `zevyra-shell-2.3.19` (`sw.js:1-2`); incluye los módulos JavaScript y catálogos nuevos, pero no el SDK CDN. Para GET del mismo origen intenta red y usa caché como alternativa; `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
 
 ## Actualización Fase 2
 

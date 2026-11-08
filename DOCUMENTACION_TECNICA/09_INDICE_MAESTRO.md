@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.3.0, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). El informe 14 documenta el estado anterior a la integración del juego.
+Esta carpeta conserva el historial técnico de ZEVYRA Games / Carnival of Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.3.19, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). La guía para implementar juegos adicionales está en [16 — Integrar nuevos juegos](16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md). Los informes 01–14 documentan fases previas.
 
 | Documento | Contenido |
 |---|---|
@@ -15,6 +15,7 @@ Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El
 | [13 — Fase 2: turnos y perfil](13_FASE_2_TURNOS_Y_PERFIL.md) | Acciones del participante activo, animación sincronizada, nickname y migración 006. |
 | [14 — Circus Zevyra: auditoría e implementación](14_CIRCUS_ZEVYRA_AUDITORIA_E_IMPLEMENTACION.md) | Auditoría histórica anterior a la integración de Carnival. |
 | [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md) | Catálogo importado, dado, eventos, carrusel, tema, perfil, SQL, ejecución y trazabilidad verificada. |
+| [16 — Guía para integrar nuevos juegos](16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md) | Recorrido detallado de contenido, recursos, motor, interfaz, persistencia, Supabase, PWA y publicación. |
 | [10 — Historial de modificaciones](10_HISTORIAL_DE_MODIFICACIONES.md) | Cambios implementados desde la auditoría, pruebas y pendientes. |
 
 ## Mapa rápido de trazabilidad
@@ -22,7 +23,7 @@ Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El
 - Entrada y vistas: `index.html` → `js/app.js`.
 - Estado Midnight Chaos: `js/app.js` → `js/storage.js` → `localStorage: zevyra.midnight-chaos.data.v1`; la clave anterior `gdpw.data.v1` se importa sin borrarse.
 - Salas online: `index.html` → `js/app.js` → `js/multiplayer.js` → `js/multiplayer-auth.js` / `js/multiplayer-rooms.js` / `js/multiplayer-sync.js` → `js/supabase.js` → Supabase.
-- Cuentas locales: `js/app.js` → `js/local-accounts.js` → `server.mjs` → `database/local_users.py` → `database/001_users.sql` → `database/zevyra.sqlite`.
+- Cuentas personales: `js/app.js` → `js/local-accounts.js` → (Node local: `server.mjs` → `database/local_users.py` → SQLite; GitHub Pages: IndexedDB del navegador).
 - SQL/RLS/Realtime de salas: `supabase/sql/001` → `002` → `003` → `004` → `005` → `006` → `007` → `008`; guía: `supabase/README.md`.
 - Catálogo vigente: `data/carnival-catalog.js` → `data/initial-cards.js` / `data/initial-manuals.js` → `js/storage.js` (migración de catálogo versión 10). `data/midnight-catalog.js` se conserva como referencia histórica.
 - Sistemas de partida: `js/game.js` → `data/power-catalog.js` / `data/round-events.js` / `data/chain-challenges.js`.
@@ -30,4 +31,4 @@ Esta carpeta conserva el historial técnico de ZEVYRA Games / Midnight Chaos. El
 - PWA: `index.html` → `manifest.json`; `js/app.js` → `sw.js` → Cache Storage.
 - Desarrollo local: `package.json` → `server.mjs`.
 
-Los documentos 01–14 son registros históricos; si contradicen el estado posterior, se debe usar el informe 15. Las pruebas de la lógica heredada siguen documentadas en `13_FASE_2_TURNOS_Y_PERFIL.md` y `10_HISTORIAL_DE_MODIFICACIONES.md`.
+Los documentos 01–14 son registros históricos; para el juego publicado se debe usar el informe 15 y, para nuevos juegos, la guía 16. La suite puede documentar lógica heredada, pero no sustituye la validación en dos clientes Supabase.

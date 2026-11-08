@@ -1,12 +1,13 @@
 # Supabase para las salas multijugador
 
-Supabase se usa para crear y sincronizar salas online. **No registra cuentas personales ni valida contraseñas**: esas cuentas viven en `database/zevyra.sqlite` en la instalación local. Para la autorización de sala, el navegador genera una identidad anónima temporal de Supabase. El nickname y el avatar se copian a `room_players` como datos de la sesión de sala.
+Supabase se usa para crear y sincronizar salas online. **No registra cuentas personales ni valida contraseñas**. En `npm run serve`, las cuentas usan `database/zevyra.sqlite`; en GitHub Pages, las cuentas se guardan en IndexedDB de ese navegador. Ninguna de esas cuentas se sincroniza con Supabase ni entre dispositivos. Para autorizar una sala, el navegador genera una identidad anónima temporal de Supabase. El nickname y el avatar se copian a `room_players` como datos de la sesión de sala.
 
 ## Requisitos
 
 - URL y clave pública `anon` del proyecto en `js/supabase.js`. No incluyas claves `service_role` en el navegador.
 - Anonymous Sign-Ins habilitado en **Authentication → Sign In / Providers → Anonymous**.
 - Sitio servido por HTTP local o HTTPS; `file://` no es compatible con módulos ni Realtime.
+- GitHub Pages puede servir el cliente de la app y conectarse a estas salas; habilita la autenticación anónima y confirma que las migraciones y Realtime están configurados en el mismo proyecto.
 
 ## Migraciones del proyecto Supabase
 
@@ -42,8 +43,8 @@ where pubname = 'supabase_realtime'
   and schemaname = 'public';
 ```
 
-La validación de una partida online requiere dos navegadores o dispositivos y comprobar una sala real. Que el SQL esté aplicado no demuestra por sí solo que la partida haya sido probada.
+La validación de una partida online requiere dos navegadores o dispositivos y comprobar una sala real. Que el SQL esté aplicado no demuestra por sí solo que la partida haya sido probada. En GitHub Pages la URL del sitio debe estar permitida en **Authentication → URL Configuration → Site URL / Redirect URLs** cuando el proyecto lo requiera; la autenticación anónima no debe depender de las cuentas personales de la app.
 
 ## Separación de datos
 
-El usuario/contraseña, UID público y perfil personal se guardan en SQLite local. Supabase recibe una identidad anónima técnica para permisos de sala y el nickname/avatar como instantánea de los participantes activos. La contraseña y el UID de la cuenta local no salen del equipo. Los registros históricos de perfiles en proyectos anteriores no se eliminan automáticamente.
+El usuario/contraseña, UID público y perfil personal se guardan localmente: SQLite en el modo Node y IndexedDB en hosting estático. En ambos casos la contraseña se convierte en un hash PBKDF2. Supabase recibe una identidad anónima técnica para permisos de sala y el nickname/avatar como instantánea de los participantes activos. La cuenta de Pages existe solo en ese navegador y no puede servir como identidad global. Los registros históricos de perfiles en proyectos anteriores no se eliminan automáticamente.

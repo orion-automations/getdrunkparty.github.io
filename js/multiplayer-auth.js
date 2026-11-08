@@ -1,7 +1,7 @@
 import { supabase } from "./supabase.js";
 
 // Supabase identity is anonymous and exists only to authorize live room
-// operations. Local player accounts are stored in SQLite by local-accounts.js.
+// operations. Personal accounts use SQLite locally or IndexedDB on static hosts.
 export async function ensureAnonymousIdentity() {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;

@@ -3493,7 +3493,7 @@ if ("serviceWorker" in navigator && location.protocol !== "file:")
     })
     .catch(() => {
       $("#storage-status").textContent =
-        "No se pudo activar el modo sin conexión. Abre la app desde HTTPS o http://localhost:8080.";
+        "No se pudo activar el modo sin conexión. Abre la app desde HTTPS o http://localhost:8000.";
     });
 else
   $("#storage-status").textContent =
