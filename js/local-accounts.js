@@ -62,8 +62,8 @@ export async function getLocalAccount() {
   }
 }
 
-export async function registerLocalAccount(username, password, avatar = null) {
-  const result = await request("/api/users/register", "POST", { username, password, avatar }, null);
+export async function registerLocalAccount(username, password, avatar = null, countryCode = "XX", identity = {}) {
+  const result = await request("/api/users/register", "POST", { username, password, avatar, country_code: countryCode, ...identity }, null);
   return saveSession(result);
 }
 
@@ -72,10 +72,15 @@ export async function signInLocalAccount(username, password) {
   return saveSession(result);
 }
 
-export async function updateLocalAccount(username, avatar = null) {
+export async function updateLocalAccount(username, avatar = null, countryCode = undefined, identity = {}) {
   const session = readSession();
   if (!session) return null;
-  const result = await request("/api/users/me", "PUT", { username, avatar }, session.accessToken);
+  const body = { username, avatar };
+  if (countryCode !== undefined) body.country_code = countryCode;
+  for (const key of ["age", "sex", "sexual_identity"]) {
+    if (Object.hasOwn(identity, key)) body[key] = identity[key];
+  }
+  const result = await request("/api/users/me", "PUT", body, session.accessToken);
   const next = { ...session, user: result.user };
   localStorage.setItem(SESSION_KEY, JSON.stringify(next));
   return result.user;

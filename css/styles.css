@@ -360,7 +360,7 @@ main {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  background: radial-gradient(circle at center, #24242d, #111116 70%);
+  background: radial-gradient(ellipse at 18% 18%, color-mix(in srgb, var(--card-color), transparent 28%) 0 8%, transparent 31%), radial-gradient(ellipse at 82% 75%, color-mix(in srgb, var(--card-color), transparent 42%) 0 11%, transparent 34%), radial-gradient(circle at center, #24242d, #111116 70%);
   color: var(--card-color);
 }
 .cross-ribbon {
@@ -401,7 +401,7 @@ main {
 }
 .card-front {
   transform: rotateY(180deg);
-  background: linear-gradient(150deg, #22222b, #111116 70%);
+  background: radial-gradient(ellipse at 12% 12%, color-mix(in srgb, var(--card-color), transparent 82%) 0 5%, transparent 29%), radial-gradient(ellipse at 89% 82%, color-mix(in srgb, var(--card-color), transparent 87%) 0 9%, transparent 35%), linear-gradient(150deg, #22222b, #111116 70%);
   padding: 17px 20px;
   display: flex;
   flex-direction: column;
@@ -627,7 +627,7 @@ select:focus {
 }
 .manage-row {
   display: grid;
-  grid-template-columns: 32px 40px 58px minmax(100px, 1fr) auto auto;
+  grid-template-columns: 32px 40px minmax(100px, 1fr) auto auto;
   gap: 9px;
   align-items: center;
   padding: 10px;
@@ -1086,7 +1086,7 @@ hr {
     margin-top: 19px;
   }
   .manage-row {
-    grid-template-columns: 25px 38px 54px minmax(0, 1fr) auto;
+    grid-template-columns: 25px 38px minmax(0, 1fr) auto;
     gap: 6px;
   }
   .manage-row .fine-print {

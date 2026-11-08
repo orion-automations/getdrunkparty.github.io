@@ -1,7 +1,7 @@
-// El Gran Circo: se revela un evento cada cinco rondas completas.
+// El Gran Circo: se activa al inicio de las rondas 5, 10, 15…
 const EVENT_TEXT = [
   ["Circo Borracho", "Si alguien rechaza un Pecado o Sacrificio y elige tomar shots, duplica la cantidad indicada."],
-  ["El Circo de los Horrores", "Durante cinco turnos, se suspenden los mazos normales y se usan Pecados asquerosos, Sacrificios asquerosos y Caos asqueroso. El PDF indica que nadie está obligado a ingerir alimentos y contempla una alternativa si alguien no puede."],
+  ["El Circo de los Horrores", "Durante esta ronda, se suspenden los mazos normales y se usan Pecados asquerosos, Sacrificios asquerosos y Caos asqueroso. Nadie está obligado a ingerir alimentos y se contempla una alternativa si alguien no puede."],
   ["Circo de la Evidencia", "El registro de la ronda es opcional y privado para el grupo. Pide permiso antes de grabar o fotografiar; no publiques contenido sin consentimiento."],
   ["Espejo Maldito", "Cuando un efecto asigne un castigo a otra persona, quien lo asigna también recibe el mismo efecto."],
   ["Todos Contra Uno", "El grupo elige a una persona. Cada jugador puede asignarle como máximo una acción adicional en su turno."],
@@ -21,7 +21,7 @@ const EVENT_TEXT = [
   ["Circo de la Posesión", "Elige a una persona como protagonista de la ronda. Las demás pueden proponerle acciones, que puede aceptar o pasar."],
   ["Circo de los Cuerpos Prestados", "Cada persona puede sortear a otra como pareja de juego para retos voluntarios; nadie está obligado a participar."],
   ["Circo del Juicio Final", "Después de un Sacrificio, el grupo puede dar una valoración lúdica. No hay repetición forzada ni castigo por votar."],
-  ["Circo el Destino", "Durante cinco turnos, el dado activa el mazo de Ruleta del Destino. Cada jugador roba una opción distinta; el resultado se retira de la secuencia de este evento."],
+  ["Circo el Destino", "Durante esta ronda, el dado activa el mazo de Ruleta del Destino. Cada jugador roba una opción distinta; el resultado se retira de la secuencia de este evento."],
 ];
 
 export const ROUND_EVENTS = EVENT_TEXT.map(([name, description], index) => ({
@@ -29,7 +29,7 @@ export const ROUND_EVENTS = EVENT_TEXT.map(([name, description], index) => ({
   name,
   description,
   effect: index === 1 ? "horrors" : index === 21 ? "destiny" : index === 0 ? "double_shots" : "guided",
-  durationTurns: 5,
-  activation: "Cada cinco rondas completas; una ronda concluye al volver al primer participante.",
-  completion: "Al completar los cinco turnos del evento.",
+  durationRounds: 1,
+  activation: "Al iniciar las rondas 5, 10, 15… Una ronda concluye cuando todos los participantes activos toman su turno.",
+  completion: "Al completar una ronda del evento.",
 }));

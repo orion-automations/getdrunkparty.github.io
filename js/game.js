@@ -25,7 +25,8 @@ function attachCard(
   auxiliary = false,
   recipientId = null,
 ) {
-  const draw = drawFromDeck(state.cards, category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
+  const unavailableCards = unavailableCardIds(state);
+  const draw = drawFromDeck(state.cards, category, state.game.decks, random, unavailableCards);
   if (!draw.card) return { category, empty: true, reason: draw.reason };
   const targets = assignTargets(
     draw.card.target.mode,
@@ -59,7 +60,15 @@ export function gameEngine(state, random = Math.random) {
   state.game.auxiliaryCards ??= [];
   state.game.completedTurns ??= 0;
   state.game.completedRounds ??= 0;
+  if (state.game.activeRoundEvent && !Number.isInteger(state.game.activeRoundEvent.endsAfterCompletedRounds)) {
+    state.game.activeRoundEvent.endsAfterCompletedRounds = state.game.completedRounds + 1;
+  }
+  state.game.jokerInventory ??= [];
+  state.game.jokerProgress ??= {};
+  state.game.pendingJokerResolution ??= null;
   state.game.cemetery ??= [];
+  state.game.fragments ??= [];
+  state.game.fragmentCompletions ??= 0;
   state.game.roundEventHistory ??= [];
   state.game.powers ??= [];
   state.game.usedPowers ??= [];
@@ -93,6 +102,7 @@ export function gameEngine(state, random = Math.random) {
   const currentPlayer = () => state.participants[state.game.currentIndex];
 
   function beginTurn(category, phase = "RESOLVING") {
+    if (state.game.pendingJokerResolution) return { error: "JOKER_REQUIRED" };
     if (locked || state.game.state !== "READY") return { error: "LOCKED" };
     if (!state.participants.some((p) => p.active))
       return { error: "NO_PLAYERS" };
@@ -419,7 +429,8 @@ export function gameEngine(state, random = Math.random) {
       );
       if (!item || !MAIN_CATEGORIES.has(item.category))
         return { error: "INVALID_CARD" };
-      const draw = drawFromDeck(state.cards, item.category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
+      const unavailableCards = unavailableCardIds(state);
+      const draw = drawFromDeck(state.cards, item.category, state.game.decks, random, unavailableCards);
       if (!draw.card) return { category: item.category, empty: true, reason: draw.reason };
       const targets = item.playerId
         ? [item.playerId]
@@ -460,7 +471,8 @@ export function gameEngine(state, random = Math.random) {
         if (!turn.primaryCard || turn.outcome) return { error: "POWER_TIMING" };
         const auxiliary = turn.auxiliaryCards?.at(-1);
         if (auxiliary) {
-        const replacement = drawFromDeck(state.cards, auxiliary.category, state.game.decks, random, (state.game.cemetery ?? []).map((entry) => entry.cardId));
+        const unavailableCards = unavailableCardIds(state);
+        const replacement = drawFromDeck(state.cards, auxiliary.category, state.game.decks, random, unavailableCards);
           if (!replacement.card) return { error: "POWER_FAILED" };
         turn.discardedCards ??= [];
         turn.discardedCards.push({ cardId: auxiliary.cardId, category: auxiliary.category, playerId: auxiliary.playerId ?? turn.playerId });
@@ -472,7 +484,7 @@ export function gameEngine(state, random = Math.random) {
         }
       } else if (power.key === "pass") {
         if (!turn.primaryCard || turn.outcome || turn.category !== "DESAFIO") return { error: "POWER_TIMING" };
-        turn.outcome = { result: "ALTERNATIVE_SELECTED", sourceCardId: turn.primaryCard.cardId, at: new Date().toISOString(), powerId: power.id };
+        turn.outcome = { result: "PASSED", sourceCardId: turn.primaryCard.cardId, at: new Date().toISOString(), powerId: power.id };
         turn.phase = "CONFIRMED";
       }
       state.game.powers = state.game.powers.filter((item) => item.id !== power.id);
@@ -488,6 +500,7 @@ export function gameEngine(state, random = Math.random) {
       return { id, key, playerId };
     },
     startChain(random = Math.random) {
+      if (state.game.pendingJokerResolution) return { error: "JOKER_REQUIRED" };
       if (state.game.chain || state.game.current) return { error: "LOCKED" };
       const participants = state.participants.filter((player) => player.active);
       if (participants.length < 2) return { error: "NEED_TWO_PLAYERS" };
@@ -563,18 +576,30 @@ export function gameEngine(state, random = Math.random) {
         : null;
       const blocked = turn.type === "BLOCKED";
       state.game.cemetery ??= [];
+      state.game.fragments ??= [];
+      state.game.fragmentCompletions ??= 0;
       for (const item of [...(turn.discardedCards ?? []), turn.primaryCard, ...(turn.auxiliaryCards ?? [])]) {
         if (!item?.cardId) continue;
         const drawn = state.cards.find((entry) => entry.id === item.cardId);
         if (!drawn) continue;
-        state.game.cemetery.unshift({
+        const entry = {
           cardId: drawn.id,
           title: drawn.title,
           category: item.category ?? drawn.categoryId,
           playerId: item.playerId ?? turn.playerId,
           playerName: state.participants.find((entry) => entry.id === (item.playerId ?? turn.playerId))?.name ?? player?.name ?? "Participante",
           drawnAt: new Date().toISOString(),
-        });
+        };
+        if (drawn.fragment) {
+          if (!state.game.fragments.some((fragment) => fragment.cardId === drawn.id)) state.game.fragments.push(entry);
+          if (state.game.fragments.length >= 5) {
+            const completedSet = state.game.fragments.splice(0, 5);
+            state.game.cemetery.unshift(...completedSet);
+            state.game.fragmentCompletions += 1;
+          }
+        } else {
+          state.game.cemetery.unshift(entry);
+        }
       }
       state.game.history.unshift({
         at: new Date().toISOString(),
@@ -661,6 +686,7 @@ export function gameEngine(state, random = Math.random) {
           }
         }
       }
+      updateJokerProgress(state, turn, random);
       state.game.completedTurns += 1;
       const reverseOrder = state.game.activeRoundEvent?.effect === "reverse_order";
       const activeIndexes = state.participants.map((player, index) => player.active ? index : -1).filter((index) => index >= 0);
@@ -706,19 +732,21 @@ function applyRoundProgress(state, engine, roundCompleted) {
       engine.grantPower(state.game.current?.playerId, key, activeEvent.id);
     }
   }
-  if (activeEvent) {
-    activeEvent.turnsRemaining -= 1;
-    if (activeEvent.turnsRemaining <= 0) {
-      closeRoundEvent(state, activeEvent);
-      state.game.activeRoundEvent = null;
-    }
+  if (
+    activeEvent &&
+    roundCompleted &&
+    completedRounds >= activeEvent.endsAfterCompletedRounds
+  ) {
+    closeRoundEvent(state, activeEvent);
+    state.game.activeRoundEvent = null;
   }
-  if (roundCompleted && completedRounds > 0 && completedRounds % 5 === 0) {
-    const event = ROUND_EVENTS[(completedRounds / 5 - 1) % ROUND_EVENTS.length];
+  const currentRound = completedRounds + 1;
+  if (roundCompleted && currentRound > 1 && currentRound % 5 === 0) {
+    const event = ROUND_EVENTS[(currentRound / 5 - 1) % ROUND_EVENTS.length];
     activeEvent = {
       ...event,
-      turnsRemaining: event.durationTurns,
-      eventRound: completedRounds / 5,
+      eventRound: currentRound,
+      endsAfterCompletedRounds: completedRounds + (event.durationRounds ?? 1),
       participantGrants: [],
     };
     if (event.effect === "horrors" || event.effect === "destiny") activateSpecialEventDeck(state, activeEvent);
@@ -729,11 +757,91 @@ function applyRoundProgress(state, engine, roundCompleted) {
   }
 }
 
+function unavailableCardIds(state) {
+  return [
+    ...(state.game.cemetery ?? []),
+    ...(state.game.fragments ?? []),
+    ...(state.game.jokerInventory ?? []),
+  ].map((entry) => entry.cardId).filter(Boolean);
+}
+
+function updateJokerProgress(state, turn, random) {
+  const playerId = turn.playerId;
+  if (!playerId || (!turn.primaryCard && !turn.minigameResult)) return;
+  state.game.jokerProgress ??= {};
+  const progress = state.game.jokerProgress[playerId] ??= {
+    completedStreak: 0,
+    shotStreak: 0,
+    completedTruthOrChallengeCount: 0,
+  };
+  const outcome = turn.outcome;
+  const completedTruthOrChallenge =
+    outcome?.result === "COMPLETED" &&
+    outcome.sourceCardId === turn.primaryCard?.cardId &&
+    ["VERDAD", "DESAFIO"].includes(turn.category);
+  const primaryCard = turn.primaryCard && state.cards.find((card) => card.id === turn.primaryCard.cardId);
+  const hasShotAlternative = /\b(?:toma|tomar)\s+(?:\d+|un|una)\s+(?:shots?|copas?)\b/i.test(primaryCard?.description ?? "");
+  const choseShots = outcome?.result === "SHOTS_SELECTED" ||
+    (outcome?.result === "ALTERNATIVE_SELECTED" && hasShotAlternative);
+
+  if (completedTruthOrChallenge) {
+    progress.completedStreak += 1;
+    progress.shotStreak = 0;
+    if (completedTruthOrChallenge) progress.completedTruthOrChallengeCount += 1;
+    if (progress.completedStreak >= 3) {
+      grantPersonalJoker(state, playerId, "PREMIO", "racha de 3 turnos cumplidos", random);
+      progress.completedStreak = 0;
+    }
+    if (progress.completedTruthOrChallengeCount >= 5) {
+      grantPersonalJoker(state, playerId, "PREMIO", "5 Pecados o Sacrificios cumplidos", random);
+      progress.completedTruthOrChallengeCount = 0;
+    }
+    return;
+  }
+
+  progress.completedStreak = 0;
+  if (choseShots) {
+    progress.shotStreak += 1;
+    if (progress.shotStreak >= 3) {
+      const joker = grantPersonalJoker(state, playerId, "CASTIGO", "3 turnos seguidos con alternativa de shots", random);
+      if (joker) state.game.pendingJokerResolution = joker.id;
+      progress.shotStreak = 0;
+    }
+  } else {
+    progress.shotStreak = 0;
+  }
+}
+
+function grantPersonalJoker(state, playerId, category, reason, random) {
+  state.game.jokerInventory ??= [];
+  const draw = drawFromDeck(
+    state.cards,
+    category,
+    state.game.decks,
+    random,
+    unavailableCardIds(state),
+  );
+  if (!draw.card) return null;
+  const card = draw.card;
+  const entry = {
+    id: `joker_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    cardId: card.id,
+    title: card.title,
+    category,
+    playerId,
+    reason,
+    used: false,
+    grantedAt: new Date().toISOString(),
+  };
+  state.game.jokerInventory.unshift(entry);
+  return entry;
+}
+
 function closeRoundEvent(state, event) {
   restoreEventDecks(state, event);
   const entry = state.game.roundEventHistory.find((item) => item.id === event.id && item.status === "active");
-  if (entry) Object.assign(entry, { status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
-  else state.game.roundEventHistory.unshift({ ...event, status: "completed", completedAt: new Date().toISOString(), turnsRemaining: 0 });
+  if (entry) Object.assign(entry, { status: "completed", completedAt: new Date().toISOString(), completedRound: state.game.completedRounds });
+  else state.game.roundEventHistory.unshift({ ...event, status: "completed", completedAt: new Date().toISOString(), completedRound: state.game.completedRounds });
 }
 
 function activateSpecialEventDeck(state, event) {

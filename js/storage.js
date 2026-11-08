@@ -6,7 +6,7 @@ import {
 } from "../data/catalog-migrations.js";
 import { POWER_CATALOG } from "../data/power-catalog.js";
 import { GAME_ID } from "./config.js";
-export const CATALOG_VERSION = 10;
+export const CATALOG_VERSION = 11;
 export const STORAGE_KEY = `zevyra.${GAME_ID}.data.v1`;
 export const LEGACY_STORAGE_KEY = "gdpw.data.v1";
 export const seedState = () => ({
@@ -33,8 +33,13 @@ export const seedState = () => ({
     current: null,
     history: [],
     cemetery: [],
+    fragments: [],
+    fragmentCompletions: 0,
     archives: [],
     rewards: [],
+    jokerInventory: [],
+    jokerProgress: {},
+    pendingJokerResolution: null,
     completedTurns: 0,
     completedRounds: 0,
     activeRoundEvent: null,
@@ -274,11 +279,53 @@ export function loadState() {
         parsed.catalogVersion = 10;
         saveState(parsed);
       }
+      if ((parsed.catalogVersion ?? 0) < 11) {
+        const canonicalCards = new Map(INITIAL_CARDS.map((card) => [card.id, card]));
+        const minigameManualIds = new Set(
+          INITIAL_CARDS.filter((card) => card.categoryId === "MINIJUEGO")
+            .map((card) => card.manualId).filter(Boolean),
+        );
+        parsed.cards.forEach((card) => {
+          const source = canonicalCards.get(card.id);
+          if (source?.categoryId === "MINIJUEGO") card.title = source.title;
+        });
+        const canonicalManuals = new Map(INITIAL_MANUALS.map((manual) => [manual.id, manual]));
+        parsed.manuals.forEach((manual) => {
+          const source = canonicalManuals.get(manual.id);
+          if (!source || !minigameManualIds.has(manual.id)) return;
+          manual.title = source.title;
+          manual.summary = source.summary;
+        });
+        parsed.game.jokerInventory ??= [];
+        parsed.game.jokerProgress ??= {};
+        parsed.game.pendingJokerResolution ??= null;
+        const oldEvent = parsed.game.activeRoundEvent;
+        if (oldEvent) {
+          for (const card of parsed.cards) {
+            if (card.id in (oldEvent.savedEnabledStates ?? {}))
+              card.enabled = oldEvent.savedEnabledStates[card.id];
+          }
+          if (oldEvent.savedDecks) parsed.game.decks = oldEvent.savedDecks;
+          parsed.game.roundEventHistory = (parsed.game.roundEventHistory ?? []).map((entry) =>
+            entry.status === "active"
+              ? { ...entry, status: "cancelled", cancelledAt: new Date().toISOString() }
+              : entry,
+          );
+          parsed.game.activeRoundEvent = null;
+        }
+        parsed.catalogVersion = 11;
+        saveState(parsed);
+      }
       parsed.gameId ??= GAME_ID;
       parsed.game.completedTurns ??= 0;
       parsed.game.completedRounds ??= 0;
       parsed.game.cemetery ??= [];
+      parsed.game.fragments ??= [];
+      parsed.game.fragmentCompletions ??= 0;
       parsed.game.roundEventHistory ??= [];
+      parsed.game.jokerInventory ??= [];
+      parsed.game.jokerProgress ??= {};
+      parsed.game.pendingJokerResolution ??= null;
       parsed.game.powers ??= [];
       parsed.game.usedPowers ??= [];
       parsed.game.chain ??= null;

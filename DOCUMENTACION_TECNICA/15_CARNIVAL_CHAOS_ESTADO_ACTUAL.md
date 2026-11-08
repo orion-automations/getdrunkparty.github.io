@@ -1,13 +1,13 @@
 # Carnival of Chaos — estado actual e implementación
 
-**Actualizado:** 2026-11-06 · **Versión:** 2.3.0 · **Estado:** cuentas locales SQLite y carrusel corregido; las salas online siguen requiriendo Supabase.
+**Actualizado:** 2026-11-07 · **Versión:** 2.3.17 · **Estado:** acceso local persistente y pasaporte Zevyra; las salas online siguen requiriendo Supabase.
 
 Este es el documento vigente para la aplicación. Los documentos 01–14 conservan antecedentes e iteraciones anteriores; si una decisión difiere, prevalece esta versión y el código citado.
 
 ## Resumen actual
 
 - Carnival of Chaos está disponible; los otros juegos siguen bloqueados hasta tener una implementación (`js/games-catalog.js:1-24`). Se conserva `GAME_ID = "midnight-chaos"` para los datos existentes (`js/config.js:1-3`).
-- El inicio usa una tarjeta con la huella de una columna del mosaico Juegos, con la siguiente más pequeña asomando por debajo; se desliza con el dedo (`index.html:87-100`, `js/app.js:1087-1132, 2598-2614`, `css/platform.css:123-135, 227-230, 580-610`).
+- El inicio usa una tarjeta con la huella de una columna del mosaico Juegos; la carta seleccionada queda centrada y las cartas vecinas del mismo tamaño base aparecen más pequeñas, centradas verticalmente y oscurecidas. Se desliza con el dedo (`index.html:99-114`, `js/app.js:1123-1174, 2766-2783`, `css/platform.css:921-976, 1002-1019`).
 - El dado mantiene seis caras y la animación 3D. Las probabilidades del catálogo son 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio (`js/dice.js:1-84`; creación y orientación visual: `js/app.js:77-82, 1250-1289`).
 - Las rondas cuentan un ciclo completo por los participantes activos: la ronda termina al volver al primero de la lista en el orden vigente. Cada quinto ciclo completo activa un evento; su duración todavía se descuenta por turnos individuales (`js/game.js:664-725`).
 - Las cartas jugadas, auxiliares y descartadas terminan en el cementerio. La extracción excluye esos IDs hasta reiniciar la partida (`js/game.js:545-578`, `js/decks.js:2-36`, `js/app.js:1166-1208, 2693-2718`).
@@ -21,9 +21,9 @@ Este es el documento vigente para la aplicación. Los documentos 01–14 conserv
 
 `index.html → js/games-catalog.js → js/app.js → css/platform.css → assets/games/`
 
-El marcado presenta `CIRCUS ZEVYRA` y debajo “JUEGOS DISPONIBLES” (`index.html:87-100`). `renderHomeGameStack()` crea las tarjetas desde `GAMES_CATALOG`, pone portada, título y estado; `selectHomeGame()` cambia el índice (`js/app.js:1087-1132`). Los eventos Pointer y teclado procesan el gesto horizontal (`js/app.js:2598-2614`). CSS da a la carta activa tamaño de biblioteca y deja visible una carta secundaria más pequeña (`css/platform.css:436-452, 568-569`); `.home-game-cover img` usa `object-fit: cover` (`css/platform.css:268-269`).
+El marcado presenta `CIRCUS ZEVYRA` y debajo “JUEGOS DISPONIBLES” (`index.html:99-114`). `renderHomeGameStack()` crea las tarjetas desde `GAMES_CATALOG`, pone portada, título y estado; `selectHomeGame()` cambia el índice (`js/app.js:1123-1174`). Los eventos Pointer y teclado procesan el gesto horizontal (`js/app.js:2766-2783`). La carta activa queda centrada; ambas cartas vecinas comparten tamaño base, se escalan al 90%, se alinean al centro vertical y se oscurecen (`css/platform.css:921-976`). La imagen llena el marco sin deformarse mediante `object-fit: cover` (`css/platform.css:969-976`).
 
-`renderGameLibrary()` y `renderHomeGameStack()` consumen el mismo catálogo. El acceso solo navega al juego si `available` es `true` (`js/app.js:1044-1086, 1087-1126`; `js/games-catalog.js:1-24`).
+`renderGameLibrary()` y `renderHomeGameStack()` consumen el mismo catálogo. El acceso solo navega al juego si `available` es `true` (`js/app.js:1080-1121, 1123-1164`; `js/games-catalog.js:1-24`).
 
 ### Turno, dado, mazos y cartas
 
@@ -49,9 +49,11 @@ El botón fijo con icono de vórtice abre una lista de solo lectura (`index.html
 
 `index.html → js/app.js → js/multiplayer.js → js/local-accounts.js → server.mjs → database/local_users.py → database/001_users.sql → database/zevyra.sqlite`
 
-Perfil es la quinta vista fija y su avatar se muestra en la navegación inferior (`index.html:73-79, 104-131`). La tarjeta de identidad alinea el UID a la izquierda; el editor se abre con el lápiz (`index.html:107-120`; `css/platform.css:381-390, 476`). `profileAvatarUrl()` crea una URL Big Smile con semilla y opciones; el editor obtiene opciones y presenta controles para personalizar (`js/app.js:162-176, 220-328`). En Participantes, cada avatar abre el editor para ese jugador (`js/app.js:2018-2063`). DiceBear requiere conexión para obtener sus imágenes.
+El acceso inicial bloquea la interfaz con `#auth-gate`. Sus pestañas llaman a `setAuthenticationMode()` y el formulario envía exclusivamente nickname y contraseña a `authenticateProfile()` (`index.html:82-97`; `js/app.js:748-786`; `css/platform.css:1023-1053`). `initializeAccountAccess()` valida la sesión guardada al arrancar; el token y perfil público se conservan en `localStorage` (`js/app.js:1061-1079`; `js/local-accounts.js:1-63`). El token local permanece válido hasta cerrar sesión; la inicialización extiende las sesiones existentes (`database/local_users.py:24-25, 35-50, 148-157, 200-212`). Al cerrar sesión, `#account-logout` revoca el token y vuelve a abrir el acceso (`index.html:189`; `js/app.js:787-803`).
 
-`authenticateProfile()` llama al registro o inicio local (`js/app.js:732-775`). `js/local-accounts.js:18-91` envía JSON a `/api/users/register`, `/login`, `/me` y `/session`; `server.mjs:44-113` ejecuta `database/local_users.py:32-190`, que crea/aplica el esquema `database/001_users.sql:5-28`. La base local está inicializada como `database/zevyra.sqlite`; si se elimina, el siguiente acceso vuelve a crearla. `local_users` contiene UID, nickname y avatar, y una sal/hash PBKDF2; `local_sessions` guarda el hash del token con vencimiento. La contraseña en claro no se escribe en SQLite.
+Después del acceso, `#view-profile` contiene solo el Pasaporte Zevyra: banner, avatar editable, nickname, UID alineado a la izquierda y selector de nacionalidad (`index.html:116-189`). `updateProfileCard()` rellena la tarjeta desde el usuario autenticado; al cambiar nacionalidad, la interfaz guarda el código de país en la cuenta (`js/app.js:87-120, 805-815`). El editor Big Smile sigue permitiendo ajustar el avatar (`js/app.js:2640-2738`).
+
+`js/local-accounts.js:1-93` envía JSON a `/api/users/register`, `/login`, `/me` y `/session`; `server.mjs:69-75` enruta esos endpoints a `database/local_users.py`. `connect_db()` aplica la migración SQLite y `new_uid()` genera `zevy` más seis caracteres aleatorios (`database/local_users.py:35-50, 190-197`). El esquema conserva usuarios anteriores y añade nacionalidad, `cartasPremio` y `fragmentos` (`database/local_users.py:53-145`; `database/001_users.sql:7-35`). Las contraseñas se guardan como sal y hash PBKDF2; `local_sessions` conserva el hash del token y permanece válido hasta el cierre explícito de sesión. La contraseña en claro no se escribe en SQLite.
 
 ### Salas online
 
@@ -63,7 +65,7 @@ El modo multijugador usa una identidad anónima técnica de Supabase para permis
 
 El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`). El service worker no almacena en caché las respuestas privadas de `/api/` (`sw.js:1-2, 86-94`).
 
-Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:402-483`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.0 (`index.html:479`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
+Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:461-485`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.17 (`index.html:517`, `package.json:1-3`, `js/config.js:1`, `sw.js:1-2`).
 
 ## Datos y migraciones
 
@@ -76,4 +78,4 @@ El esquema SQLite local está en `database/001_users.sql`; `database/local_users
 ## Verificación de esta actualización
 
 - Se actualizaron las rutas de cuenta: perfil → cliente local → API Node → SQLite/Python. El token de sesión se almacena como hash y la contraseña como hash PBKDF2 con sal.
-- No se ejecutó la suite ni una revisión visual automatizada. El registro local y el carrusel redimensionado deben probarse desde `http://localhost:8080`; las salas multijugador requieren además Supabase y migración 008.
+- No se ejecutó la suite ni se creó una cuenta de prueba. Se comprobaron sintaxis JavaScript/Python y se verificó visualmente la pantalla de acceso inicial en `http://localhost:8000`. El registro y el carrusel deben probarse con los datos reales del usuario; las salas multijugador requieren además Supabase y migración 008.

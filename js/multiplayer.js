@@ -52,8 +52,8 @@ export async function getSavedProfile() {
   catch { return getCachedLocalAccount(); }
 }
 
-export async function registerProfileAccount(username, password, avatar = null) {
-  return registerLocalAccount(username, password, avatar);
+export async function registerProfileAccount(username, password, avatar = null, countryCode = "XX", identity = {}) {
+  return registerLocalAccount(username, password, avatar, countryCode, identity);
 }
 
 export async function signInProfileAccount(username, password) {
@@ -68,9 +68,9 @@ export async function getProfileIdentity() {
   return getLocalAccount();
 }
 
-export async function saveUserProfile(username, avatar = null) {
+export async function saveUserProfile(username, avatar = null, countryCode = undefined, identity = {}) {
   if (!hasLocalAccountSession()) return null;
-  return updateLocalAccount(username, avatar);
+  return updateLocalAccount(username, avatar, countryCode, identity);
 }
 
 export async function connectRoom({ mode, code, username, avatar = null, maxPlayers = 8, initialState, onSnapshot, onPresence, onStatus }) {

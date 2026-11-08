@@ -38,6 +38,17 @@ import {
 let state = loadState(),
   engine = gameEngine(state),
   toastTimer;
+let accountProfile = null;
+let accountAuthenticated = false;
+let authenticationMode = "login";
+let registrationStep = 1;
+let registrationAvatarUrl = null;
+let profileEditing = false;
+let profileAvatarDraft = null;
+let avatarEditorContext = "profile";
+state.game.fragments ??= [];
+state.game.fragmentCompletions ??= 0;
+let lastRenderedFragmentCompletions = state.game.fragmentCompletions;
 let lastRenderedRoundEventId = state.game.activeRoundEvent?.id ?? null;
 let animateCardNext = false;
 let animateCardId = null;
@@ -63,29 +74,93 @@ const PLAYER_AVATARS = Array.from({ length: 12 }, (_, index) =>
   `https://api.dicebear.com/10.x/big-smile/svg?seed=zevyra-character-${index + 1}&borderRadius=50`,
 );
 const savedLocalAvatar = localStorage.getItem("zevyra.local.avatar") || localStorage.getItem("zevyra.profile.avatar");
-const isDicebearAvatar = (value) => typeof value === "string" && /^https:\/\/api\.dicebear\.com\/10\.x\/[a-z-]+\/svg\?/.test(value);
+const isDicebearAvatar = (value) => typeof value === "string" && /^https:\/\/api\.dicebear\.com\/(?:7|10)\.x\/[a-z-]+\/svg\?/.test(value);
 let selectedLocalAvatar = PLAYER_AVATARS.includes(savedLocalAvatar) || isDicebearAvatar(savedLocalAvatar) ? savedLocalAvatar : PLAYER_AVATARS[0];
 if (!localStorage.getItem("zevyra.profile.avatarSeed")) localStorage.setItem("zevyra.profile.avatarSeed", crypto.randomUUID());
 function localProfileUid() {
   try {
     const account = JSON.parse(localStorage.getItem("zevyra.local.account.session") || "null")?.user;
-    if (/^[A-Z0-9]{8}$/.test(account?.public_uid || "")) return account.public_uid;
+    if (/^zevy[A-Za-z0-9]{6}$/.test(account?.public_uid || "") || /^[A-Z0-9]{8}$/.test(account?.public_uid || "")) return account.public_uid;
   } catch { /* use this browser's guest UID */ }
   let uid = localStorage.getItem("zevyra.profile.publicUid");
   if (!uid) {
-    uid = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+    uid = `zevy${crypto.randomUUID().replaceAll("-", "").slice(0, 6)}`;
     localStorage.setItem("zevyra.profile.publicUid", uid);
   }
   return uid;
+}
+function profileCountryFlag(code) {
+  if (code === "XX") return "🌐";
+  if (code === "OTHER") return "🏳️";
+  if (!/^[A-Z]{2}$/.test(code || "")) return "🌐";
+  return [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
+}
+function initializeCountryChoices() {
+  const source = $("#profile-country");
+  const destination = $("#auth-country");
+  if (!source || !destination) return;
+  const prompt = new Option("Selecciona un país", "");
+  destination.replaceChildren(prompt, ...[...source.options].filter((option) => option.value && option.value !== "XX").map((option) => option.cloneNode(true)));
+}
+initializeCountryChoices();
+function updateProfileCard(profile) {
+  if (!profile) return;
+  accountProfile = profile;
+  const username = profile.username || "Jugador";
+  const uid = String(profile.public_uid || localProfileUid());
+  const avatar = profile.avatar || profileAvatarUrl();
+  const countryCode = (profile.country_code && /^[A-Z]{2}$/.test(profile.country_code)) || profile.country_code === "OTHER"
+    ? profile.country_code : "XX";
+  localStorage.setItem("zevyra.profile.name", username);
+  localStorage.setItem("zevyra.profile.avatar", avatar);
+  if (isDicebearAvatar(avatar) && avatar.includes("/big-smile/")) rememberAvatarSettings(avatar);
+  $("#profile-nickname").value = username;
+  $("#multiplayer-name").value = username;
+  $("#profile-display-name").textContent = username;
+  $("#profile-uid").textContent = `UID: #${uid}`;
+  $("#profile-avatar-preview").src = avatar;
+  $("#profile-avatar-preview-read").src = avatar;
+  $("#nav-profile-avatar").src = avatar;
+  $("#multiplayer-avatar").value = avatar;
+  $("#multiplayer-avatar-preview").src = avatar;
+  $("#profile-country").value = countryCode;
+  $("#profile-country-flag").textContent = profileCountryFlag(countryCode);
+  const countryLabel = [...$("#profile-country").options].find((option) => option.value === countryCode)?.textContent || "Sin seleccionar";
+  $("#passport-country-name").textContent = countryLabel.replace(/^\S+\s*/, "");
+  $("#passport-nickname-input").value = username;
+  $("#passport-age-view").textContent = profile.age ? String(profile.age) : "—";
+  $("#passport-age-input").value = profile.age || "";
+  $("#passport-sex-view").textContent = profile.sex || "—";
+  $("#passport-sex-input").value = profile.sex || "";
+  $("#passport-sexual-identity-view").textContent = profile.sexual_identity || "—";
+  $("#passport-sexual-identity-input").value = profile.sexual_identity || "";
+  if (!$("#auth-country").value) $("#auth-country").value = countryCode === "XX" ? "" : countryCode;
+  $("#auth-age").value ||= profile.age || "";
+  $("#auth-sex").value ||= profile.sex || "";
+  $("#auth-sexual-identity").value ||= profile.sexual_identity || "";
+  $("#auth-avatar-preview").src = registrationAvatarUrl || avatar;
+  if (!state.participants.length) $("#player-name").value = username;
+}
+function setAuthGate(open) {
+  const gate = $("#auth-gate");
+  gate.hidden = !open;
+  [document.querySelector("header"), $("#nav"), $("#tools-nav"), $("main")].forEach((element) => {
+    if (element) element.inert = open;
+  });
+  if (open) requestAnimationFrame(() => $("#profile-nickname").focus());
 }
 for (const face of DICE_FACES) {
   const side = document.createElement("div");
   side.className = `dice-face face-${face.surface}`;
   side.style.setProperty("--face-color", diceFaceColor(face.category));
-  side.textContent = face.label;
+  side.setAttribute("aria-hidden", "true");
+  const symbol = document.createElement("span");
+  symbol.className = "material-symbols-outlined dice-face-symbol";
+  symbol.textContent = CATEGORIES[face.category]?.icon ?? "casino";
+  side.append(symbol);
   $("#dice-cube").append(side);
 }
-const blankGame = () => ({ currentIndex: 0, state: "READY", decks: {}, current: null, history: [], cemetery: [], archives: [], rewards: [], completedTurns: 0, completedRounds: 0, roundEventHistory: [], activeRoundEvent: null });
+const blankGame = () => ({ currentIndex: 0, state: "READY", decks: {}, current: null, history: [], cemetery: [], fragments: [], fragmentCompletions: 0, archives: [], rewards: [], jokerInventory: [], jokerProgress: {}, pendingJokerResolution: null, completedTurns: 0, completedRounds: 0, roundEventHistory: [], activeRoundEvent: null });
 function snapshotForRoom() {
   const referencedIds = new Set([
     state.game.current?.primaryCard?.cardId,
@@ -164,13 +239,8 @@ function notify(text) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
 }
 function readAvatarOptions() {
-  let options = {};
-  try { options = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); }
-  catch { options = {}; }
-  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
-    options[input.dataset.avatarOption] = input.value;
-  });
-  return options;
+  try { return JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); }
+  catch { return {}; }
 }
 function profileAvatarUrl(seed = localStorage.getItem("zevyra.profile.avatarSeed") || "zevyra-player", optionsOverride = null) {
   const params = new URLSearchParams({ seed, borderRadius: "50" });
@@ -205,9 +275,8 @@ function rememberAvatarSettings(avatar) {
       options[key] = key.toLowerCase().includes("color") ? "#" + value.replace(/^#/, "") : value;
     }
     localStorage.setItem("zevyra.profile.avatarOptions", JSON.stringify(options));
-    $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
-      if (options[input.dataset.avatarOption] && (input.type !== "color" || /^#[\da-f]{6}$/i.test(options[input.dataset.avatarOption]))) input.value = options[input.dataset.avatarOption];
-    });
+    if (avatarDraftOptions) avatarDraftOptions = { ...options };
+    $$(".avatar-option-tile").forEach((tile) => tile.classList.toggle("is-selected", options[tile.dataset.optionKey] === tile.dataset.optionValue));
   } catch { /* Keep the local avatar if an older profile URL cannot be parsed. */ }
 }
 function applyProfileBannerColor(color) {
@@ -225,16 +294,14 @@ let avatarDraftSeed = null;
 let avatarDraftOptions = null;
 let avatarEditingPlayerId = null;
 let avatarEditorLoadPromise = null;
+let avatarEditorOptionItems = [];
+let avatarEditorActiveCategory = "";
 function avatarOptionLabel(key) {
   if (AVATAR_OPTION_LABELS[key]) return AVATAR_OPTION_LABELS[key];
   return key.replace(/Variant$/, "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (char) => char.toUpperCase());
 }
 function updateAvatarEditorPreview() {
-  const selectedOptions = Object.fromEntries(
-    $$("#avatar-editor-controls [data-avatar-option]").map((input) => [input.dataset.avatarOption, input.value]),
-  );
-  avatarDraftOptions = { ...(avatarDraftOptions ?? {}), ...selectedOptions };
-  const avatar = profileAvatarUrl(avatarDraftSeed || undefined, avatarDraftOptions);
+  const avatar = profileAvatarUrl(avatarDraftSeed || undefined, avatarDraftOptions ?? readAvatarOptions());
   $("#avatar-editor-preview").src = avatar;
   return avatar;
 }
@@ -254,57 +321,101 @@ function avatarDetailsFromUrl(avatar) {
   }
 }
 function setAvatarEditorOptions(options = {}) {
-  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
-    const value = options[input.dataset.avatarOption];
-    if (input.type === "color") {
-      input.value = /^#[\da-f]{6}$/i.test(value || "") ? value : input.dataset.defaultValue;
-    } else if ([...input.options].some((option) => option.value === value)) {
-      input.value = value;
-    } else {
-      input.value = input.dataset.defaultValue;
-    }
-  });
   avatarDraftOptions = { ...options };
+  $$(".avatar-option-tile").forEach((tile) => tile.classList.toggle("is-selected", options[tile.dataset.optionKey] === tile.dataset.optionValue));
   updateAvatarEditorPreview();
 }
 function loadAvatarEditorOptions() {
   avatarEditorLoadPromise ??= fetchAvatarEditorOptions();
   return avatarEditorLoadPromise;
 }
+function avatarCategoryFor(key) {
+  if (/skin/i.test(key)) return "Color de piel";
+  if (/hair|facialHair/i.test(key)) return "Cabello";
+  if (/eye|eyebrow|glasses/i.test(key)) return "Ojos";
+  if (/mouth|expression/i.test(key)) return "Boca / expresión";
+  if (/background/i.test(key)) return "Fondo";
+  if (/clothing|accessor|hat/i.test(key)) return "Vestuario";
+  return "Detalles";
+}
+function avatarPaletteFor(key) {
+  if (/skin/i.test(key)) return ["#f7dfce", "#efc5a5", "#dba27d", "#bf805d", "#925b42", "#603b2e", "#38251f"];
+  if (/hair/i.test(key)) return ["#211b24", "#49302a", "#815139", "#c18a52", "#e2c778", "#a63550", "#753fb1", "#3280a4"];
+  if (/background/i.test(key)) return ["#261735", "#51306c", "#f2d9f3", "#f7d6e7", "#d4eafa", "#d9f0df", "#f6e5c7"];
+  if (/clothing/i.test(key)) return ["#271b43", "#743c9f", "#c64282", "#df6356", "#26858a", "#4165aa", "#e2c46c", "#f2eaf6"];
+  return ["#211b24", "#6d45aa", "#bd477d", "#d38845", "#4d8c7c", "#6282bd", "#f0d3aa", "#ece7f2"];
+}
+function avatarOptionValues(key, descriptor) {
+  if (descriptor && descriptor.type === "color") return avatarPaletteFor(key);
+  if (Array.isArray(descriptor && descriptor.values)) return descriptor.values;
+  if (Array.isArray(descriptor && descriptor.options)) return descriptor.options;
+  return [];
+}
+function avatarOptionName(value, index) {
+  const text = String(value).replace(/^variant/i, "Modelo ").replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/[_-]/g, " ");
+  return /^#[\da-f]{6}$/i.test(text) ? "Color " + (index + 1) : text || "Opción " + (index + 1);
+}
 async function fetchAvatarEditorOptions() {
   const host = $("#avatar-editor-controls");
-  const saved = avatarDraftOptions ?? (() => { try { return JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); } catch { return {}; } })();
+  const saved = avatarDraftOptions ?? readAvatarOptions();
   try {
     const response = await fetch("https://api.dicebear.com/10.x/big-smile/options.json");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error("HTTP " + response.status);
     const descriptors = await response.json();
+    const items = Object.entries(descriptors).flatMap(([key, descriptor]) => {
+      if (["seed", "borderRadius", "radius", "size"].includes(key)) return [];
+      const values = avatarOptionValues(key, descriptor);
+      return values.length ? [{ key, label: avatarOptionLabel(key), category: avatarCategoryFor(key), values }] : [];
+    });
+    if (!items.length) throw new Error("DiceBear no devolvió opciones visuales.");
+    avatarEditorOptionItems = items;
+    const categories = [...new Set(items.map((item) => item.category))];
+    const tabs = $("#avatar-editor-tabs");
+    tabs.replaceChildren(...categories.map((category, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "avatar-editor-tab" + (index === 0 ? " is-active" : "");
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(index === 0));
+      button.textContent = category;
+      button.dataset.category = category;
+      return button;
+    }));
+    avatarEditorActiveCategory = categories[0] || "";
     const fragment = document.createDocumentFragment();
-    for (const [key, descriptor] of Object.entries(descriptors)) {
-      if (key === "seed" || !["enum", "color"].includes(descriptor?.type)) continue;
-      const label = document.createElement("label");
-      label.textContent = avatarOptionLabel(key);
-      let control;
-      if (descriptor.type === "enum" && Array.isArray(descriptor.values) && descriptor.values.length) {
-        control = document.createElement("select");
-        for (const value of descriptor.values) {
-          const option = document.createElement("option");
-          option.value = value;
-          option.textContent = String(value).replace(/([a-z])([A-Z0-9])/g, "$1 $2");
-          control.append(option);
+    for (const category of categories) {
+      const section = document.createElement("section");
+      section.className = "avatar-option-group" + (category === avatarEditorActiveCategory ? " is-active" : "");
+      section.dataset.category = category;
+      for (const item of items.filter((candidate) => candidate.category === category)) {
+        const group = document.createElement("div");
+        group.className = "avatar-option-set";
+        const heading = document.createElement("h3");
+        heading.textContent = item.label;
+        group.append(heading);
+        const grid = document.createElement("div");
+        grid.className = "avatar-option-grid";
+        for (const [index, value] of item.values.entries()) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "avatar-option-tile";
+          button.dataset.optionKey = item.key;
+          button.dataset.optionValue = String(value);
+          button.setAttribute("aria-label", item.label + ": " + avatarOptionName(value, index));
+          const preview = document.createElement("img");
+          preview.src = profileAvatarUrl(avatarDraftSeed || "zevyra-catalog", { ...saved, [item.key]: value });
+          preview.alt = "";
+          preview.loading = "lazy";
+          const title = document.createElement("span");
+          title.textContent = avatarOptionName(value, index);
+          button.append(preview, title);
+          button.classList.toggle("is-selected", saved[item.key] === value);
+          grid.append(button);
         }
-        control.dataset.defaultValue = descriptor.values[0];
-        if (saved[key] && descriptor.values.includes(saved[key])) control.value = saved[key];
-      } else if (descriptor.type === "color") {
-        control = document.createElement("input");
-        control.type = "color";
-        control.dataset.defaultValue = key === "backgroundColor" ? "#1b1030" : "#6b3f35";
-        control.value = /^#[\da-f]{6}$/i.test(saved[key] || "") ? saved[key] : control.dataset.defaultValue;
-      } else continue;
-      control.dataset.avatarOption = key;
-      control.addEventListener("input", updateAvatarEditorPreview);
-      control.addEventListener("change", updateAvatarEditorPreview);
-      label.append(control);
-      fragment.append(label);
+        group.append(grid);
+        section.append(group);
+      }
+      fragment.append(section);
     }
     const randomize = document.createElement("button");
     randomize.type = "button";
@@ -314,8 +425,25 @@ async function fetchAvatarEditorOptions() {
       avatarDraftSeed = crypto.randomUUID();
       updateAvatarEditorPreview();
     });
-    fragment.append(randomize);
-    host.replaceChildren(fragment);
+    host.replaceChildren(fragment, randomize);
+    $("#avatar-editor-tabs").onclick = (event) => {
+      const tab = event.target.closest(".avatar-editor-tab");
+      if (!tab) return;
+      avatarEditorActiveCategory = tab.dataset.category;
+      $$(".avatar-editor-tab").forEach((item) => {
+        const selected = item === tab;
+        item.classList.toggle("is-active", selected);
+        item.setAttribute("aria-selected", String(selected));
+      });
+      $$(".avatar-option-group").forEach((group) => group.classList.toggle("is-active", group.dataset.category === avatarEditorActiveCategory));
+    };
+    host.onclick = (event) => {
+      const option = event.target.closest(".avatar-option-tile");
+      if (!option) return;
+      avatarDraftOptions = { ...(avatarDraftOptions ?? saved), [option.dataset.optionKey]: option.dataset.optionValue };
+      $$(".avatar-option-tile").forEach((tile) => tile.classList.toggle("is-selected", avatarDraftOptions[tile.dataset.optionKey] === tile.dataset.optionValue));
+      updateAvatarEditorPreview();
+    };
     updateAvatarEditorPreview();
   } catch (error) {
     const message = document.createElement("p");
@@ -325,7 +453,7 @@ async function fetchAvatarEditorOptions() {
     retry.type = "button";
     retry.className = "button avatar-randomize";
     retry.textContent = "Reintentar";
-    retry.addEventListener("click", () => void loadAvatarEditorOptions());
+    retry.addEventListener("click", () => { avatarEditorLoadPromise = null; void loadAvatarEditorOptions(); });
     host.replaceChildren(message, retry);
     avatarEditorLoadPromise = null;
     console.warn("No se pudieron cargar las opciones Big Smile", error);
@@ -334,7 +462,7 @@ async function fetchAvatarEditorOptions() {
 function renderAvatar(target, avatar) {
   if (!target) return;
   target.replaceChildren();
-  if (typeof avatar === "string" && /^https:\/\/api\.dicebear\.com\/10\.x\/[a-z-]+\/svg\?/.test(avatar)) {
+  if (typeof avatar === "string" && /^https:\/\/api\.dicebear\.com\/(?:7|10)\.x\/[a-z-]+\/svg\?/.test(avatar)) {
     const image = document.createElement("img");
     image.src = avatar; image.alt = ""; image.loading = "lazy";
     target.append(image);
@@ -622,7 +750,7 @@ async function connectOnlineRoom(mode, code = "") {
     $("#multiplayer-name").value = connection.session.profile.username;
     $("#profile-nickname").value = connection.session.profile.username;
     $("#profile-display-name").textContent = connection.session.profile.username;
-    if (connection.session.profile.public_uid) $("#profile-uid").textContent = "UID: #" + String(connection.session.profile.public_uid).slice(0, 8).toUpperCase();
+    if (connection.session.profile.public_uid) $("#profile-uid").textContent = `UID: #${connection.session.profile.public_uid}`;
     localStorage.setItem("zevyra.profile.name", connection.session.profile.username);
     renderMultiplayerRoom(connection.snapshot);
     setView(connection.session.status === "playing" ? "game" : "multiplayer");
@@ -653,12 +781,8 @@ $("#multiplayer-name").value = savedProfileName;
 $("#profile-nickname").value = savedProfileName;
 $("#profile-display-name").textContent = savedProfileName || "Jugador";
 $("#player-name").value = savedProfileName;
-$("#profile-uid").textContent = "UID: #" + localProfileUid();
+$("#profile-uid").textContent = `UID: #${localProfileUid()}`;
 for (const [index, avatar] of PLAYER_AVATARS.entries()) {
-  const option = document.createElement("option");
-  option.value = avatar;
-  option.textContent = `Personaje ${index + 1}`;
-  $("#multiplayer-avatar").append(option);
   const avatarButton = document.createElement("button");
   avatarButton.type = "button";
   avatarButton.className = "avatar-choice";
@@ -694,85 +818,165 @@ profileAvatarChoice.onclick = () => {
   $$("#player-avatar-choices .avatar-choice").forEach((button) => button.setAttribute("aria-pressed", String(button === profileAvatarChoice)));
 };
 $("#player-avatar-choices").append(profileAvatarChoice);
-const dicebearOption = document.createElement("option");
-dicebearOption.value = profileAvatarUrl();
-dicebearOption.textContent = "Mi avatar";
-$("#multiplayer-avatar").append(dicebearOption);
 $("#multiplayer-avatar").value = profileAvatarUrl();
 $("#multiplayer-name").addEventListener("change", () => localStorage.setItem("zevyra.profile.name", $("#multiplayer-name").value.trim()));
-$("#multiplayer-avatar").addEventListener("change", () => localStorage.setItem("zevyra.profile.avatar", $("#multiplayer-avatar").value));
-$("#profile-form").onsubmit = async (event) => {
+function setRegistrationStep(step) {
+  registrationStep = step === 2 ? 2 : 1;
+  const isRegister = authenticationMode === "register";
+  const identityEnabled = isRegister && registrationStep === 2;
+  $("#auth-stepper").hidden = !isRegister;
+  $("#auth-step-label").textContent = `Paso ${registrationStep} de 2`;
+  $$(".auth-step-dots i").forEach((dot, index) => dot.classList.toggle("is-current", index + 1 === registrationStep));
+  $("#auth-credentials-step").hidden = isRegister && registrationStep === 2;
+  $("#auth-identity-step").hidden = !isRegister || registrationStep !== 2;
+  $("#account-back").hidden = !isRegister || registrationStep !== 2;
+  $("#account-submit").textContent = !isRegister ? "Iniciar sesión" : registrationStep === 1 ? "Continuar" : "Crear cuenta";
+  $("#account-password").autocomplete = isRegister ? "new-password" : "current-password";
+  $$("#auth-identity-step input, #auth-identity-step select, #auth-identity-step button").forEach((control) => {
+    control.disabled = !identityEnabled;
+  });
+}
+function setAuthenticationMode(kind) {
+  authenticationMode = kind === "register" ? "register" : "login";
+  const isRegister = authenticationMode === "register";
+  registrationAvatarUrl = null;
+  $("#account-login").classList.toggle("active", !isRegister);
+  $("#account-register").classList.toggle("active", isRegister);
+  $("#account-login").setAttribute("aria-selected", String(!isRegister));
+  $("#account-register").setAttribute("aria-selected", String(isRegister));
+  if (isRegister && !$("#auth-country").value && accountProfile?.country_code && accountProfile.country_code !== "XX") $("#auth-country").value = accountProfile.country_code;
+  $("#auth-avatar-preview").src = registrationAvatarUrl || profileAvatarUrl();
+  $("#auth-status").textContent = "";
+  setRegistrationStep(1);
+}
+async function authenticateProfile(event) {
   event.preventDefault();
-  const username = $("#profile-nickname").value.trim().slice(0, 32);
-  if (!username) return notify("Escribe un nickname para guardar tu perfil.");
-  localStorage.setItem("zevyra.profile.name", username);
-  $("#multiplayer-name").value = username;
-  $("#profile-display-name").textContent = username;
-  if (!$("#player-name").value.trim()) $("#player-name").value = username;
-  const session = getMultiplayerSession();
-  if (session) {
-    try {
-      await saveConnectedProfile(username, profileAvatarUrl());
-      render();
-      notify("Nickname actualizado en tu perfil y en las salas activas.");
-    } catch (error) {
-      notify(error.status ? error.message : multiplayerErrorMessage(error));
-    }
-  } else {
-    try {
-      const identity = await getProfileIdentity();
-      if (identity) await saveUserProfile(username, profileAvatarUrl());
-    } catch (error) {
-      logMultiplayerError("save-profile-name", error);
-      return notify(error.message || "No se pudo actualizar la cuenta local.");
-    }
-    notify("Nickname guardado. Se usará automáticamente al entrar a una sala.");
+  if (authenticationMode === "register" && registrationStep === 1) {
+    if (!$("#account-form").reportValidity()) return;
+    $("#auth-status").textContent = "";
+    setRegistrationStep(2);
+    $("#auth-country").focus();
+    return;
   }
-};
-async function authenticateProfile(kind) {
+  if (authenticationMode === "register" && !$("#account-form").reportValidity()) return;
   const username = $("#profile-nickname").value.trim();
   const password = $("#account-password").value;
-  if (!username || !password) return notify("Escribe tu usuario y contraseña.");
+  if (!username || !password) return;
+  $("#account-submit").disabled = true;
+  $("#auth-status").textContent = "";
   try {
-    const user = kind === "register"
-      ? await registerProfileAccount(username, password, profileAvatarUrl())
+    const identity = authenticationMode === "register" ? {
+      age: Number($("#auth-age").value),
+      sex: $("#auth-sex").value,
+      sexual_identity: $("#auth-sexual-identity").value.trim(),
+    } : {};
+    const avatar = registrationAvatarUrl || profileAvatarUrl();
+    const user = authenticationMode === "register"
+      ? await registerProfileAccount(username, password, avatar, $("#auth-country").value, identity)
       : await signInProfileAccount(username, password);
-    const saved = user;
-    const displayName = saved?.username || username;
-    localStorage.setItem("zevyra.profile.name", displayName);
-    const accountAvatar = saved?.avatar || profileAvatarUrl();
-    localStorage.setItem("zevyra.profile.avatar", accountAvatar);
-    $("#profile-nickname").value = displayName;
-    $("#multiplayer-name").value = displayName;
-    $("#profile-display-name").textContent = displayName;
-    const publicUid = String(saved?.public_uid || localProfileUid()).toUpperCase().slice(0, 8);
-    $("#profile-uid").textContent = "UID: #" + publicUid;
-    $("#profile-session-info").textContent = "Cuenta local guardada en SQLite. El UID identifica tu perfil en esta instalación.";
+    accountAuthenticated = true;
+    registrationAvatarUrl = null;
+    updateProfileCard(user);
     $("#account-password").value = "";
+    setPassportEditMode(false);
+    setAuthGate(false);
+    setView("home");
     render();
-    await refreshProfileIdentity();
-    notify(kind === "register" ? "Cuenta creada." : "Sesión iniciada.");
+    notify(authenticationMode === "register" ? "Cuenta creada." : "Sesión iniciada.");
   } catch (error) {
-    logMultiplayerError(`profile-${kind}`, error);
-    notify(error.message || "No se pudo guardar la cuenta local.");
+    logMultiplayerError(`profile-${authenticationMode}`, error);
+    $("#auth-status").textContent = error.message || "No se pudo completar el acceso.";
+  } finally {
+    $("#account-submit").disabled = false;
   }
 }
-$("#account-register").onclick = () => authenticateProfile("register");
-$("#account-login").onclick = () => authenticateProfile("login");
+$("#account-register").onclick = () => setAuthenticationMode("register");
+$("#account-login").onclick = () => setAuthenticationMode("login");
+$("#account-back").onclick = () => setRegistrationStep(1);
+$("#account-form").addEventListener("submit", authenticateProfile);
 $("#account-logout").onclick = async () => {
   try {
-    if (getMultiplayerSession()) await disconnectRoom();
+    if (getMultiplayerSession()) {
+      try { await disconnectRoom(); }
+      catch (error) { logMultiplayerError("logout-room", error); }
+    }
     await signOutProfileAccount();
+    accountAuthenticated = false;
+    accountProfile = null;
     onlineMode = false;
     playMode = "choose";
-    $("#profile-session-info").textContent = "Sesión cerrada. Tu perfil local permanece en este dispositivo.";
-    $("#profile-uid").textContent = "UID: #" + localProfileUid();
-    $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
-    $("#account-logout").classList.add("hidden");
-    $("#account-register").classList.remove("hidden");
-    $("#account-login").classList.remove("hidden");
+    $("#account-password").value = "";
+    $("#auth-status").textContent = "Sesión cerrada.";
+    setAuthenticationMode("login");
+    setAuthGate(true);
     render();
   } catch (error) { notify(error.message || "No se pudo cerrar la cuenta local."); }
+};
+function setPassportEditMode(editing) {
+  profileEditing = Boolean(editing);
+  const card = $(".player-id-card");
+  card.classList.toggle("is-editing", profileEditing);
+  $$('[data-passport-edit]').forEach((control) => { control.hidden = !profileEditing; });
+  $("#profile-avatar-edit").hidden = !profileEditing;
+  $("#passport-edit-actions").hidden = !profileEditing;
+  $("#passport-edit-toggle").setAttribute("aria-label", profileEditing ? "Cerrar edición del pasaporte" : "Editar pasaporte");
+  $("#passport-edit-toggle").title = profileEditing ? "Cerrar edición" : "Editar pasaporte";
+  if (profileEditing) {
+    const profile = accountProfile || {};
+    $("#passport-nickname-input").value = profile.username || "";
+    $("#passport-age-input").value = profile.age || "";
+    $("#passport-sex-input").value = profile.sex || "";
+    $("#passport-sexual-identity-input").value = profile.sexual_identity || "";
+    $("#profile-country").value = profile.country_code || "XX";
+    profileAvatarDraft = profile.avatar || profileAvatarUrl();
+  } else {
+    profileAvatarDraft = null;
+  }
+}
+function syncProfileAvatar(avatar, previousAvatar) {
+  if (isDicebearAvatar(avatar)) rememberAvatarSettings(avatar);
+  localStorage.setItem("zevyra.profile.avatar", avatar);
+  profileAvatarChoice.dataset.avatar = avatar;
+  profileAvatarImage.src = avatar;
+  $("#multiplayer-avatar").value = avatar;
+  $("#multiplayer-avatar-preview").src = avatar;
+  if (isDicebearAvatar(selectedLocalAvatar) && (!previousAvatar || selectedLocalAvatar === previousAvatar)) {
+    selectedLocalAvatar = avatar;
+    localStorage.setItem("zevyra.local.avatar", avatar);
+  }
+  state.participants.forEach((player) => {
+    if ((previousAvatar && player.avatar === previousAvatar) || (isDicebearAvatar(player.avatar) && player.avatar.includes("/personas/"))) player.avatar = avatar;
+  });
+  if (!onlineMode) persist();
+}
+$("#passport-edit-toggle").onclick = () => setPassportEditMode(!profileEditing);
+$("#passport-cancel").onclick = () => { updateProfileCard(accountProfile); setPassportEditMode(false); };
+$("#passport-save").onclick = async () => {
+  const nickname = $("#passport-nickname-input").value.trim();
+  const countryCode = $("#profile-country").value;
+  const ageInput = $("#passport-age-input");
+  const sex = $("#passport-sex-input").value;
+  if (!nickname || !countryCode || !ageInput.value || !sex || !$("#passport-nickname-input").checkValidity() || !ageInput.checkValidity()) {
+    notify("Completa nickname, nacionalidad, edad y sexo para guardar el pasaporte.");
+    return;
+  }
+  const identity = { age: Number(ageInput.value), sex, sexual_identity: $("#passport-sexual-identity-input").value.trim() };
+  const avatar = profileAvatarDraft || accountProfile?.avatar || profileAvatarUrl();
+  const previousAvatar = accountProfile?.avatar || "";
+  $("#passport-save").disabled = true;
+  try {
+    const updated = await saveUserProfile(nickname, avatar, countryCode, identity);
+    if (!updated) throw new Error("Inicia sesión de nuevo para guardar los cambios.");
+    if (avatar !== previousAvatar) syncProfileAvatar(avatar, previousAvatar);
+    updateProfileCard(updated);
+    setPassportEditMode(false);
+    render();
+    notify("Pasaporte actualizado.");
+  } catch (error) {
+    notify(error.message || "No se pudieron guardar los cambios del pasaporte.");
+  } finally {
+    $("#passport-save").disabled = false;
+  }
 };
 $("#multiplayer-create-form").onsubmit = async (event) => {
   event.preventDefault();
@@ -984,47 +1188,28 @@ function setView(view) {
   $("#tools-nav").classList.remove("open");
   $("#tools-nav").hidden = true;
   $("#menu-toggle").setAttribute("aria-expanded", "false");
-  $("#timer-inline").classList.remove("is-hidden");
   if (view === "game" && playMode === "online" && getMultiplayerSession()?.status === "playing") playMode = "online";
   history.replaceState(null, "", view === "home" ? "#inicio" : view === "games" ? "#juegos" : `#${view}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
   render();
-  if (view === "profile") void refreshProfileIdentity();
+  if (view === "profile" && accountAuthenticated) void refreshProfileIdentity();
 }
 async function refreshProfileIdentity() {
-  const localUid = localProfileUid();
-  $("#profile-uid").textContent = "UID: #" + localUid;
-  $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
   try {
-    const identity = await getProfileIdentity();
-    if (!identity) {
-      $("#profile-session-info").textContent = "Perfil local. Crear una cuenta guardará tu nickname y avatar en la base SQLite de este dispositivo.";
-      $("#account-logout").classList.add("hidden");
-      $("#account-register").classList.remove("hidden");
-      $("#account-login").classList.remove("hidden");
+    const profile = await getSavedProfile();
+    if (!profile) {
+      accountAuthenticated = false;
+      setAuthGate(true);
       return;
     }
-    const profile = identity;
-    $("#profile-session-info").textContent = "Cuenta local conectada. Sus datos están guardados en database/zevyra.sqlite.";
-    $("#account-logout").classList.remove("hidden");
-    $("#account-register").classList.add("hidden");
-    $("#account-login").classList.add("hidden");
-    const publicUid = String(profile.public_uid || localUid).toUpperCase().slice(0, 8);
-    $("#profile-uid").textContent = "UID: #" + publicUid;
-    if (profile.username) {
-      $("#profile-nickname").value = profile.username;
-      $("#multiplayer-name").value = profile.username;
-      $("#profile-display-name").textContent = profile.username;
-      localStorage.setItem("zevyra.profile.name", profile.username);
-    }
+    accountAuthenticated = true;
+    updateProfileCard(profile);
     if (profile.avatar && isDicebearAvatar(profile.avatar) && profile.avatar.includes("/big-smile/")) {
       rememberAvatarSettings(profile.avatar);
-      $("#profile-avatar-preview").src = profile.avatar;
-      $("#nav-profile-avatar").src = profile.avatar;
       profileAvatarChoice.dataset.avatar = profile.avatar;
       profileAvatarImage.src = profile.avatar;
-      const profileOption = [...$("#multiplayer-avatar").options].find((option) => option.textContent === "Mi avatar");
-      if (profileOption) profileOption.value = profile.avatar;
+      $("#multiplayer-avatar").value = profile.avatar;
+      $("#multiplayer-avatar-preview").src = profile.avatar;
       localStorage.setItem("zevyra.profile.avatar", profile.avatar);
       const localAvatar = localStorage.getItem("zevyra.local.avatar");
       if (!localAvatar || isDicebearAvatar(localAvatar)) {
@@ -1034,8 +1219,27 @@ async function refreshProfileIdentity() {
       }
     }
   } catch (error) {
-    $("#profile-session-info").textContent = "No se pudo abrir la base SQLite local. Inicia la aplicación con npm run serve.";
     logMultiplayerError("profile-identity", error);
+    if (!accountProfile) setAuthGate(true);
+  }
+}
+async function initializeAccountAccess() {
+  setAuthGate(true);
+  setAuthenticationMode("login");
+  try {
+    const profile = await getSavedProfile();
+    if (!profile) {
+      accountAuthenticated = false;
+      $("#auth-status").textContent = "";
+      return;
+    }
+    accountAuthenticated = true;
+    updateProfileCard(profile);
+    setAuthGate(false);
+  } catch (error) {
+    accountAuthenticated = false;
+    $("#auth-status").textContent = error.message || "Inicia sesión o regístrate para continuar.";
+    setAuthGate(true);
   }
 }
 function renderGameLibrary() {
@@ -1087,6 +1291,7 @@ function renderHomeGameStack() {
   host.replaceChildren();
   const selected = GAMES_CATALOG[selectedGameIndex];
   if (!selected) return;
+  const previousIndex = (selectedGameIndex - 1 + GAMES_CATALOG.length) % GAMES_CATALOG.length;
   const nextIndex = (selectedGameIndex + 1) % GAMES_CATALOG.length;
   const makeCard = (game, position, index) => {
     const card = document.createElement("article");
@@ -1105,14 +1310,15 @@ function renderHomeGameStack() {
     const status = document.createElement("span");
     status.className = "home-game-status";
     status.textContent = game.status;
-    copy.append(cardTitle, status);
+    copy.append(status, cardTitle);
     card.append(coverFrame, copy);
     card.setAttribute("aria-label", `${game.name}, ${game.status}`);
     card.setAttribute("aria-hidden", String(position !== "is-selected"));
-    card.style.setProperty("--carousel-enter-x", homeCarouselDirection > 0 ? "26px" : "-26px");
+    card.style.setProperty("--carousel-enter-x", homeCarouselDirection > 0 ? "52px" : "-52px");
     card.dataset.gameIndex = String(index);
     host.append(card);
   };
+  makeCard(GAMES_CATALOG[previousIndex], "is-prev", previousIndex);
   makeCard(GAMES_CATALOG[nextIndex], "is-next", nextIndex);
   makeCard(selected, "is-selected", selectedGameIndex);
   $("#home-selected-game").replaceChildren();
@@ -1138,7 +1344,7 @@ function applyAppearance(mode) {
   const themeButton = $("#appearance-cycle");
   const themeIcon = $("#appearance-icon");
   const labels = { system: "Sistema", dark: "Oscuro", light: "Claro" };
-  const icons = { system: "light_mode dark_mode", dark: "dark_mode", light: "light_mode" };
+  const icons = { system: "brightness_6", dark: "dark_mode", light: "light_mode" };
   if (themeButton) {
     themeButton.setAttribute("aria-label", `Tema actual: ${labels[selection]}. Cambiar al siguiente tema.`);
     themeButton.title = `Tema: ${labels[selection]}`;
@@ -1160,36 +1366,70 @@ function cardShotCount(card) {
     .map((match) => /^(?:un|una)$/i.test(match[1]) ? 1 : Number(match[1]));
   return counts.length ? Math.max(...counts) : 0;
 }
+function cardShotAlternativeCount(card) {
+  const match = String(card?.description ?? "").match(/\b(?:toma|tomar)\s+(\d+|un|una)\s+(?:shots?|copas?)\b/i);
+  if (!match) return 0;
+  return /^\d+$/.test(match[1]) ? Number(match[1]) : 1;
+}
 function renderCemetery() {
   const list = $("#cemetery-list");
   list.replaceChildren();
   const cards = state.game.cemetery ?? [];
-  if (!cards.length) {
-    const empty = document.createElement("li");
-    empty.textContent = "Todavía no hay cartas en el cementerio.";
-    list.append(empty);
-    return;
+  for (const entry of cards) {
+    const card = state.cards.find((candidate) => candidate.id === entry.cardId) ?? {
+      id: entry.cardId,
+      title: entry.title,
+      categoryId: entry.category,
+      description: "",
+      target: { mode: "CURRENT_PLAYER" },
+      spiceLevel: 0,
+    };
+    const slot = makeTurnCard(card, { targetIds: [] }, true, false);
+    slot.classList.add("cemetery-card-slot");
+    slot.querySelector(".help-button")?.remove();
+    slot.querySelector(".card-inline-actions")?.remove();
+    const assignment = slot.querySelector(".card-players");
+    if (assignment && entry.playerName) assignment.textContent = `Turno de ${entry.playerName}`;
+    list.append(slot);
   }
-  for (const card of cards) {
-    const item = document.createElement("li");
-    item.textContent = card.title;
-    const details = document.createElement("small");
-    const category = CATEGORIES[card.category]?.label ?? card.category;
-    details.textContent = `${category} · ${card.playerName || "Participante"}`;
-    item.append(details);
-    list.append(item);
+}
+function renderFragments() {
+  const list = $("#fragments-list");
+  list.replaceChildren();
+  const fragments = state.game.fragments ?? [];
+  $("#fragments-count").textContent = String(fragments.length);
+  $("#fragments-open").setAttribute("aria-label", `Abrir fragmentos acumulados: ${fragments.length} de 5`);
+  for (const entry of fragments) {
+    const card = state.cards.find((candidate) => candidate.id === entry.cardId);
+    if (!card) continue;
+    const slot = makeTurnCard(card, { targetIds: [] }, true, false);
+    slot.classList.add("cemetery-card-slot");
+    slot.querySelector(".help-button")?.remove();
+    slot.querySelector(".card-inline-actions")?.remove();
+    const assignment = slot.querySelector(".card-players");
+    if (assignment) assignment.textContent = `Obtuvo: ${entry.playerName || "Participante"}`;
+    list.append(slot);
   }
 }
 async function animateCardsToCemetery() {
   if (cemeteryAnimating) return;
-  const slots = $$("#turn-cards .card-slot");
+  const currentItems = [state.game.current?.primaryCard, ...(state.game.current?.auxiliaryCards ?? [])].filter(Boolean);
+  const fragmentItems = currentItems.filter((item) => state.cards.find((card) => card.id === item.cardId)?.fragment);
+  const completesFragments = (state.game.fragments?.length ?? 0) + fragmentItems.filter((item) => !(state.game.fragments ?? []).some((entry) => entry.cardId === item.cardId)).length >= 5;
+  const slots = $$("#turn-cards .card-slot").map((slot) => {
+    const card = state.cards.find((entry) => entry.id === slot.dataset.cardId);
+    return { slot, fragment: Boolean(card?.fragment) };
+  }).filter(({ fragment }) => !fragment || completesFragments);
   if (!slots.length) return;
-  const target = $("#cemetery-open").getBoundingClientRect();
-  const targetX = target.left + target.width / 2;
-  const targetY = target.top + target.height / 2;
   cemeteryAnimating = true;
-  $("#cemetery-open").classList.add("is-receiving");
-  const animations = slots.map((slot, index) => {
+  const destinations = new Set();
+  const animations = slots.map(({ slot, fragment }, index) => {
+    const destination = fragment ? $("#fragments-open") : $("#cemetery-open");
+    destinations.add(destination);
+    const target = destination.getBoundingClientRect();
+    const targetX = target.left + target.width / 2;
+    const targetY = target.top + target.height / 2;
+    if (!fragment) destination.classList.add("is-receiving");
     const source = slot.getBoundingClientRect();
     const dx = targetX - (source.left + source.width / 2);
     const dy = targetY - (source.top + source.height / 2);
@@ -1200,14 +1440,33 @@ async function animateCardsToCemetery() {
     ], { duration: 590, delay: index * 55, easing: "cubic-bezier(.45,0,.75,.2)", fill: "forwards" });
   });
   await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
-  $("#cemetery-open").classList.remove("is-receiving");
+  destinations.forEach((destination) => destination.classList.remove("is-receiving"));
   cemeteryAnimating = false;
 }
 function render() {
   document.title = `${GAME_NAME} — Circus Zevyra`;
   const appearance = localStorage.getItem("zevyra.appearance") || "system";
   applyAppearance(appearance);
-  $("#header-round-count").textContent = String(state.game.completedRounds ?? 0);
+  const currentRound = (state.game.completedRounds ?? 0) + 1;
+  $("#header-round-count").textContent = String(currentRound);
+  const gameViewIsActive = $("#view-game").classList.contains("active");
+  const hasActivePlayers = state.participants.some((player) => player.active);
+  const roomIsPlaying = getMultiplayerSession()?.status === "playing";
+  const showGameTools = gameViewIsActive && hasActivePlayers &&
+    (playMode === "local" || (playMode === "online" && roomIsPlaying));
+  $("#header-rounds").classList.toggle("hidden", !showGameTools);
+  $("#timer-inline").classList.toggle("hidden", !showGameTools);
+  $("#cemetery-open").classList.toggle("hidden", !showGameTools);
+  $("#fragments-open").classList.toggle("hidden", !showGameTools);
+  renderFragments();
+  if ((state.game.fragmentCompletions ?? 0) > lastRenderedFragmentCompletions) {
+    const button = $("#fragments-open");
+    button.classList.remove("is-completing");
+    void button.offsetWidth;
+    button.classList.add("is-completing");
+    setTimeout(() => button.classList.remove("is-completing"), 1500);
+    lastRenderedFragmentCompletions = state.game.fragmentCompletions;
+  }
   $("#nav-profile-avatar").src = profileAvatarUrl();
   $("#app-version").textContent = VERSION;
   $("#game-name-label").textContent = GAME_NAME;
@@ -1223,19 +1482,11 @@ function render() {
   renderRewards();
   renderPlayers();
   const profileSession = getMultiplayerSession();
-  if (profileSession) {
-    $("#profile-nickname").value = profileSession.profile.username;
-    $("#profile-display-name").textContent = profileSession.profile.username || "Jugador";
-    const publicUid = String(profileSession.profile.public_uid || localProfileUid()).toUpperCase().slice(0, 8);
-    $("#profile-uid").textContent = "UID: #" + publicUid;
-    let localAccount = null;
-    try { localAccount = JSON.parse(localStorage.getItem("zevyra.local.account.session") || "null")?.user; } catch { /* no local account session */ }
-    $("#profile-session-info").textContent = localAccount
-      ? `Conectado a una sala como ${profileSession.profile.username}. La cuenta y el UID están en SQLite local.`
-      : `Conectado a una sala como ${profileSession.profile.username}. El alias de esta sala no crea una cuenta local.`;
-  } else {
-    $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
-  }
+  if (profileSession?.profile?.username) {
+    $("#profile-display-name").textContent = profileSession.profile.username;
+    if (profileSession.profile.public_uid) $("#profile-uid").textContent = `UID: #${profileSession.profile.public_uid}`;
+  } else if (accountProfile) updateProfileCard(accountProfile);
+  else $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
   renderCards();
   renderManuals();
   renderDrinks();
@@ -1251,6 +1502,7 @@ function render() {
 function renderGame() {
   const active = state.participants.filter((p) => p.active);
   const hasPlayers = active.length > 0;
+  const pendingJoker = Boolean(state.game.pendingJokerResolution);
   const cur = state.game.current;
   const current = state.game.chain
     ? state.participants.find((p) => p.id === state.game.chain.activePlayerId)
@@ -1264,13 +1516,15 @@ function renderGame() {
     : "Agrega participantes";
   renderAvatar($("#current-player-avatar"), current?.avatar || PLAYER_AVATARS[0]);
   renderRoundAndPowerState();
+  renderJokerObligation();
   renderChainState();
-  const ready = state.game.state === "READY" && hasPlayers && !rolling && !state.game.chain;
+  const ready = state.game.state === "READY" && hasPlayers && !rolling && !state.game.chain && !pendingJoker;
   const readOnly = onlineMode && !canPlayOnlineGame();
   const digital = (state.settings.gameMode ?? "digital") === "digital";
   $("#game-mode").value = digital ? "digital" : "physical";
-  const showDice = digital && hasPlayers;
+  const showDice = digital && hasPlayers && !pendingJoker;
   $("#dice-stage").classList.toggle("hidden", !showDice);
+  $("#all-decks-grid").classList.toggle("hidden", !hasPlayers || pendingJoker);
   cubeIsInteractive(cur, ready, digital);
   const cube = $("#dice-cube");
   const selectedFace =
@@ -1295,7 +1549,7 @@ function renderGame() {
   const choosingPhysical = !digital && ready;
   const choosingRolledCategory = digital && cur?.phase === "AWAITING_CATEGORY";
   const mainDecksVisible = digital
-    ? active.length > 0
+    ? active.length > 0 && !pendingJoker
     : choosingPhysical || Boolean(cur);
   $("#all-decks-grid").classList.toggle("hidden", !mainDecksVisible);
   $("#blocked-choice").classList.toggle("hidden", !choosingPhysical);
@@ -1341,7 +1595,7 @@ function renderGame() {
   });
   $$("#category-choices [data-category]").forEach((button) => { button.disabled ||= readOnly; });
   $("#blocked-choice").disabled ||= readOnly;
-  $("#game-mode").disabled = readOnly || Boolean(cur) || rolling || Boolean(state.game.chain);
+  $("#game-mode").disabled = readOnly || Boolean(cur) || rolling || Boolean(state.game.chain) || pendingJoker;
   $("#save-minigame-participants").disabled = readOnly;
   const gameMessage = cur
     ? cur.category === "BLOQUEADA"
@@ -1369,6 +1623,9 @@ function renderGame() {
     .join("|");
   if (cardsHost.dataset.cardsKey !== cardsKey) {
     const animateActiveCard = animateCardNext && cardsKey.includes(animateCardId ?? "\0");
+    const activeCardId = animateActiveCard
+      ? animateCardId
+      : state.game.current?.auxiliaryCards?.at(-1)?.cardId ?? state.game.current?.primaryCard?.cardId;
     cardsHost.replaceChildren();
     for (const [index, item] of items.entries()) {
       const card = state.cards.find((c) => c.id === item.cardId);
@@ -1387,9 +1644,6 @@ function renderGame() {
       animateCardNext = false;
       animateCardId = null;
     }
-    const activeCardId = animateActiveCard
-      ? animateCardId
-      : state.game.current?.auxiliaryCards?.at(-1)?.cardId ?? state.game.current?.primaryCard?.cardId;
     requestAnimationFrame(() => {
       const active = cardsHost.querySelector(`[data-card-id="${CSS.escape(activeCardId ?? "")}"]`);
       if (active) {
@@ -1449,9 +1703,9 @@ function renderGame() {
   );
   const hasCard = items.length > 0;
   const primaryCard = cur?.primaryCard && state.cards.find((card) => card.id === cur.primaryCard.cardId);
-  const shotAlternative = primaryCard?.description?.match(/\btoma\s+(\d+)\s+shots?\b/i);
-  if (shotAlternative) {
-    let count = Number(shotAlternative[1]);
+  const shotAlternativeCount = cardShotAlternativeCount(primaryCard);
+  if (shotAlternativeCount) {
+    let count = shotAlternativeCount;
     if (state.game.activeRoundEvent?.effect === "double_shots" && ["VERDAD", "DESAFIO"].includes(cur.category)) count *= 2;
     $("#confirm-alternative").textContent = `Toma ${shotLabel(count)}`;
   } else $("#confirm-alternative").textContent = "Pasar la carta";
@@ -1497,24 +1751,16 @@ function renderRoundAndPowerState() {
     setTimeout(() => panel.classList.remove("is-revealing"), 1400);
   }
   lastRenderedRoundEventId = nextEventId;
-  panel.classList.toggle("hidden", !event && !(state.game.completedTurns ?? 0));
-  $("#round-turn-count").textContent = `${state.game.completedRounds ?? 0} rondas completas`;
+  panel.classList.toggle("hidden", !event);
   if (event) {
-    $("#round-event-title").textContent = `${event.name} · ${event.turnsRemaining} turnos`;
+    $("#round-event-title").textContent = `Evento de ronda ${event.eventRound}: ${event.name}`;
     $("#round-event-description").textContent = event.description;
-  }
-  const history = $("#round-event-history");
-  history.replaceChildren();
-  for (const item of state.game.roundEventHistory ?? []) {
-    const line = document.createElement("li");
-    line.textContent = `${item.name} · ${item.status === "active" ? "Activo" : "Finalizado"}`;
-    history.append(line);
   }
   const ownerId = state.game.chain ? null : state.game.current?.playerId ?? state.participants[state.game.currentIndex]?.id;
   const mine = (state.game.powers ?? []).filter((power) => power.playerId === ownerId);
   const powers = $("#power-inventory");
   powers.replaceChildren();
-  $("#power-inventory-panel").classList.toggle("hidden", !mine.length);
+  $("#power-inventory-panel").classList.toggle("hidden", !mine.length || Boolean(state.game.pendingJokerResolution));
   for (const power of mine) {
     const definition = POWER_CATALOG.find((item) => item.id === power.key);
     if (!definition) continue;
@@ -1523,7 +1769,7 @@ function renderRoundAndPowerState() {
     button.className = "button button-small";
     button.textContent = `Usar · ${power.label}`;
     button.title = definition.description;
-    button.disabled = onlineMode && !canPlayOnlineGame();
+    button.disabled = Boolean(state.game.pendingJokerResolution) || (onlineMode && !canPlayOnlineGame());
     button.onclick = () => {
       if (!requireOnlineGame()) return;
       const result = engine.activatePower(power.id);
@@ -1535,26 +1781,31 @@ function renderRoundAndPowerState() {
   }
 }
 
+function renderJokerObligation() {
+  const panel = $("#joker-obligation-panel");
+  const entry = (state.game.jokerInventory ?? []).find(
+    (joker) => joker.id === state.game.pendingJokerResolution,
+  );
+  panel.classList.toggle("hidden", !entry);
+  if (!entry) return;
+  const player = state.participants.find((participant) => participant.id === entry.playerId);
+  const card = state.cards.find((candidate) => candidate.id === entry.cardId);
+  $("#joker-obligation-owner").textContent = `Para ${player?.name ?? "el participante"}`;
+  $("#joker-obligation-title").textContent = entry.title;
+  $("#joker-obligation-description").textContent = card?.description ?? "Resuelve el Arlequín y registra su uso.";
+  $("#resolve-joker-obligation").disabled = onlineMode && !canControlOnlineGame();
+}
+
 function renderChainState() {
   const chain = state.game.chain;
   const panel = $("#chain-panel");
-  const lastChain = (state.game.chainHistory ?? [])[0];
-  const displayedChain = chain ?? lastChain;
-  const prompt = CHAIN_CHALLENGES.find((item) => item.id === displayedChain?.challengeId);
-  panel.classList.toggle("hidden", !displayedChain || !prompt);
+  const prompt = CHAIN_CHALLENGES.find((item) => item.id === chain?.challengeId);
+  panel.classList.toggle("hidden", !chain || !prompt);
   const start = $("#chain-start");
-  start.classList.toggle("hidden", Boolean(chain || state.game.current) || state.participants.filter((player) => player.active).length < 2);
-  start.disabled = onlineMode && !canPlayOnlineGame();
-  if (!displayedChain || !prompt) return;
-  $("#chain-continue").classList.toggle("hidden", !chain);
-  $("#chain-finish").classList.toggle("hidden", !chain);
-  if (!chain) {
-    $("#chain-title").textContent = `${prompt.name} · finalizado`;
-    $("#chain-description").textContent = prompt.prompt;
-    const names = lastChain.visited.map((entry) => state.participants.find((player) => player.id === entry.playerId)?.name ?? "Participante");
-    $("#chain-status").textContent = `Participaron: ${names.join(" → ") || "sin pasos"}. Cierre: ${lastChain.finishReason}.`;
-    return;
-  }
+  start.classList.add("hidden");
+  if (!chain || !prompt) return;
+  $("#chain-continue").classList.remove("hidden");
+  $("#chain-finish").classList.remove("hidden");
   const activePlayer = state.participants.find((player) => player.id === chain.activePlayerId);
   $("#chain-title").textContent = prompt.name;
   $("#chain-description").textContent = prompt.prompt;
@@ -1565,7 +1816,6 @@ function renderChainState() {
   $("#chain-finish").disabled = onlineMode && !canPlayOnlineGame();
 }
 
-$("#round-history-toggle").onclick = () => $("#round-event-history").classList.toggle("hidden");
 $("#chain-start").onclick = () => {
   if (!requireOnlineGame()) return;
   const result = engine.startChain();
@@ -1880,6 +2130,7 @@ function makeTurnCard(card, item, primary, animate) {
   );
   const back = document.createElement("div");
   back.className = "card-back";
+  back.dataset.category = card.categoryId;
   const backSymbol = document.createElement("span");
   backSymbol.className = "material-symbols-outlined card-back-symbol";
   backSymbol.setAttribute("aria-hidden", "true");
@@ -1915,9 +2166,12 @@ function makeTurnCard(card, item, primary, animate) {
   copy.className = "card-copy";
   const title = document.createElement("h3");
   title.textContent = card.title;
-  const description = document.createElement("p");
-  description.textContent = card.description;
-  copy.append(title, description);
+  copy.append(title);
+  if (card.categoryId !== "MINIJUEGO") {
+    const description = document.createElement("p");
+    description.textContent = card.description;
+    copy.append(description);
+  }
   const footer = document.createElement("div");
   footer.className = "card-footer";
   const penalty = document.createElement("span");
@@ -1963,8 +2217,6 @@ function makeTurnCard(card, item, primary, animate) {
   }
   const reveal = () => playing.classList.add("revealed");
   if (animate) {
-    animateCardNext = false;
-    animateCardId = null;
     requestAnimationFrame(() => setTimeout(reveal, 360));
   } else reveal();
   return slot;
@@ -2021,6 +2273,8 @@ function renderPlayers() {
   host.replaceChildren();
   const readOnly = onlineMode;
   state.participants.forEach((p, i) => {
+    const participantCard = document.createElement("section");
+    participantCard.className = "participant-manage-card";
     const row = document.createElement("div");
     row.className = "manage-row";
     row.innerHTML = `<span class="player-number">${String(i + 1).padStart(2, "0")}</span><button class="player-avatar player-avatar-edit-control" type="button" aria-label="Editar avatar de ${esc(p.name)}"><span class="player-avatar-image"></span><span class="material-symbols-rounded player-avatar-edit-mark" aria-hidden="true">edit</span></button><input aria-label="Nombre" value="${esc(p.name)}" maxlength="32"><span class="fine-print">${p.id === state.participants[state.game.currentIndex]?.id ? "Turno actual" : ""}</span><button class="button button-small button-danger" data-action="delete-player">Eliminar</button>`;
@@ -2028,40 +2282,9 @@ function renderPlayers() {
     renderAvatar(row.querySelector(".player-avatar-image"), p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]);
     avatarButton.disabled = readOnly;
     avatarButton.onclick = async () => {
-      const { seed, options } = avatarDetailsFromUrl(p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]);
       avatarEditingPlayerId = p.id;
-      avatarDraftSeed = seed;
-      avatarDraftOptions = options;
-      $("#avatar-editor-dialog").showModal();
-      updateAvatarEditorPreview();
-      await loadAvatarEditorOptions();
-      setAvatarEditorOptions(options);
+      await openAvatarEditor("participant", p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]);
     };
-    const avatarSelect = document.createElement("select");
-    avatarSelect.className = "player-avatar-select";
-    avatarSelect.setAttribute("aria-label", `Avatar de ${p.name}`);
-    for (const [index, avatar] of PLAYER_AVATARS.entries()) {
-      const option = document.createElement("option");
-      option.value = avatar;
-      option.textContent = `Personaje ${index + 1}`;
-      option.selected = (p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length]) === avatar;
-      avatarSelect.append(option);
-    }
-    const profileOption = document.createElement("option");
-    profileOption.value = profileAvatarUrl();
-    profileOption.textContent = "Mi avatar";
-    profileOption.selected = p.avatar === profileOption.value;
-    avatarSelect.append(profileOption);
-    if (![...avatarSelect.options].some((option) => option.value === p.avatar)) {
-      const customOption = document.createElement("option");
-      customOption.value = p.avatar || PLAYER_AVATARS[i % PLAYER_AVATARS.length];
-      customOption.textContent = "Personalizado";
-      customOption.selected = true;
-      avatarSelect.append(customOption);
-    }
-    avatarSelect.disabled = readOnly;
-    avatarSelect.onchange = () => { p.avatar = avatarSelect.value; persist(); render(); };
-    row.insertBefore(avatarSelect, row.querySelector("input"));
     row.querySelector("input").disabled = readOnly;
     row.querySelector("[data-action=delete-player]").disabled = readOnly;
     const saveName = () => {
@@ -2088,7 +2311,81 @@ function renderPlayers() {
         render();
       });
     };
-    host.append(row);
+    participantCard.append(row);
+
+    const inventory = (state.game.jokerInventory ?? []).filter((entry) => entry.playerId === p.id);
+    const progress = state.game.jokerProgress?.[p.id] ?? {};
+    const shelf = document.createElement("section");
+    shelf.className = "player-joker-inventory";
+    shelf.setAttribute("aria-label", `Jokers personales de ${p.name}`);
+    const goodCount = inventory.filter((entry) => entry.category === "PREMIO" && !entry.used).length;
+    const badCount = inventory.filter((entry) => entry.category === "CASTIGO" && !entry.used).length;
+    const heading = document.createElement("div");
+    heading.className = "player-joker-inventory-heading";
+    const label = document.createElement("strong");
+    label.textContent = `MAZO PERSONAL · ${goodCount} Bufones · ${badCount} Arlequines`;
+    const streak = document.createElement("span");
+    streak.className = "fine-print";
+    streak.textContent = `Cumplidos ${Math.min(3, progress.completedStreak ?? 0)}/3 · Alternativas ${Math.min(3, progress.shotStreak ?? 0)}/3 · Pecados/Sacrificios ${progress.completedTruthOrChallengeCount ?? 0}/5`;
+    heading.append(label, streak);
+    shelf.append(heading);
+    if (!inventory.length) {
+      const empty = document.createElement("p");
+      empty.className = "fine-print";
+      empty.textContent = "Todavía no tiene cartas Joker personales.";
+      shelf.append(empty);
+    } else {
+      const list = document.createElement("div");
+      list.className = "player-joker-list";
+      inventory.forEach((entry) => {
+        const card = state.cards.find((item) => item.id === entry.cardId);
+        const item = document.createElement("details");
+        item.className = `player-joker-item${entry.used ? " is-used" : ""}`;
+        const summary = document.createElement("summary");
+        summary.textContent = `${entry.category === "PREMIO" ? "Bufón" : "Arlequín"} · ${entry.title}`;
+        item.append(summary);
+        if (card?.description) {
+          const description = document.createElement("p");
+          description.textContent = card.description;
+          item.append(description);
+        }
+        const note = document.createElement("p");
+        note.className = "fine-print";
+        note.textContent = entry.used ? "Usado" : `Otorgado automáticamente: ${entry.reason}.`;
+        item.append(note);
+        if (!entry.used && entry.id !== state.game.pendingJokerResolution) {
+          const activeInventoryOwner = state.game.current?.playerId ?? state.participants[state.game.currentIndex]?.id;
+          const canUseThisJoker = !onlineMode || (canPlayOnlineGame() && activeInventoryOwner === p.id);
+          const use = document.createElement("button");
+          use.type = "button";
+          use.className = "button button-small";
+          use.textContent = "Marcar usado";
+          use.disabled = !canUseThisJoker;
+          use.onclick = () => {
+            if (!canUseThisJoker || !requireOnlineGame()) return;
+            entry.used = true;
+            entry.usedAt = new Date().toISOString();
+            state.game.cemetery ??= [];
+            state.game.cemetery.unshift({
+              cardId: entry.cardId,
+              title: entry.title,
+              category: entry.category,
+              playerId: p.id,
+              playerName: p.name,
+              drawnAt: entry.grantedAt,
+            });
+            persist();
+            renderPlayers();
+            render();
+          };
+          item.append(use);
+        }
+        list.append(item);
+      });
+      shelf.append(list);
+    }
+    participantCard.append(shelf);
+    host.append(participantCard);
   });
 }
 function populateForm(card) {
@@ -2454,11 +2751,10 @@ $("#nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
   if (btn) setView(btn.dataset.view);
 });
+$("#start-adding-players").onclick = () => setView("players");
 $("#view-settings").addEventListener("click", (e) => {
   const shortcut = e.target.closest("[data-view]");
   if (shortcut) setView(shortcut.dataset.view);
-  const sectionShortcut = e.target.closest("[data-settings-target]");
-  if (sectionShortcut) $("#" + sectionShortcut.dataset.settingsTarget)?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 $("#tools-nav").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-view]");
@@ -2475,29 +2771,31 @@ $("#menu-toggle").onclick = () => {
 $("#home-browse-games").onclick = () => setView("games");
 $("#home-join-game").onclick = () => { playMode = "choose"; setView("game"); };
 $("#profile-avatar-preview").src = profileAvatarUrl();
-$("#profile-avatar-edit").onclick = async () => {
-  avatarDraftSeed = localStorage.getItem("zevyra.profile.avatarSeed");
-  avatarEditingPlayerId = null;
-  try { avatarDraftOptions = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); }
-  catch { avatarDraftOptions = {}; }
+$("#profile-avatar-preview-read").src = profileAvatarUrl();
+$("#auth-avatar-preview").src = profileAvatarUrl();
+async function openAvatarEditor(context, initialAvatar = null) {
+  avatarEditorContext = context;
+  if (context !== "participant") avatarEditingPlayerId = null;
+  const avatar = initialAvatar || (context === "registration"
+    ? registrationAvatarUrl || profileAvatarUrl()
+    : context === "profile"
+      ? profileAvatarDraft || accountProfile?.avatar || profileAvatarUrl()
+      : profileAvatarUrl());
+  const details = avatarDetailsFromUrl(avatar);
+  avatarDraftSeed = details.seed;
+  avatarDraftOptions = details.options;
   $("#avatar-editor-dialog").showModal();
-  updateAvatarEditorPreview();
+  setAvatarEditorOptions(details.options);
   await loadAvatarEditorOptions();
-  setAvatarEditorOptions(avatarDraftOptions);
-  updateAvatarEditorPreview();
-};
+  setAvatarEditorOptions(details.options);
+}
+$("#profile-avatar-edit").onclick = () => { if (profileEditing) void openAvatarEditor("profile"); };
+$("#auth-avatar-edit").onclick = () => void openAvatarEditor("registration");
 function discardAvatarEditorChanges() {
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); }
-  catch { saved = {}; }
-  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
-    if (input.type === "color") input.value = /^#[\da-f]{6}$/i.test(saved[input.dataset.avatarOption] || "") ? saved[input.dataset.avatarOption] : input.dataset.defaultValue;
-    else input.value = [...input.options].some((option) => option.value === saved[input.dataset.avatarOption]) ? saved[input.dataset.avatarOption] : input.dataset.defaultValue;
-  });
-  updateAvatarEditorPreview();
   avatarDraftSeed = null;
   avatarDraftOptions = null;
   avatarEditingPlayerId = null;
+  avatarEditorContext = "profile";
   $("#avatar-editor-dialog").close();
 }
 $("#avatar-editor-close").onclick = discardAvatarEditorChanges;
@@ -2506,74 +2804,33 @@ $("#avatar-editor-dialog").addEventListener("close", () => {
   avatarDraftSeed = null;
   avatarDraftOptions = null;
   avatarEditingPlayerId = null;
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem("zevyra.profile.avatarOptions") || "{}"); } catch { saved = {}; }
-  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => {
-    if (input.type === "color") input.value = /^#[\da-f]{6}$/i.test(saved[input.dataset.avatarOption] || "") ? saved[input.dataset.avatarOption] : input.dataset.defaultValue;
-    else input.value = [...input.options].some((option) => option.value === saved[input.dataset.avatarOption]) ? saved[input.dataset.avatarOption] : input.dataset.defaultValue;
-  });
-  updateAvatarEditorPreview();
+  avatarEditorContext = "profile";
 });
-$("#avatar-editor-save").onclick = async () => {
-  const options = {};
-  $$("#avatar-editor-controls [data-avatar-option]").forEach((input) => { options[input.dataset.avatarOption] = input.value; });
-  if (avatarEditingPlayerId) {
+$("#avatar-editor-save").onclick = () => {
+  const avatar = profileAvatarUrl(avatarDraftSeed || crypto.randomUUID(), avatarDraftOptions ?? {});
+  if (avatarEditorContext === "participant" && avatarEditingPlayerId) {
     const participant = state.participants.find((player) => player.id === avatarEditingPlayerId);
     if (!participant) return notify("No se encontró ese participante.");
-    participant.avatar = profileAvatarUrl(avatarDraftSeed || crypto.randomUUID(), options);
+    participant.avatar = avatar;
     persist();
     $("#avatar-editor-dialog").close();
     render();
     notify("Avatar del participante guardado.");
     return;
   }
-  localStorage.setItem("zevyra.profile.avatarOptions", JSON.stringify(options));
-  if (avatarDraftSeed) localStorage.setItem("zevyra.profile.avatarSeed", avatarDraftSeed);
-  if (!localStorage.getItem("zevyra.profile.avatarSeed")) localStorage.setItem("zevyra.profile.avatarSeed", crypto.randomUUID());
-  const saved = await saveAvatarCustomization();
-  if (!saved) return;
-  avatarDraftSeed = null;
-  $("#avatar-editor-dialog").close();
-  notify("Avatar Big Smile guardado.");
-};
-async function saveAvatarCustomization() {
-  const previousAvatar = localStorage.getItem("zevyra.profile.avatar") || "";
-  const seed = localStorage.getItem("zevyra.profile.avatarSeed") || crypto.randomUUID();
-  localStorage.setItem("zevyra.profile.avatarSeed", seed);
-  const avatar = profileAvatarUrl(seed);
+  if (avatarEditorContext === "registration") {
+    registrationAvatarUrl = avatar;
+    $("#auth-avatar-preview").src = avatar;
+    $("#avatar-editor-dialog").close();
+    notify("Avatar listo para tu pasaporte.");
+    return;
+  }
+  profileAvatarDraft = avatar;
   $("#profile-avatar-preview").src = avatar;
-  profileAvatarChoice.dataset.avatar = avatar;
-  profileAvatarImage.src = avatar;
-  const profileOption = [...$("#multiplayer-avatar").options].find((option) => option.textContent === "Mi avatar");
-  if (profileOption) profileOption.value = avatar;
-  if (isDicebearAvatar($("#multiplayer-avatar").value)) $("#multiplayer-avatar").value = avatar;
-  if (isDicebearAvatar(selectedLocalAvatar)) {
-    selectedLocalAvatar = avatar;
-    localStorage.setItem("zevyra.local.avatar", avatar);
-  }
-  state.participants.forEach((player) => {
-    if ((previousAvatar && player.avatar === previousAvatar) || (isDicebearAvatar(player.avatar) && player.avatar.includes("/personas/"))) player.avatar = avatar;
-  });
-  localStorage.setItem("zevyra.profile.avatar", avatar);
-  const session = getMultiplayerSession();
-  if (session) {
-    try { await saveConnectedProfile(session.profile.username, avatar); }
-    catch (error) { notify(error.status ? error.message : multiplayerErrorMessage(error)); return false; }
-  } else {
-    try {
-      const identity = await getProfileIdentity();
-      if (identity) await saveUserProfile(localStorage.getItem("zevyra.profile.name") || "Jugador", avatar);
-    } catch (error) {
-      logMultiplayerError("save-profile-avatar", error);
-      notify(error.message || "No se pudo actualizar el avatar en SQLite local.");
-      return false;
-    }
-  }
-  if (!onlineMode) persist();
-  render();
-  return true;
-}
-$("#profile-nickname").addEventListener("input", (event) => { $("#profile-display-name").textContent = event.target.value.trim() || "Jugador"; });
+  $("#profile-avatar-preview-read").src = avatar;
+  $("#avatar-editor-dialog").close();
+  notify("Avatar seleccionado. Guarda los cambios del pasaporte para conservarlo.");
+};
 $("#back-to-games").onclick = () => setView("games");
 $("#back-to-mode-select").onclick = () => { playMode = "choose"; setView("game"); };
 $("#start-local-game").onclick = async () => {
@@ -2590,6 +2847,12 @@ $("#open-online-game").onclick = () => setView("multiplayer");
 $("#multiplayer-back").onclick = () => { playMode = "choose"; setView("game"); };
 renderGameLibrary();
 renderHomeGameStack();
+$("#home-game-stack").addEventListener("click", (event) => {
+  const card = event.target.closest(".home-game-card");
+  if (!card) return;
+  const index = Number(card.dataset.gameIndex);
+  if (Number.isInteger(index) && index !== selectedGameIndex) selectHomeGame(index);
+});
 $("#home-play-selected").onclick = () => {
   const game = GAMES_CATALOG[selectedGameIndex];
   if (!game?.available) return;
@@ -2597,7 +2860,6 @@ $("#home-play-selected").onclick = () => {
   setView(game.route);
 };
 let carouselPointerX = null;
-let carouselSwipeHandled = false;
 $("#home-game-stack").addEventListener("pointerdown", (event) => {
   carouselPointerX = event.clientX;
   if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId);
@@ -2607,14 +2869,13 @@ $("#home-game-stack").addEventListener("pointerup", (event) => {
   const delta = event.clientX - carouselPointerX;
   carouselPointerX = null;
   if (Math.abs(delta) > 35) {
-    carouselSwipeHandled = true;
     selectHomeGame(selectedGameIndex + (delta < 0 ? 1 : -1));
   }
 });
 $("#home-game-stack").addEventListener("pointercancel", () => { carouselPointerX = null; });
 $("#home-game-stack").addEventListener("keydown", (event) => {
-  if (event.key === "ArrowLeft") selectHomeGame(selectedGameIndex - 1);
-  if (event.key === "ArrowRight") selectHomeGame(selectedGameIndex + 1);
+  if (event.key === "ArrowLeft") { event.preventDefault(); selectHomeGame(selectedGameIndex - 1); }
+  if (event.key === "ArrowRight") { event.preventDefault(); selectHomeGame(selectedGameIndex + 1); }
 });
 $("#appearance-cycle").onclick = () => {
   const current = localStorage.getItem("zevyra.appearance") || "system";
@@ -2685,6 +2946,8 @@ function makeCategoryButton(id, category) {
   button.type = "button";
   button.className = "category-back-button";
   button.dataset.category = id;
+  button.setAttribute("aria-label", category.label);
+  button.title = category.label;
   button.style.setProperty("--category-color", category.color);
   button.innerHTML =
     '<span class="material-symbols-outlined category-mark" aria-hidden="true"></span><span class="category-name"></span>';
@@ -2789,7 +3052,9 @@ function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = fa
   cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  const duration = 1350;
+  // Match the full four-second 3D roll from the die backup; elapsed time
+  // still keeps the animation synchronized for other players in the room.
+  const duration = 4000;
   const elapsedBeforeAnimation = Math.min(Math.max(Date.now() - Number(startedAt), 0), duration);
   const targetX = diceRotationTarget(currentX, face.x, 6);
   const targetY = diceRotationTarget(currentY, face.y, 8);
@@ -2861,7 +3126,12 @@ $("#confirm-challenge").onclick = () =>
   confirmResult("COMPLETED", state.game.current?.primaryCard?.cardId ?? null);
 $("#confirm-alternative").onclick = () =>
   confirmResult(
-    "ALTERNATIVE_SELECTED",
+    (() => {
+      const card = state.cards.find((item) => item.id === state.game.current?.primaryCard?.cardId);
+      return cardShotAlternativeCount(card) > 0
+        ? "SHOTS_SELECTED"
+        : "PASSED";
+    })(),
     state.game.current?.primaryCard?.cardId ?? null,
   );
 $("#confirm-penalty").onclick = () => {
@@ -2877,11 +3147,37 @@ $("#finish-turn").onclick = async () => {
   if (!engine.finishTurn())
     return notify("Confirma primero el resultado del turno.");
   persist();
-  renderGame();
+  render();
   renderRewards();
 };
 $("#cemetery-open").onclick = () => { renderCemetery(); $("#cemetery-dialog").showModal(); };
+$("#resolve-joker-obligation").onclick = () => {
+  if (!requireOnlineHost("Solo el anfitrión puede registrar que se resolvió el Arlequín.")) return;
+  const entry = (state.game.jokerInventory ?? []).find(
+    (joker) => joker.id === state.game.pendingJokerResolution,
+  );
+  if (!entry) return;
+  entry.used = true;
+  entry.usedAt = new Date().toISOString();
+  entry.resolvedAt = entry.usedAt;
+  const player = state.participants.find((participant) => participant.id === entry.playerId);
+  state.game.cemetery ??= [];
+  state.game.cemetery.unshift({
+    cardId: entry.cardId,
+    title: entry.title,
+    category: entry.category,
+    playerId: entry.playerId,
+    playerName: player?.name ?? "Participante",
+    drawnAt: entry.grantedAt,
+  });
+  state.game.pendingJokerResolution = null;
+  persist();
+  render();
+  notify("Arlequín resuelto y enviado al cementerio.");
+};
 $("#cemetery-close").onclick = () => $("#cemetery-dialog").close();
+$("#fragments-open").onclick = () => { renderFragments(); $("#fragments-dialog").showModal(); };
+$("#fragments-close").onclick = () => $("#fragments-dialog").close();
 $("#player-form").onsubmit = (e) => {
   e.preventDefault();
   if (!requireOnlineHost()) return;
@@ -3004,8 +3300,13 @@ $("#reset-game").onclick = () => {
     current: null,
     history: [],
     cemetery: [],
+    fragments: [],
+    fragmentCompletions: 0,
     archives: [...(state.game.archives ?? []), ...(archive ? [archive] : [])].slice(-10),
     rewards: [],
+    jokerInventory: [],
+    jokerProgress: {},
+    pendingJokerResolution: null,
     completedTurns: 0,
     completedRounds: 0,
     roundEventHistory: [],
@@ -3199,3 +3500,4 @@ else
     "Abre la app desde localhost o HTTPS para activar la instalación y el modo sin conexión.";
 $("#app-version").textContent = VERSION;
 render();
+void initializeAccountAccess();

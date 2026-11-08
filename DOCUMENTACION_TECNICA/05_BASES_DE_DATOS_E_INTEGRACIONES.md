@@ -35,7 +35,15 @@ Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de
 | `room_players` | Roster y nickname/avatar copiados para la sesión de sala, rol y heartbeat. | Lectura solo de miembros. Mutación por RPC. |
 | `game_states` | Snapshot JSON de partida, temporizador y versión optimista. | Lectura solo de miembros. El participante activo guarda el estado del juego; el host actualiza por separado el temporizador, todo por RPC versionada. |
 
-La base de cuentas local usa `database/001_users.sql` para crear `local_users` y `local_sessions`; `database/local_users.py` aplica el esquema, verifica hashes PBKDF2 y ejecuta consultas SQLite. `server.mjs` expone `/api/users/register`, `/login`, `/me` y `/session`; bloquea la descarga directa del archivo `database/zevyra.sqlite`. No se envía la contraseña ni el UID de cuenta a Supabase.
+La base de cuentas local usa `database/001_users.sql:1-33` para crear `local_users` y `local_sessions`; `database/local_users.py:40-50` aplica el esquema y `database/local_users.py:53-130` migra esquemas existentes. `database/local_users.py:260-282` crea cuentas con hash PBKDF2 y UID `zevy` más seis caracteres aleatorios. `server.mjs:67-97` expone `/api/users/register`, `/login`, `/me` y `/session`, y bloquea la descarga directa del archivo SQLite. El nickname, el avatar y los datos de identidad se guardan en SQLite; el token y el perfil devuelto se mantienen también en `localStorage` (`js/local-accounts.js:1-15`). La contraseña no se conserva en texto legible ni se envía a Supabase.
+
+### Registro en dos pasos, pasaporte y avatar
+
+Recorrido de registro: `index.html:90-103` (credenciales y campos de identidad) → `js/app.js:823-896` (Stepper y validación; el paso 1 mantiene deshabilitados los campos de identidad) → `js/local-accounts.js:65-68` → `server.mjs:67-97` → `database/local_users.py:260-282` → `database/001_users.sql:7-28`. El backend devuelve el perfil con UID, avatar, nacionalidad, edad, sexo e identidad (`database/local_users.py:133-154`), y `saveSession()` lo guarda junto con el token en `localStorage` (`js/local-accounts.js:12-15`).
+
+El pasaporte visible y sus controles están en `index.html:138-224`; `js/app.js:106-142` proyecta el perfil y su bandera, `js/app.js:915-980` alterna la edición inline y guarda cambios mediante `/api/users/me`, y `database/local_users.py:301-317` actualiza los campos en SQLite. El modo de edición revela nickname, nacionalidad, edad, sexo, identidad sexual y el botón de avatar; el UID permanece bloqueado.
+
+El creador Big Smile vive en `index.html:684-701`. `js/app.js:332-460` consulta los metadatos de opciones del endpoint DiceBear 10.x, forma pestañas por categoría y genera miniaturas SVG; `js/app.js:2776-2833` gestiona apertura, selección y guardado. Los estilos del pasaporte y del catálogo visual están en `css/platform.css:1078-1165`. En gestión de participantes, `js/app.js:2271-2287` abre el mismo editor para el avatar individual. El lobby usa una imagen y el avatar del perfil, sin selector desplegable (`index.html:438`, `js/app.js:106-125`).
 
 El esquema online de sala está en `supabase/sql/001_multiplayer_schema.sql`; después siguen políticas/RPC/realtime en 002–004, diagnóstico/unión en 005, acciones y alias de roster en 006, confirmación de anfitrión en 007, y `008_local_accounts_only.sql` para dejar de guardar perfiles persistentes en instalaciones antiguas. El detalle está en `supabase/README.md`.
 
@@ -51,7 +59,7 @@ JSON de cartas: array o `{version:1,cards:[...]}`; IDs, categorías, required fi
 
 ## Cache Storage PWA
 
-El SW precachea recursos de shell bajo `zevyra-shell-1.8.0` (`sw.js:1-2`); incluye los módulos JavaScript y catálogos nuevos, pero no el SDK CDN. Para GET del mismo origen intenta red y usa caché como alternativa; `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
+El SW precachea recursos de shell bajo `zevyra-shell-2.3.18` (`sw.js:1-2`); incluye los módulos JavaScript y catálogos nuevos, pero no el SDK CDN. Para GET del mismo origen intenta red y usa caché como alternativa; `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
 
 ## Actualización Fase 2
 

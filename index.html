@@ -59,14 +59,10 @@
       }
     </script>
     <header class="topbar">
-      <div class="header-rounds" aria-label="Rondas completadas">
-        <span>RONDAS</span><strong id="header-round-count">0</strong>
-      </div>
       <a class="brand zevyra-brand" href="#inicio" aria-label="Inicio">
         <img src="./assets/branding/logo-dark.png" alt="Logo de Circus Zevyra" width="42" height="42" />
       </a>
       <div class="topbar-actions">
-        <button id="timer-inline" class="timer-inline" type="button" aria-label="Abrir temporizador"><span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span></button>
         <button id="menu-toggle" class="icon-button" aria-label="Abrir ajustes y herramientas" title="Ajustes" aria-expanded="false" aria-controls="tools-nav"><span class="material-symbols-rounded" aria-hidden="true">menu</span></button>
       </div>
     </header>
@@ -83,6 +79,42 @@
       <button data-view="manuals" class="nav-link"><span class="material-symbols-rounded">menu_book</span> Manuales</button>
       <button data-view="settings" class="nav-link"><span class="material-symbols-rounded">settings</span> Ajustes</button>
     </nav>
+    <section id="auth-gate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-heading">
+      <div class="auth-card">
+        <p class="eyebrow">ZEVYRA GAMES</p>
+        <h1 id="auth-heading">Tu cuenta</h1>
+        <div class="auth-tabs" role="tablist" aria-label="Acceso a la cuenta">
+          <button id="account-login" class="auth-tab active" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
+          <button id="account-register" class="auth-tab" type="button" role="tab" aria-selected="false">Registrarse</button>
+        </div>
+        <form id="account-form" class="account-form">
+          <div id="auth-stepper" class="auth-stepper" hidden><span id="auth-step-label">Paso 1 de 2</span><span class="auth-step-dots"><i class="is-current"></i><i></i></span></div>
+          <section id="auth-credentials-step" class="auth-step">
+            <label>Nickname<input id="profile-nickname" maxlength="32" minlength="3" autocomplete="username" required placeholder="Tu nickname" /></label>
+            <label>Contraseña<input id="account-password" type="password" minlength="8" maxlength="256" autocomplete="current-password" required placeholder="Mínimo 8 caracteres" /></label>
+          </section>
+          <section id="auth-identity-step" class="auth-step auth-identity-step" hidden>
+            <h2>Tu identidad Zevyra</h2>
+            <div class="auth-identity-grid">
+              <label>Nacionalidad<select id="auth-country" required aria-label="Nacionalidad"></select></label>
+              <label>Edad<input id="auth-age" type="number" inputmode="numeric" min="1" max="120" required placeholder="Edad" /></label>
+              <label>Sexo<select id="auth-sex" required><option value="">Selecciona</option><option>Mujer</option><option>Hombre</option><option>No binario</option><option>Prefiero no decirlo</option></select></label>
+              <label class="auth-identity-wide">Identidad sexual<input id="auth-sexual-identity" type="text" maxlength="80" placeholder="Escribe tu identidad (opcional)" /></label>
+            </div>
+            <div class="auth-avatar-pick">
+              <img id="auth-avatar-preview" alt="Vista previa de tu avatar" />
+              <div><b>Avatar Big Smile</b><small>Personaliza tu personaje para el pasaporte.</small></div>
+              <button id="auth-avatar-edit" class="button" type="button"><span class="material-symbols-rounded" aria-hidden="true">edit</span> Crear avatar</button>
+            </div>
+          </section>
+          <p id="auth-status" class="auth-status" role="status" aria-live="polite"></p>
+          <div class="auth-form-actions">
+            <button id="account-back" class="button" type="button" hidden>Volver</button>
+            <button id="account-submit" class="button button-primary" type="submit">Iniciar sesión</button>
+          </div>
+        </form>
+      </div>
+    </section>
     <main>
       <section id="view-home" class="view active">
         <section class="platform-hero panel">
@@ -102,32 +134,94 @@
         </section>
       </section>
       <section id="view-profile" class="view">
-        <div class="page-heading"><p class="eyebrow">TU IDENTIDAD ZEVYRA</p><h1 id="profile-heading">Mi perfil</h1><p class="muted">Este nickname se mostrará cuando participes en partidas online.</p></div>
-        <section class="panel profile-panel" aria-labelledby="profile-heading">
-          <article class="player-id-card" aria-label="Tarjeta de identidad del jugador">
-            <div class="player-id-banner" aria-hidden="true"></div>
-            <div class="player-id-main">
-              <button id="profile-avatar-edit" class="profile-avatar-edit" type="button" aria-label="Editar avatar">
+        <section class="profile-page-shell" aria-label="Perfil del jugador">
+          <article class="player-id-card" aria-label="Pasaporte Zevyra">
+            <img class="passport-watermark" src="assets/brand/zevyra-emblem.png" alt="" aria-hidden="true" />
+            <header class="passport-header">
+              <img src="assets/brand/zevyra-emblem.png" alt="" aria-hidden="true" />
+              <p><b>ZEVYRA PASSPORT</b><span>REPÚBLICA ZEVYRA - IDENTIFICACIÓN OFICIAL</span></p>
+              <button id="passport-edit-toggle" class="icon-button passport-edit-toggle" type="button" aria-label="Editar pasaporte" title="Editar pasaporte"><span class="material-symbols-rounded" aria-hidden="true">edit</span></button>
+            </header>
+            <div class="passport-body">
+              <button id="profile-avatar-edit" class="passport-avatar" data-passport-edit type="button" aria-label="Editar avatar" hidden>
                 <img id="profile-avatar-preview" alt="Avatar del perfil" />
-                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                <span class="passport-avatar-edit-mark material-symbols-rounded" aria-hidden="true">edit</span>
               </button>
-              <div class="player-id-copy">
-                <p class="eyebrow">JUGADOR ZEVYRA</p>
-                <h2 id="profile-display-name">Jugador</h2>
-                <p id="profile-uid" class="profile-uid">UID: #00000000</p>
+              <div class="passport-avatar passport-avatar-read"><img id="profile-avatar-preview-read" alt="Avatar del perfil" /></div>
+              <div class="passport-data-grid">
+                <div class="passport-field">
+                  <span>NICKNAME</span><strong id="profile-display-name" data-passport-view>Jugador</strong>
+                  <input id="passport-nickname-input" data-passport-edit aria-label="Nickname" maxlength="32" minlength="3" autocomplete="nickname" hidden />
+                </div>
+                <div class="passport-field passport-uid-field">
+                  <span>UID</span><strong><span id="profile-uid">UID: #zevy000000</span><span class="material-symbols-rounded" aria-label="Identificador bloqueado">lock</span></strong>
+                </div>
+                <div class="passport-field">
+                  <span>NACIONALIDAD</span>
+                  <strong class="passport-country-read" data-passport-view><span id="profile-country-flag" aria-hidden="true">🌐</span><span id="passport-country-name">Sin seleccionar</span></strong>
+                  <select id="profile-country" data-passport-edit aria-label="Nacionalidad" hidden>
+                <option value="XX">🌐 Seleccionar país</option>
+                <option value="CO">🇨🇴 Colombia</option>
+                <option value="MX">🇲🇽 México</option>
+                <option value="AR">🇦🇷 Argentina</option>
+                <option value="CL">🇨🇱 Chile</option>
+                <option value="PE">🇵🇪 Perú</option>
+                <option value="EC">🇪🇨 Ecuador</option>
+                <option value="VE">🇻🇪 Venezuela</option>
+                <option value="BO">🇧🇴 Bolivia</option>
+                <option value="PY">🇵🇾 Paraguay</option>
+                <option value="UY">🇺🇾 Uruguay</option>
+                <option value="BR">🇧🇷 Brasil</option>
+                <option value="ES">🇪🇸 España</option>
+                <option value="US">🇺🇸 Estados Unidos</option>
+                <option value="CA">🇨🇦 Canadá</option>
+                <option value="CR">🇨🇷 Costa Rica</option>
+                <option value="CU">🇨🇺 Cuba</option>
+                <option value="DO">🇩🇴 República Dominicana</option>
+                <option value="GT">🇬🇹 Guatemala</option>
+                <option value="HN">🇭🇳 Honduras</option>
+                <option value="NI">🇳🇮 Nicaragua</option>
+                <option value="PA">🇵🇦 Panamá</option>
+                <option value="PR">🇵🇷 Puerto Rico</option>
+                <option value="SV">🇸🇻 El Salvador</option>
+                <option value="DE">🇩🇪 Alemania</option>
+                <option value="FR">🇫🇷 Francia</option>
+                <option value="GB">🇬🇧 Reino Unido</option>
+                <option value="IT">🇮🇹 Italia</option>
+                <option value="NL">🇳🇱 Países Bajos</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="RU">🇷🇺 Rusia</option>
+                <option value="SE">🇸🇪 Suecia</option>
+                <option value="UA">🇺🇦 Ucrania</option>
+                <option value="CN">🇨🇳 China</option>
+                <option value="IN">🇮🇳 India</option>
+                <option value="ID">🇮🇩 Indonesia</option>
+                <option value="IL">🇮🇱 Israel</option>
+                <option value="JP">🇯🇵 Japón</option>
+                <option value="KR">🇰🇷 Corea del Sur</option>
+                <option value="PH">🇵🇭 Filipinas</option>
+                <option value="TH">🇹🇭 Tailandia</option>
+                <option value="TR">🇹🇷 Turquía</option>
+                <option value="AE">🇦🇪 Emiratos Árabes Unidos</option>
+                <option value="EG">🇪🇬 Egipto</option>
+                <option value="KE">🇰🇪 Kenia</option>
+                <option value="MA">🇲🇦 Marruecos</option>
+                <option value="NG">🇳🇬 Nigeria</option>
+                <option value="ZA">🇿🇦 Sudáfrica</option>
+                <option value="AU">🇦🇺 Australia</option>
+                <option value="NZ">🇳🇿 Nueva Zelanda</option>
+                <option value="OTHER">🏳️ Otro país</option>
+                  </select>
+                </div>
+                <div class="passport-field"><span>EDAD</span><strong id="passport-age-view" data-passport-view>—</strong><input id="passport-age-input" data-passport-edit type="number" aria-label="Edad" inputmode="numeric" min="1" max="120" hidden /></div>
+                <div class="passport-field"><span>SEXO</span><strong id="passport-sex-view" data-passport-view>—</strong><select id="passport-sex-input" data-passport-edit aria-label="Sexo" hidden><option value="">Selecciona</option><option>Mujer</option><option>Hombre</option><option>No binario</option><option>Prefiero no decirlo</option></select></div>
+                <div class="passport-field"><span>IDENTIDAD SEXUAL</span><strong id="passport-sexual-identity-view" data-passport-view>—</strong><input id="passport-sexual-identity-input" data-passport-edit type="text" aria-label="Identidad sexual" maxlength="80" hidden /></div>
               </div>
             </div>
+            <footer class="passport-footer"><div class="passport-fingerprint"><span class="material-symbols-rounded" aria-hidden="true">fingerprint</span><small>HUELLA ZEVYRA</small></div><div class="passport-signature"><small>FIRMA OFICIAL</small><b>Zevyra</b></div></footer>
+            <div id="passport-edit-actions" class="passport-edit-actions" hidden><button id="passport-cancel" class="button" type="button">Cancelar</button><button id="passport-save" class="button button-primary" type="button">Guardar Cambios</button></div>
           </article>
-          <form id="profile-form" class="form-grid profile-nickname-form">
-            <label>Usuario / nickname<input id="profile-nickname" maxlength="32" autocomplete="username" required placeholder="3–32: letras, números, . _ -" /></label>
-            <button class="button" type="submit">Guardar nickname</button>
-          </form>
-          <form id="account-form" class="account-form">
-            <label>Contraseña<input id="account-password" type="password" minlength="8" autocomplete="current-password" placeholder="Mínimo 8 caracteres" /></label>
-            <div class="button-row"><button id="account-register" class="button" type="button">Crear cuenta</button><button id="account-login" class="button" type="button">Iniciar sesión</button><button id="account-logout" class="button hidden" type="button">Cerrar sesión</button></div>
-            <p class="fine-print">La cuenta se guarda en SQLite en este dispositivo. La contraseña se almacena como hash, nunca en texto legible; no se sincroniza con Supabase.</p>
-          </form>
-          <p id="profile-session-info" class="fine-print profile-session-info" role="status">El perfil de cuenta se guarda en la base SQLite local.</p>
+          <button id="account-logout" class="button profile-logout" type="button">Cerrar sesión</button>
         </section>
       </section>
       <section id="view-games" class="view">
@@ -196,6 +290,22 @@
         </section>
         <div id="game-layout" class="game-layout">
           <section class="panel game-panel">
+            <div class="game-status-bar">
+              <div id="header-rounds" class="header-rounds hidden" aria-label="Ronda actual"><span>RONDA</span><strong id="header-round-count">1</strong></div>
+              <button id="timer-inline" class="timer-inline hidden" type="button" aria-label="Abrir temporizador"><span class="timer-inline-ring"><span></span></span><span id="timer-inline-display">00:30</span></button>
+            </div>
+            <section id="round-event-panel" class="round-event-panel hidden" aria-live="polite">
+              <p class="eyebrow">EVENTO ESPECIAL</p>
+              <h3 id="round-event-title"></h3>
+              <p id="round-event-description" class="fine-print"></p>
+            </section>
+            <section id="joker-obligation-panel" class="joker-obligation-panel hidden" aria-live="assertive">
+              <p class="eyebrow">ARLEQUÍN PENDIENTE · RESOLUCIÓN OBLIGATORIA</p>
+              <p id="joker-obligation-owner" class="fine-print"></p>
+              <h3 id="joker-obligation-title"></h3>
+              <p id="joker-obligation-description"></p>
+              <button id="resolve-joker-obligation" class="button" type="button">Marcar como resuelto</button>
+            </section>
             <div class="turn-line">
               <div class="turn-player-heading">
                 <span class="eyebrow">TURNO ACTUAL</span>
@@ -230,13 +340,6 @@
               BLOQUEADA
             </button>
             <div id="turn-cards" class="turn-cards hidden"></div>
-            <section id="round-event-panel" class="round-event-panel hidden" aria-live="polite">
-              <p class="eyebrow">EVENTO DE RONDA · <span id="round-turn-count">0 turnos</span></p>
-              <h3 id="round-event-title"></h3>
-              <p id="round-event-description" class="fine-print"></p>
-              <button id="round-history-toggle" class="text-button" type="button">Historial de eventos</button>
-              <ol id="round-event-history" class="round-event-history hidden"></ol>
-            </section>
             <section id="power-inventory-panel" class="power-inventory-panel hidden" aria-label="Poderes disponibles">
               <p class="eyebrow">TUS PODERES</p><div id="power-inventory"></div>
             </section>
@@ -332,7 +435,7 @@
         <div class="page-heading"><button id="multiplayer-back" type="button" class="text-button">← Volver a modalidades</button><p class="eyebrow">JUEGA CON TU GRUPO</p><h1>Multijugador online</h1><p class="muted">Crea una sala privada o únete con el código de invitación.</p></div>
         <section class="panel multiplayer-panel" id="multiplayer-panel" aria-labelledby="multiplayer-heading">
           <div class="panel-heading"><div><p class="eyebrow">SALA ONLINE</p><h2 id="multiplayer-heading">Lobby</h2></div><span id="multiplayer-connection" class="fine-print" role="status">Desconectado</span></div>
-          <div class="multiplayer-profile"><label>Nickname de Mi perfil<input id="multiplayer-name" maxlength="32" placeholder="Configúralo en Mi perfil" autocomplete="nickname" readonly /></label><label>Avatar<select id="multiplayer-avatar" aria-label="Elige tu avatar online"></select></label></div>
+          <div class="multiplayer-profile"><label>Nickname de Mi perfil<input id="multiplayer-name" maxlength="32" placeholder="Configúralo en Mi perfil" autocomplete="nickname" readonly /></label><div class="multiplayer-profile-avatar"><span>Avatar de perfil</span><img id="multiplayer-avatar-preview" alt="Avatar de perfil" /><input id="multiplayer-avatar" type="hidden" /></div></div>
           <form id="multiplayer-create-form" class="form-grid"><label>Máximo de jugadores<input id="multiplayer-capacity" type="number" min="2" max="30" value="8" required /></label><button class="button button-primary" type="submit">Crear sala</button></form>
           <div class="lobby-divider"><span>o únete con una invitación</span></div>
           <form id="multiplayer-join-form" class="inline-form"><label class="grow">Código de sala<input id="multiplayer-code" maxlength="6" autocomplete="one-time-code" required placeholder="ABC234" /></label><button class="button" type="submit">Unirme a la sala</button></form>
@@ -406,88 +509,61 @@
           <button class="settings-shortcut" data-view="manuals" type="button"><span class="material-symbols-rounded">menu_book</span><span><b>Manuales</b><small>Consultar reglas disponibles</small></span><span class="material-symbols-rounded">chevron_right</span></button>
           <button class="settings-shortcut" data-view="game" type="button"><span class="material-symbols-outlined">sports_esports</span><span><b>Ajustes de juegos</b><small>Modalidad y opciones de partida</small></span><span class="material-symbols-rounded">chevron_right</span></button>
           <button class="settings-shortcut" data-view="players" type="button"><span class="material-symbols-rounded">groups</span><span><b>Participantes</b><small>Jugadores y mesa</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-settings-target="settings-penalties" type="button"><span class="material-symbols-rounded">water_medium</span><span><b>Penalizaciones</b><small>Editar unidades del juego</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-settings-target="settings-reset-game" type="button"><span class="material-symbols-rounded">restart_alt</span><span><b>Reiniciar partida</b><small>Empezar de nuevo</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-settings-target="settings-backup" type="button"><span class="material-symbols-rounded">backup</span><span><b>Copia de seguridad</b><small>Importar, exportar o restaurar</small></span><span class="material-symbols-rounded">chevron_right</span></button>
-          <button class="settings-shortcut" data-settings-target="settings-application" type="button"><span class="material-symbols-rounded">download</span><span><b>Aplicación</b><small>Instalar o actualizar</small></span><span class="material-symbols-rounded">chevron_right</span></button>
+          <details class="settings-accordion">
+            <summary class="settings-shortcut"><span class="material-symbols-rounded">water_medium</span><span><b>Penalizaciones</b><small>Editar unidades del juego</small></span><span class="material-symbols-rounded settings-chevron">chevron_right</span></summary>
+            <section id="settings-penalties" class="panel settings-detail">
+              <h2>Penalizaciones</h2>
+              <p class="fine-print">Son unidades editables del juego, no equivalencias de alcohol ni recomendaciones. Beber es opcional.</p>
+              <div id="drinks-list"></div>
+              <form id="drink-form" class="inline-form">
+                <label class="grow">Nueva bebida o alternativa<input id="drink-name" required maxlength="40" placeholder="Ej. Agua con gas" /></label>
+                <button class="button">Añadir</button>
+              </form>
+            </section>
+          </details>
+          <details class="settings-accordion">
+            <summary class="settings-shortcut"><span class="material-symbols-rounded">restart_alt</span><span><b>Reiniciar partida</b><small>Empezar de nuevo</small></span><span class="material-symbols-rounded settings-chevron">chevron_right</span></summary>
+            <section id="settings-reset-game" class="panel settings-detail">
+              <h2>Reiniciar partida</h2>
+              <p class="fine-print">Inicia una partida nueva con los participantes registrados. Se conservarán participantes, cartas, manuales y ajustes; se reiniciarán el turno, los mazos, el historial y los premios guardados.</p>
+              <button id="reset-game" class="button button-primary">Reiniciar partida</button>
+            </section>
+          </details>
+          <details class="settings-accordion">
+            <summary class="settings-shortcut"><span class="material-symbols-rounded">backup</span><span><b>Copia de seguridad</b><small>Importar, exportar o restaurar</small></span><span class="material-symbols-rounded settings-chevron">chevron_right</span></summary>
+            <section id="settings-backup" class="panel settings-detail">
+              <h2>Copia de seguridad</h2>
+              <p class="fine-print">El respaldo incluye participantes, cartas, manuales, bebidas, ajustes, mazos e historial.</p>
+              <button id="backup-export" class="button button-primary">Exportar respaldo JSON</button>
+              <label class="button upload-button">Importar respaldo<input id="backup-import" type="file" accept="application/json,.json" hidden /></label>
+              <button id="reset-data" class="button button-danger">Restaurar datos iniciales</button>
+            </section>
+          </details>
+          <details class="settings-accordion">
+            <summary class="settings-shortcut"><span class="material-symbols-rounded">download</span><span><b>Aplicación</b><small>Instalar o actualizar</small></span><span class="material-symbols-rounded settings-chevron">chevron_right</span></summary>
+            <section id="settings-application" class="panel settings-detail">
+              <h2>Aplicación</h2>
+              <p id="storage-status" class="fine-print">Preparando el uso sin conexión…</p>
+              <div class="application-actions">
+                <button id="install-button" class="button" type="button">Instalar para jugar sin conexión</button>
+                <button id="update-app-button" class="button" type="button">Buscar actualizaciones</button>
+              </div>
+              <p id="app-update-status" class="fine-print" role="status" aria-live="polite">La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.</p>
+              <p class="fine-print">Versión <span id="app-version">2.3.17</span> · Los datos de juego permanecen en este dispositivo.</p>
+            </section>
+          </details>
         </section>
-        <div class="settings-grid">
-          <section id="settings-penalties" class="panel">
-            <h2>Penalizaciones</h2>
-            <p class="fine-print">
-              Son unidades editables del juego, no equivalencias de alcohol ni
-              recomendaciones. Beber es opcional.
-            </p>
-            <div id="drinks-list"></div>
-            <form id="drink-form" class="inline-form">
-              <label class="grow"
-                >Nueva bebida o alternativa<input
-                  id="drink-name"
-                  required
-                  maxlength="40"
-                  placeholder="Ej. Agua con gas" /></label
-              ><button class="button">Añadir</button>
-            </form>
-          </section>
-          <section id="settings-reset-game" class="panel">
-            <h2>Reiniciar partida</h2>
-            <p class="fine-print">
-              Inicia una partida nueva con los participantes registrados. Se
-              conservarán participantes, cartas, manuales y ajustes; se
-              reiniciarán el turno, los mazos, el historial y los premios
-              guardados.
-            </p>
-            <button id="reset-game" class="button button-primary">
-              Reiniciar partida
-            </button>
-          </section>
-          <section id="settings-backup" class="panel">
-            <h2>Copia de seguridad</h2>
-            <p class="fine-print">
-              El respaldo incluye participantes, cartas, manuales, bebidas,
-              ajustes, mazos e historial.
-            </p>
-            <button id="backup-export" class="button button-primary">
-              Exportar respaldo JSON</button
-            ><label class="button upload-button"
-              >Importar respaldo<input
-                id="backup-import"
-                type="file"
-                accept="application/json,.json"
-                hidden /></label
-            ><button id="reset-data" class="button button-danger">
-              Restaurar datos iniciales
-            </button>
-          </section>
-          <section id="settings-application" class="panel">
-            <h2>Aplicación</h2>
-            <p id="storage-status" class="fine-print">
-              Preparando el uso sin conexión…
-            </p>
-            <div class="application-actions">
-              <button id="install-button" class="button" type="button">
-                Instalar para jugar sin conexión
-              </button>
-              <button id="update-app-button" class="button" type="button">
-                Buscar actualizaciones
-              </button>
-            </div>
-            <p id="app-update-status" class="fine-print" role="status" aria-live="polite">
-              La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.
-            </p>
-            <p class="fine-print">
-              Versión <span id="app-version">2.3.0</span> · Los datos de juego
-              permanecen en este dispositivo.
-            </p>
-          </section>
-        </div>
       </section>
     </main>
-    <button id="cemetery-open" class="cemetery-orbit" type="button" aria-label="Abrir cementerio de cartas" title="Cartas usadas"><span class="material-symbols-outlined" aria-hidden="true">cyclone</span></button>
+    <button id="cemetery-open" class="cemetery-orbit hidden" type="button" aria-label="Abrir cementerio de cartas" title="Cementerio"><span class="material-symbols-outlined" aria-hidden="true">cyclone</span></button>
+    <button id="fragments-open" class="cemetery-orbit fragments-orbit hidden" type="button" aria-label="Abrir fragmentos acumulados" title="Fragmentos acumulados"><span class="material-symbols-outlined" aria-hidden="true">diamond</span><span id="fragments-count" class="fragments-count">0</span></button>
+    <dialog id="fragments-dialog" class="modal cemetery-dialog" aria-labelledby="fragments-heading">
+      <div class="modal-heading"><h2 id="fragments-heading">Fragmentos acumulados</h2><button id="fragments-close" class="icon-button" type="button" aria-label="Cerrar fragmentos">×</button></div>
+      <div id="fragments-list" class="cemetery-list" aria-label="Cartas fragmento acumuladas"></div>
+    </dialog>
     <dialog id="cemetery-dialog" class="modal cemetery-dialog" aria-labelledby="cemetery-heading">
-      <div class="modal-heading"><div><p class="eyebrow">CARTAS RETIRADAS</p><h2 id="cemetery-heading">Cementerio</h2></div><button id="cemetery-close" class="icon-button" type="button" aria-label="Cerrar cementerio">×</button></div>
-      <p class="fine-print">Estas cartas ya salieron en la partida. No se vuelven a usar hasta que reinicies la partida.</p>
-      <ol id="cemetery-list" class="cemetery-list"></ol>
+      <div class="modal-heading"><h2 id="cemetery-heading">Cementerio</h2><button id="cemetery-close" class="icon-button" type="button" aria-label="Cerrar cementerio">×</button></div>
+      <div id="cemetery-list" class="cemetery-list" aria-label="Cartas del cementerio"></div>
     </dialog>
     <dialog id="editor-dialog" class="modal">
       <form id="card-form" method="dialog">
@@ -611,9 +687,12 @@
         <button id="avatar-editor-close" type="button" class="icon-button" aria-label="Cerrar editor de avatar" title="Cerrar">×</button>
       </div>
       <div class="avatar-editor-layout">
-        <div class="avatar-editor-preview"><img id="avatar-editor-preview" alt="Vista previa del avatar" /></div>
-        <div id="avatar-editor-controls" class="profile-avatar-controls" aria-label="Características del avatar">
-          <p class="fine-print">Cargando opciones de Big Smile…</p>
+        <div class="avatar-editor-preview-wrap"><div class="avatar-editor-preview"><img id="avatar-editor-preview" alt="Vista previa del avatar" /></div><p>Tu personaje</p></div>
+        <div class="avatar-editor-catalog">
+          <div id="avatar-editor-tabs" class="avatar-editor-tabs" role="tablist" aria-label="Categorías de avatar"></div>
+          <div id="avatar-editor-controls" class="profile-avatar-controls" aria-label="Catálogo visual de características">
+            <p class="fine-print">Cargando opciones de Big Smile…</p>
+          </div>
         </div>
       </div>
       <div class="button-row modal-actions">

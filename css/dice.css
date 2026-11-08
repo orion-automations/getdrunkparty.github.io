@@ -43,10 +43,8 @@
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--face-color, #39e58c), #fff 25%);
   border-radius: 18px;
-  background: linear-gradient(145deg, #25252f, #111116 72%);
+  background: radial-gradient(ellipse at 22% 22%, color-mix(in srgb, var(--face-color, #39e58c), transparent 58%) 0 8%, transparent 34%), radial-gradient(ellipse at 80% 80%, color-mix(in srgb, var(--face-color, #39e58c), transparent 74%) 0 12%, transparent 39%), linear-gradient(145deg, #25252f, #111116 72%);
   box-shadow:
-    inset 0 0 22px
-      color-mix(in srgb, var(--face-color, #39e58c), transparent 86%),
     inset 2px 2px 5px #fff2;
   color: var(--face-color, #39e58c);
   font-weight: 950;
@@ -161,17 +159,17 @@
   width: min(315px, calc(100vw - 76px));
   padding: 0;
   scroll-snap-align: center;
-  transform: scale(.72);
+  transform: none;
   transform-origin: center center;
   transition: transform .24s ease, opacity .24s ease, filter .24s ease;
-  opacity: .58;
-  filter: brightness(.68);
+  opacity: 1;
+  filter: none;
   z-index: 1;
   margin-inline: -88px;
   pointer-events: auto;
 }
 .card-slot.is-active {
-  transform: scale(1);
+  transform: none;
   opacity: 1;
   filter: none;
   z-index: 3;

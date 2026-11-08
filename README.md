@@ -1,6 +1,6 @@
 # Circus Zevyra · Carnival of Chaos
 
-**Versión de la aplicación: 2.3.0.**
+**Versión de la aplicación: 2.3.18.**
 
 Aplicación de juegos sociales mobile-first. La plataforma se llama **Circus Zevyra** y **Carnival of Chaos** es el juego disponible. El proyecto usa HTML, CSS y JavaScript nativo, conserva el modo local y conecta el modo online a Supabase.
 
@@ -10,6 +10,7 @@ Aplicación de juegos sociales mobile-first. La plataforma se llama **Circus Zev
 - Dado 3D de seis caras: 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio.
 - El Gran Circo programa 22 eventos, uno cada cinco rondas completas (cada vuelta de los participantes activos). El Circo de los Horrores activa sus mazos especiales por cinco turnos; Circo el Destino activa las opciones únicas de la ruleta durante ese evento.
 - El anfitrión conserva la confirmación del resultado online. Las cuentas con usuario/contraseña y UID viven en SQLite local; los avatares Big Smile se personalizan en el perfil y para cada participante.
+- El acceso local solicita nickname y contraseña; tras entrar, Perfil muestra el pasaporte Zevyra con UID `zevy` más seis caracteres, avatar y bandera elegida. La sesión se conserva en este dispositivo hasta cerrar sesión.
 - Los otros juegos de la biblioteca siguen bloqueados mientras no tengan una implementación terminada.
 
 El catálogo fuente está en `data/carnival-catalog.js`; el motor y la interfaz están en `js/game.js` y `js/app.js`. El reporte técnico vigente, con rutas y líneas verificadas, está en [DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md](DOCUMENTACION_TECNICA/15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md).
@@ -28,7 +29,7 @@ Abre [http://localhost:8080](http://localhost:8080). No abras `index.html` con `
 
 `npm test` ejecuta las pruebas del catálogo, el dado, la migración, los eventos y el motor. La cuenta local necesita mantener el servidor Node en marcha; sus credenciales no dependen de Supabase.
 
-El carrusel de Inicio usa la misma huella de dos columnas que las tarjetas de Juegos y desliza la siguiente por debajo. El cambio de caché PWA a 2.3.0 fuerza la actualización de la interfaz anterior.
+El carrusel de Inicio usa la misma huella de dos columnas que las tarjetas de Juegos y desliza la siguiente por debajo. El número de caché PWA se actualiza con la versión web para que el navegador descargue los cambios.
 
 ## Base de datos local y multijugador
 

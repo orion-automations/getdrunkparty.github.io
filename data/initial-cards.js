@@ -1,5 +1,5 @@
 import { CARNIVAL_CARDS } from "./carnival-catalog.js";
 
-// Transcripción sin editar del catálogo aprobado para Carnival of Chaos.
-// Se conservan los IDs históricos de categoría para no romper partidas guardadas.
+// Catálogo de Carnival of Chaos con títulos normalizados para las cartas.
+// Las reglas completas se conservan en la descripción y en los manuales vinculados.
 export const INITIAL_CARDS = structuredClone(CARNIVAL_CARDS);

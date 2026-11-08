@@ -5053,7 +5053,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_001",
     "categoryId": "MINIJUEGO",
-    "title": "7 Minutos en el Paraíso El jugador que sacó la carta y la persona que el",
+    "title": "7 Minutos en el Paraíso",
     "description": "7 Minutos en el Paraíso El jugador que sacó la carta y la persona que elija el grupo (o la que salga al girar una botella) se encierran en un espacio pequeño (clóset, baño o habitación vacía) con las luces apagadas y sin celulares. Tienen 7 minutos para hacer lo que quieran (hablar, besarse, tocarse…), siempre con consentimiento. Al acabar el tiempo, el grupo los busca. Nadie puede preguntar ni contar lo que pasó adentro.",
     "icon": {
       "type": "glyph",
@@ -5078,7 +5078,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_002",
     "categoryId": "MINIJUEGO",
-    "title": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man",
+    "title": "Enredados",
     "description": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido.",
     "icon": {
       "type": "glyph",
@@ -5103,7 +5103,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_003",
     "categoryId": "MINIJUEGO",
-    "title": "Shot de la Verdad El jugador que sacó la carta recibe una pregunta spicy",
+    "title": "Shot de la Verdad",
     "description": "Shot de la Verdad El jugador que sacó la carta recibe una pregunta spicy sobre alguien del grupo (ej: “¿Con quién de aquí te acostarías?”). Entrega un Shot Berracxs (3 shots) a la persona que sea la respuesta y esa persona debe beberlo. Después ambos juegan “Qué probabilidad hay”: cada uno piensa un número del 1 al 3 y lo dicen a la cuenta de tres. Si coinciden, revelan la pregunta original; si no, todos se quedan con la duda.",
     "icon": {
       "type": "glyph",
@@ -5128,7 +5128,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_004",
     "categoryId": "MINIJUEGO",
-    "title": "Cultura Chupística Todos en círculo con sus tragos",
+    "title": "Cultura Chupística",
     "description": "Cultura Chupística Todos en círculo con sus tragos. Quien sacó la carta elige una categoría (ej: “posiciones sexuales”, “lugares donde has culeado”, “fetiches”, “cosas que te prenden”) y empieza: «Cultura chupística de [categoría]. Primer ejemplo: [uno]». El siguiente repite todo lo anterior y agrega uno nuevo. Pierde quien se trabe, repita o tarde más de 5-7 segundos: toma 2 shots y elige la siguiente categoría. Se pueden jugar 3 categorías.",
     "icon": {
       "type": "glyph",
@@ -5153,7 +5153,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_005",
     "categoryId": "MINIJUEGO",
-    "title": "El Impostor - Todos cierran los ojos",
+    "title": "El Impostor",
     "description": "El Impostor - Todos cierran los ojos. Quien sacó la carta elige en secreto a un “impostor”, que toca de forma sensual (cuello, espalda, cintura…) a una persona. Todos abren los ojos y votan quién fue. Si adivinan, el impostor toma 2 shots o hace un reto. Si no, todos los que votaron mal toman 1 shot.",
     "icon": {
       "type": "glyph",
@@ -5178,7 +5178,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_006",
     "categoryId": "MINIJUEGO",
-    "title": "Acción Misteriosa Quien sacó la carta escribe 3 acciones spicy en papele",
+    "title": "Acción Misteriosa",
     "description": "Acción Misteriosa Quien sacó la carta escribe 3 acciones spicy en papeles (“besa el cuello 10 segundos”, “nalguea fuerte”, “susurra algo sucio”, “masajea el muslo”…). Se mezclan y cada jugador saca una. Debe cumplirla con la persona de su derecha (o con quien diga el papel).",
     "icon": {
       "type": "glyph",
@@ -5203,7 +5203,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_007",
     "categoryId": "MINIJUEGO",
-    "title": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo",
+    "title": "Hielo Caliente",
     "description": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker arlequín.",
     "icon": {
       "type": "glyph",
@@ -5228,7 +5228,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_008",
     "categoryId": "MINIJUEGO",
-    "title": "El Secreto Empieza quien sacó la carta: le susurra a la persona de su de",
+    "title": "El Secreto",
     "description": "El Secreto Empieza quien sacó la carta: le susurra a la persona de su derecha una parte del cuerpo. Esa persona debe besar a la siguiente en esa parte durante mínimo 20 segundos y luego susurra otra parte a la siguiente persona. La cadena sigue hasta volver al inicio. No se pueden repetir partes del cuerpo.",
     "icon": {
       "type": "glyph",
@@ -5253,7 +5253,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_009",
     "categoryId": "MINIJUEGO",
-    "title": "Gallinita Ciega Quien sacó la carta se venda los ojos y se pone en el ce",
+    "title": "Gallinita Ciega",
     "description": "Gallinita Ciega Quien sacó la carta se venda los ojos y se pone en el centro. Alguien le da 3 vueltas y el grupo se dispersa. La persona vendada se mueve hasta encontrar a alguien; al tocarla, esa persona le da un beso y se aleja. Luego se quita la venda y debe adivinar quién fue. Si adivina, la persona que lo besó toma un Shot Flojxs (2 shots). Si falla, toma el Shot Flojxs quien estaba vendado.",
     "icon": {
       "type": "glyph",
@@ -5278,7 +5278,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_010",
     "categoryId": "MINIJUEGO",
-    "title": "Mi Día de Suerte - Quien sacó la carta se pone un antifaz",
+    "title": "Mi Día de Suerte",
     "description": "Mi Día de Suerte - Quien sacó la carta se pone un antifaz. Todos los demás pasan uno por uno y le dan un beso (en la boca, mejilla o cuello, según acuerden). Después de cada beso debe adivinar quién fue. Por cada persona que falle, toma 1 shot.",
     "icon": {
       "type": "glyph",
@@ -5303,7 +5303,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_011",
     "categoryId": "MINIJUEGO",
-    "title": "Que la Suerte te Acompañe Se escriben los nombres de todos en papeles y ",
+    "title": "Que la Suerte te Acompañe",
     "description": "Que la Suerte te Acompañe Se escriben los nombres de todos en papeles y se mezclan. Cada persona saca un nombre y se cambia de lugar con esa persona. Cuando todos estén en su nuevo asiento, el juego continúa desde ahí (sirve para generar nuevas dinámicas de “izquierda/derecha”).",
     "icon": {
       "type": "glyph",
@@ -5328,7 +5328,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_012",
     "categoryId": "MINIJUEGO",
-    "title": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent",
+    "title": "La Carta Traviesa",
     "description": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker arlequín. Si lo logra, elige un pequeño premio o un reto para otra persona.",
     "icon": {
       "type": "glyph",
@@ -5353,7 +5353,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_013",
     "categoryId": "MINIJUEGO",
-    "title": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi",
+    "title": "Modo Avión",
     "description": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker arlequín.",
     "icon": {
       "type": "glyph",
@@ -5378,7 +5378,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_014",
     "categoryId": "MINIJUEGO",
-    "title": "Semana Inglesa Quien sacó la carta y la persona que elija el grupo (o la",
+    "title": "Semana Inglesa",
     "description": "Semana Inglesa Quien sacó la carta y la persona que elija el grupo (o la que salga al girar una botella) se paran de espaldas. Empiezan a decir los días de la semana mientras giran la cabeza a izquierda o derecha al azar. Si giran hacia el mismo lado, se dan un beso de tantos segundos como el número del día (lunes = 1, martes = 2… domingo = 7). Si giran hacia lados diferentes, se dan una cachetada suave. Se juega hasta completar los 7 días.",
     "icon": {
       "type": "glyph",
@@ -5403,7 +5403,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_015",
     "categoryId": "MINIJUEGO",
-    "title": "El Toque Prohibido Se apagan las luces 1 minuto",
+    "title": "El Toque Prohibido",
     "description": "El Toque Prohibido Se apagan las luces 1 minuto. Todos pueden tocar a quien quieran (espalda, cintura, cuello, muslos…) pero sin hablar. Al encenderse las luces, cada uno dice a quién cree que lo tocó más. Quien falle toma 1 shot.",
     "icon": {
       "type": "glyph",
@@ -5428,7 +5428,7 @@ export const CARNIVAL_CARDS = [
   {
     "id": "CC_CAOS_016",
     "categoryId": "MINIJUEGO",
-    "title": "Shot en el Cuerpo Quien sacó la carta elige una parte de su cuerpo (pech",
+    "title": "Shot en el Cuerpo",
     "description": "Shot en el Cuerpo Quien sacó la carta elige una parte de su cuerpo (pecho, abdomen, muslo, cuello…). Alguien del grupo le pone un shot ahí y debe beberlo solo con la boca. Si se derrama, ambos toman 1 shot extra.",
     "icon": {
       "type": "glyph",
@@ -10355,8 +10355,8 @@ export const CARNIVAL_CARDS = [
 export const CARNIVAL_MANUALS = [
   {
     "id": "MANUAL_CC_CAOS_001",
-    "title": "7 Minutos en el Paraíso El jugador que sacó la carta y la persona que el",
-    "summary": "Dinámica de 7 Minutos en el Paraíso El jugador que sacó la carta y la persona que el.",
+    "title": "7 Minutos en el Paraíso",
+    "summary": "Dinámica: 7 Minutos en el Paraíso.",
     "instructions": [
       "7 Minutos en el Paraíso El jugador que sacó la carta y la persona que elija el grupo (o la que salga al girar una botella) se encierran en un espacio pequeño (clóset, baño o habitación vacía) con las luces apagadas y sin celulares. Tienen 7 minutos para hacer lo que quieran (hablar, besarse, tocarse…), siempre con consentimiento. Al acabar el tiempo, el grupo los busca. Nadie puede preguntar ni contar lo que pasó adentro."
     ],
@@ -10368,8 +10368,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_002",
-    "title": "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man",
-    "summary": "Dinámica de Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las man.",
+    "title": "Enredados",
+    "summary": "Dinámica: Enredados.",
     "instructions": [
       "Enredados (x2 Jokers Arlequines o x2 Jokers Bufones) Todos se toman de las manos y se enredan formando un nudo. Tienen 90 segundos para desenredarse sin soltarse. Cada vez que se crucen o se toquen el cuerpo, se dan un beso rápido."
     ],
@@ -10381,8 +10381,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_003",
-    "title": "Shot de la Verdad El jugador que sacó la carta recibe una pregunta spicy",
-    "summary": "Dinámica de Shot de la Verdad El jugador que sacó la carta recibe una pregunta spicy.",
+    "title": "Shot de la Verdad",
+    "summary": "Dinámica: Shot de la Verdad.",
     "instructions": [
       "Shot de la Verdad El jugador que sacó la carta recibe una pregunta spicy sobre alguien del grupo (ej: “¿Con quién de aquí te acostarías?”). Entrega un Shot Berracxs (3 shots) a la persona que sea la respuesta y esa persona debe beberlo. Después ambos juegan “Qué probabilidad hay”: cada uno piensa un número del 1 al 3 y lo dicen a la cuenta de tres. Si coinciden, revelan la pregunta original; si no, todos se quedan con la duda."
     ],
@@ -10394,8 +10394,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_004",
-    "title": "Cultura Chupística Todos en círculo con sus tragos",
-    "summary": "Dinámica de Cultura Chupística Todos en círculo con sus tragos.",
+    "title": "Cultura Chupística",
+    "summary": "Dinámica: Cultura Chupística.",
     "instructions": [
       "Cultura Chupística Todos en círculo con sus tragos. Quien sacó la carta elige una categoría (ej: “posiciones sexuales”, “lugares donde has culeado”, “fetiches”, “cosas que te prenden”) y empieza: «Cultura chupística de [categoría]. Primer ejemplo: [uno]». El siguiente repite todo lo anterior y agrega uno nuevo. Pierde quien se trabe, repita o tarde más de 5-7 segundos: toma 2 shots y elige la siguiente categoría. Se pueden jugar 3 categorías."
     ],
@@ -10407,8 +10407,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_005",
-    "title": "El Impostor - Todos cierran los ojos",
-    "summary": "Dinámica de El Impostor - Todos cierran los ojos.",
+    "title": "El Impostor",
+    "summary": "Dinámica: El Impostor.",
     "instructions": [
       "El Impostor - Todos cierran los ojos. Quien sacó la carta elige en secreto a un “impostor”, que toca de forma sensual (cuello, espalda, cintura…) a una persona. Todos abren los ojos y votan quién fue. Si adivinan, el impostor toma 2 shots o hace un reto. Si no, todos los que votaron mal toman 1 shot."
     ],
@@ -10420,8 +10420,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_006",
-    "title": "Acción Misteriosa Quien sacó la carta escribe 3 acciones spicy en papele",
-    "summary": "Dinámica de Acción Misteriosa Quien sacó la carta escribe 3 acciones spicy en papele.",
+    "title": "Acción Misteriosa",
+    "summary": "Dinámica: Acción Misteriosa.",
     "instructions": [
       "Acción Misteriosa Quien sacó la carta escribe 3 acciones spicy en papeles (“besa el cuello 10 segundos”, “nalguea fuerte”, “susurra algo sucio”, “masajea el muslo”…). Se mezclan y cada jugador saca una. Debe cumplirla con la persona de su derecha (o con quien diga el papel)."
     ],
@@ -10433,8 +10433,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_007",
-    "title": "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo",
-    "summary": "Dinámica de Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo.",
+    "title": "Hielo Caliente",
+    "summary": "Dinámica: Hielo Caliente.",
     "instructions": [
       "Hielo Caliente (x1 Joker arlequín al perdedor) Todos de pie en círculo. Quien sacó la carta se pone un cubo de hielo en la boca y se lo pasa de boca en boca a quien quiera, que debe pasarlo rápido a otra persona, y así sucesivamente. Pierde la persona a la que se le derrita por completo el hielo en la boca y toma una carta de Joker arlequín."
     ],
@@ -10446,8 +10446,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_008",
-    "title": "El Secreto Empieza quien sacó la carta: le susurra a la persona de su de",
-    "summary": "Dinámica de El Secreto Empieza quien sacó la carta: le susurra a la persona de su de.",
+    "title": "El Secreto",
+    "summary": "Dinámica: El Secreto.",
     "instructions": [
       "El Secreto Empieza quien sacó la carta: le susurra a la persona de su derecha una parte del cuerpo. Esa persona debe besar a la siguiente en esa parte durante mínimo 20 segundos y luego susurra otra parte a la siguiente persona. La cadena sigue hasta volver al inicio. No se pueden repetir partes del cuerpo."
     ],
@@ -10459,8 +10459,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_009",
-    "title": "Gallinita Ciega Quien sacó la carta se venda los ojos y se pone en el ce",
-    "summary": "Dinámica de Gallinita Ciega Quien sacó la carta se venda los ojos y se pone en el ce.",
+    "title": "Gallinita Ciega",
+    "summary": "Dinámica: Gallinita Ciega.",
     "instructions": [
       "Gallinita Ciega Quien sacó la carta se venda los ojos y se pone en el centro. Alguien le da 3 vueltas y el grupo se dispersa. La persona vendada se mueve hasta encontrar a alguien; al tocarla, esa persona le da un beso y se aleja. Luego se quita la venda y debe adivinar quién fue. Si adivina, la persona que lo besó toma un Shot Flojxs (2 shots). Si falla, toma el Shot Flojxs quien estaba vendado."
     ],
@@ -10472,8 +10472,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_010",
-    "title": "Mi Día de Suerte - Quien sacó la carta se pone un antifaz",
-    "summary": "Dinámica de Mi Día de Suerte - Quien sacó la carta se pone un antifaz.",
+    "title": "Mi Día de Suerte",
+    "summary": "Dinámica: Mi Día de Suerte.",
     "instructions": [
       "Mi Día de Suerte - Quien sacó la carta se pone un antifaz. Todos los demás pasan uno por uno y le dan un beso (en la boca, mejilla o cuello, según acuerden). Después de cada beso debe adivinar quién fue. Por cada persona que falle, toma 1 shot."
     ],
@@ -10485,8 +10485,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_011",
-    "title": "Que la Suerte te Acompañe Se escriben los nombres de todos en papeles y ",
-    "summary": "Dinámica de Que la Suerte te Acompañe Se escriben los nombres de todos en papeles y .",
+    "title": "Que la Suerte te Acompañe",
+    "summary": "Dinámica: Que la Suerte te Acompañe.",
     "instructions": [
       "Que la Suerte te Acompañe Se escriben los nombres de todos en papeles y se mezclan. Cada persona saca un nombre y se cambia de lugar con esa persona. Cuando todos estén en su nuevo asiento, el juego continúa desde ahí (sirve para generar nuevas dinámicas de “izquierda/derecha”)."
     ],
@@ -10498,8 +10498,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_012",
-    "title": "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent",
-    "summary": "Dinámica de La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) ent.",
+    "title": "La Carta Traviesa",
+    "summary": "Dinámica: La Carta Traviesa.",
     "instructions": [
       "La Carta Traviesa Quien sacó la carta se pone una carta (o un papel) entre los labios, sin usar las manos, e intenta hacer una acción simple (caminar hasta alguien, sentarse en las piernas de otra persona, dar una vuelta…) sin que se le caiga. Si se le cae, toma 2 shots o una carta de Joker arlequín. Si lo logra, elige un pequeño premio o un reto para otra persona."
     ],
@@ -10511,8 +10511,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_013",
-    "title": "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi",
-    "summary": "Dinámica de Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notifi.",
+    "title": "Modo Avión",
+    "summary": "Dinámica: Modo Avión.",
     "instructions": [
       "Modo Avión (x1 Joker arlequín) Todos ponen su celular boca arriba con notificaciones activadas y volumen audible. Durante 3-5 minutos (o hasta que el grupo decida), cada notificación que suene obliga a esa persona a tomar 1 shot. Al final, quien más notificaciones haya recibido (o la que el grupo vote como “la más distraída”) toma una carta de Joker arlequín."
     ],
@@ -10524,8 +10524,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_014",
-    "title": "Semana Inglesa Quien sacó la carta y la persona que elija el grupo (o la",
-    "summary": "Dinámica de Semana Inglesa Quien sacó la carta y la persona que elija el grupo (o la.",
+    "title": "Semana Inglesa",
+    "summary": "Dinámica: Semana Inglesa.",
     "instructions": [
       "Semana Inglesa Quien sacó la carta y la persona que elija el grupo (o la que salga al girar una botella) se paran de espaldas. Empiezan a decir los días de la semana mientras giran la cabeza a izquierda o derecha al azar. Si giran hacia el mismo lado, se dan un beso de tantos segundos como el número del día (lunes = 1, martes = 2… domingo = 7). Si giran hacia lados diferentes, se dan una cachetada suave. Se juega hasta completar los 7 días."
     ],
@@ -10537,8 +10537,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_015",
-    "title": "El Toque Prohibido Se apagan las luces 1 minuto",
-    "summary": "Dinámica de El Toque Prohibido Se apagan las luces 1 minuto.",
+    "title": "El Toque Prohibido",
+    "summary": "Dinámica: El Toque Prohibido.",
     "instructions": [
       "El Toque Prohibido Se apagan las luces 1 minuto. Todos pueden tocar a quien quieran (espalda, cintura, cuello, muslos…) pero sin hablar. Al encenderse las luces, cada uno dice a quién cree que lo tocó más. Quien falle toma 1 shot."
     ],
@@ -10550,8 +10550,8 @@ export const CARNIVAL_MANUALS = [
   },
   {
     "id": "MANUAL_CC_CAOS_016",
-    "title": "Shot en el Cuerpo Quien sacó la carta elige una parte de su cuerpo (pech",
-    "summary": "Dinámica de Shot en el Cuerpo Quien sacó la carta elige una parte de su cuerpo (pech.",
+    "title": "Shot en el Cuerpo",
+    "summary": "Dinámica: Shot en el Cuerpo.",
     "instructions": [
       "Shot en el Cuerpo Quien sacó la carta elige una parte de su cuerpo (pecho, abdomen, muslo, cuello…). Alguien del grupo le pone un shot ahí y debe beberlo solo con la boca. Si se derrama, ambos toman 1 shot extra."
     ],
