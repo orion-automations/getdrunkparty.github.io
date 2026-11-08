@@ -3067,13 +3067,14 @@ function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = fa
   cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  // One RAF loop owns the 3D roll; keep unwrapped final angles to avoid a
-  // separate CSS transform transition after the selected face lands.
+  // Keep the backup's single RAF-driven 3D roll and settle each result back
+  // onto its canonical face angles so rotations do not accumulate over time.
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const duration = reduceMotion ? 1 : 1350;
+  const duration = reduceMotion ? 1 : 4000;
   const elapsedBeforeAnimation = Math.min(Math.max(Date.now() - Number(startedAt), 0), duration);
-  const targetX = diceRotationTarget(currentX, face.x, reduceMotion ? 0 : 3);
-  const targetY = diceRotationTarget(currentY, face.y, reduceMotion ? 0 : 4);
+  const targetX = diceRotationTarget(currentX, face.x, reduceMotion ? 0 : 6);
+  const targetY = diceRotationTarget(currentY, face.y, reduceMotion ? 0 : 8);
+  cube.style.transition = "none";
   let animationStart = null;
   const animateRoll = (timestamp) => {
     animationStart ??= timestamp;
@@ -3086,9 +3087,11 @@ function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = fa
       requestAnimationFrame(animateRoll);
       return;
     }
-    cube.dataset.rotationX = String(targetX);
-    cube.dataset.rotationY = String(targetY);
-    cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
+    cube.dataset.rotationX = String(face.x);
+    cube.dataset.rotationY = String(face.y);
+    cube.style.transform = `rotateX(${face.x}deg) rotateY(${face.y}deg)`;
+    cube.offsetWidth;
+    cube.style.removeProperty("transition");
     rolling = false;
     syncedRollStartedAt = null;
     onComplete?.();

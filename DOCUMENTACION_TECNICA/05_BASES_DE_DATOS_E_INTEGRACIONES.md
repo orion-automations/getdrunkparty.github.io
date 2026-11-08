@@ -61,7 +61,7 @@ JSON de cartas: array o `{version:1,cards:[...]}`; IDs, categorías, required fi
 
 ## Cache Storage PWA
 
-El SW precachea el shell bajo `zevyra-shell-2.3.22` y mantiene una caché runtime de imágenes bajo `zevyra-images-2.3.22` (`sw.js:1-3`). Entrega los recursos guardados mientras los revalida en segundo plano, y excluye `/api/` (`sw.js:90-129`); `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
+El SW precachea el shell bajo `zevyra-shell-2.3.23` y mantiene una caché runtime de imágenes bajo `zevyra-images-2.3.23` (`sw.js:1-3`). Entrega los recursos guardados mientras los revalida en segundo plano, y excluye `/api/` (`sw.js:90-129`); `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
 
 ## Actualización Fase 2
 

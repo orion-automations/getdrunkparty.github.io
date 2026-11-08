@@ -226,7 +226,7 @@
   .category-back-button {
     min-height: 98px;
   }
-  .category-back-button:last-child {
+  .category-choices .category-back-button:last-child {
     grid-column: 1/-1;
   }
   .category-back-button small {

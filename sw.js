@@ -1,6 +1,6 @@
 const CACHE_PREFIX = "zevyra-";
-const CACHE_NAME = `${CACHE_PREFIX}shell-2.3.22`;
-const IMAGE_CACHE_NAME = `${CACHE_PREFIX}images-2.3.22`;
+const CACHE_NAME = `${CACHE_PREFIX}shell-2.3.23`;
+const IMAGE_CACHE_NAME = `${CACHE_PREFIX}images-2.3.23`;
 const SHELL = [
   "./",
   "./index.html",

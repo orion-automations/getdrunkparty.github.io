@@ -1,5 +1,11 @@
 # Historial de modificaciones
 
+## 2026-11-08 — Corrección de cuadrícula y animación original del dado 2.3.23
+
+- En móviles, el estilo de expansión del último botón de `.category-choices` queda acotado a ese componente. El último mazo, Arlequines, conserva su celda en `#all-decks-grid` y completa la cuadrícula de dos columnas (`css/dashboard-categories.css`, `css/platform.css`).
+- `animateDiceRoll()` retoma el giro único por `requestAnimationFrame` de la copia de seguridad: cuatro segundos, seis/ocho vueltas, avance compatible con el inicio sincronizado online y asentamiento en la orientación exacta de la cara (`js/app.js`). Se mantiene la preferencia de movimiento reducido y no se cambió el diseño visual de las caras.
+- La versión del cliente y las cachés PWA pasan a 2.3.23 para que el service worker reemplace la copia anterior (`package.json`, `js/config.js`, `index.html`, `sw.js`). No se tocaron las portadas.
+
 ## 2026-11-08 — Inicio más ligero y caché sin bloqueo 2.3.22
 
 - No se modificó ni reemplazó ninguna portada de juego. El carrusel prioriza la portada central y deja las dos laterales para tiempo ocioso; al cambiar de juego, la nueva carta central se solicita con prioridad alta. La biblioteca no crea sus tarjetas hasta entrar en Juegos, y sus imágenes usan carga diferida y decodificación asíncrona (`js/app.js`).
