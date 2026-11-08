@@ -1,5 +1,6 @@
-const CACHE_PREFIX = "zevyra-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}2.3.19`;
+const CACHE_PREFIX = "zevyra-";
+const CACHE_NAME = `${CACHE_PREFIX}shell-2.3.22`;
+const IMAGE_CACHE_NAME = `${CACHE_PREFIX}images-2.3.22`;
 const SHELL = [
   "./",
   "./index.html",
@@ -15,11 +16,7 @@ const SHELL = [
   "./data/round-events.js",
   "./data/power-catalog.js",
   "./data/chain-challenges.js",
-  "./js/supabase.js",
   "./js/multiplayer.js",
-  "./js/multiplayer-auth.js",
-  "./js/multiplayer-rooms.js",
-  "./js/multiplayer-sync.js",
   "./js/local-accounts.js",
   "./js/config.js",
   "./js/utils.js",
@@ -35,8 +32,6 @@ const SHELL = [
   "./data/initial-cards.js",
   "./data/initial-manuals.js",
   "./data/carnival-catalog.js",
-  "./data/pdf-catalog.js",
-  "./data/additional-challenges.js",
   "./data/catalog-migrations.js",
   "./assets/icons/icon.svg",
   "./assets/icons/icon-192.png",
@@ -48,21 +43,22 @@ const SHELL = [
   "./assets/icons/favicon.ico",
   "./assets/icons/favicon-32x32.png",
   "./assets/icons/favicon.svg",
-  "./assets/brand/zevyra-emblem.png",
-  "./assets/branding/logo-dark.png",
-  "./assets/branding/logo-light.png",
-  "./assets/games/carnival-of-chaos.png",
-  "./assets/games/yo-nunca-nunca.png",
-  "./assets/games/weekend-hearts.png",
-  "./assets/games/quien-es-mas-probable.png",
-  "./assets/games/el-impostor.png",
+  "./assets/branding/zevyra-mode-dark.png",
+  "./assets/branding/zevyra-mode-light.png",
   "./assets/icons/apple-touch-icon.png",
 ];
+
 self.addEventListener("install", (event) =>
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) =>
+        cache.addAll(
+          SHELL.map((path) =>
+            new Request(new URL(path, self.registration.scope), { cache: "reload" }),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   ),
 );
@@ -76,35 +72,58 @@ self.addEventListener("activate", (event) =>
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => (key.startsWith(CACHE_PREFIX) || key.startsWith("gdpw-shell-")) && key !== CACHE_NAME)
+            .filter(
+              (key) =>
+                ((key.startsWith(`${CACHE_PREFIX}shell-`) ||
+                  key.startsWith(`${CACHE_PREFIX}images-`) ||
+                  key.startsWith("gdpw-shell-")) &&
+                  key !== CACHE_NAME &&
+                  key !== IMAGE_CACHE_NAME),
+            )
             .map((key) => caches.delete(key)),
         ),
       )
       .then(() => self.clients.claim()),
   ),
 );
+
+async function updateCache(request, cacheName) {
+  try {
+    const response = await fetch(request, { cache: "no-cache" });
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return null;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
   if (
-    event.request.method !== "GET" ||
-    new URL(event.request.url).origin !== self.location.origin
+    request.method !== "GET" ||
+    url.origin !== self.location.origin ||
+    /\/api(?:\/|$)/.test(url.pathname) ||
+    request.headers.has("range")
   )
     return;
-  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
-  event.respondWith(
-    fetch(event.request, { cache: "no-cache" })
-      .then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      })
-      .catch(
-        async () =>
-          (await caches.match(event.request)) ||
-          (await caches.match("./index.html")),
-      ),
-  );
+
+  const isImage = request.destination === "image" || /\/assets\/games\//.test(url.pathname);
+  const cacheName = isImage ? IMAGE_CACHE_NAME : CACHE_NAME;
+  const refresh = updateCache(request, cacheName);
+  event.waitUntil(refresh);
+  event.respondWith((async () => {
+    const cache = await caches.open(cacheName);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const fresh = await refresh;
+    if (fresh) return fresh;
+    if (request.mode === "navigate") {
+      return (await caches.open(CACHE_NAME)).match("./index.html") || Response.error();
+    }
+    return Response.error();
+  })());
 });

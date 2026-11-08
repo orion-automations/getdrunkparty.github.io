@@ -66,7 +66,7 @@ El dado digital elige una cara y crea turno en fase `ROLLING`; `startDigitalRoll
 
 ## PWA y servidor
 
-`manifest.json` aporta nombre, inicio, orientación e iconos. `app.js:1931-1946` registra `sw.js` fuera de `file:` si existe soporte. `sw.js:1-84` precachea `SHELL` en instalación, elimina cachés anteriores con prefijo en activación y usa red primero para GET del mismo origen, recurriendo a Cache Storage y luego a `index.html` cuando falla. `server.mjs` implementa el servidor HTTP Node.
+`manifest.json` aporta nombre, inicio, orientación e iconos. `js/app.js:3500-3513` registra `sw.js` fuera de `file:` si existe soporte. `sw.js:1-88` precachea el shell e intercambia cachés versionadas al activar; para GET del mismo origen entrega primero la copia guardada y la revalida en segundo plano. Las imágenes usan caché runtime y `/api/` queda fuera de la estrategia. Si falta una página y no hay red, recurre a `index.html` (`sw.js:90-129`). `server.mjs` implementa el servidor HTTP Node.
 
 ## Estado, eventos y errores
 

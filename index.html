@@ -39,8 +39,22 @@
     <link rel="stylesheet" href="./css/platform.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    </noscript>
     <meta name="application-name" content="Circus Zevyra" />
     <title>Circus Zevyra</title>
   </head>
@@ -60,7 +74,7 @@
     </script>
     <header class="topbar">
       <a class="brand zevyra-brand" href="#inicio" aria-label="Inicio">
-        <img src="./assets/branding/logo-dark.png" alt="Logo de Circus Zevyra" width="42" height="42" />
+        <img class="themed-zevyra-logo" src="./assets/branding/zevyra-mode-dark.png" alt="Logo de Zevyra" width="42" height="42" />
       </a>
       <div class="topbar-actions">
         <button id="menu-toggle" class="icon-button" aria-label="Abrir ajustes y herramientas" title="Ajustes" aria-expanded="false" aria-controls="tools-nav"><span class="material-symbols-rounded" aria-hidden="true">menu</span></button>
@@ -136,9 +150,9 @@
       <section id="view-profile" class="view">
         <section class="profile-page-shell" aria-label="Perfil del jugador">
           <article class="player-id-card" aria-label="Pasaporte Zevyra">
-            <img class="passport-watermark" src="assets/brand/zevyra-emblem.png" alt="" aria-hidden="true" />
+            <img class="passport-watermark themed-zevyra-logo" src="./assets/branding/zevyra-mode-dark.png" alt="" aria-hidden="true" />
             <header class="passport-header">
-              <img src="assets/brand/zevyra-emblem.png" alt="" aria-hidden="true" />
+              <img class="themed-zevyra-logo" src="./assets/branding/zevyra-mode-dark.png" alt="" aria-hidden="true" />
               <p><b>ZEVYRA PASSPORT</b><span>REPÚBLICA ZEVYRA - IDENTIFICACIÓN OFICIAL</span></p>
               <button id="passport-edit-toggle" class="icon-button passport-edit-toggle" type="button" aria-label="Editar pasaporte" title="Editar pasaporte"><span class="material-symbols-rounded" aria-hidden="true">edit</span></button>
             </header>
@@ -328,10 +342,7 @@
               <p id="dice-hint" class="fine-print">Pulsa el dado para tirar o repetir.</p>
             </div>
             <p id="game-message" class="game-message" aria-live="polite"></p>
-            <div id="all-decks-grid" class="all-decks-grid" aria-label="Seis mazos disponibles">
-              <div id="category-choices" class="category-choices" aria-label="Mazos principales"></div>
-              <div id="aux-decks" class="aux-decks"><div id="aux-category-choices" class="aux-category-choices"></div></div>
-            </div>
+            <div id="all-decks-grid" class="all-decks-grid" aria-label="Seis mazos disponibles"></div>
             <button
               id="blocked-choice"
               class="category-back-button blocked-choice hidden"
@@ -549,7 +560,7 @@
                 <button id="update-app-button" class="button" type="button">Buscar actualizaciones</button>
               </div>
               <p id="app-update-status" class="fine-print" role="status" aria-live="polite">La primera carga necesita conexión. Después, la aplicación instalada puede abrirse sin conexión.</p>
-              <p class="fine-print">Versión <span id="app-version">2.3.19</span> · Los datos de juego permanecen en este dispositivo.</p>
+              <p class="fine-print">Versión <span id="app-version">2.3.22</span> · Los datos de juego permanecen en este dispositivo.</p>
             </section>
           </details>
         </section>

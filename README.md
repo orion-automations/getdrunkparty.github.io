@@ -1,6 +1,6 @@
 # Circus Zevyra · Carnival of Chaos
 
-**Versión de la aplicación: 2.3.19.**
+**Versión de la aplicación: 2.3.22.**
 
 Aplicación de juegos sociales mobile-first. La plataforma se llama **Circus Zevyra** y **Carnival of Chaos** es el juego disponible. El proyecto usa HTML, CSS y JavaScript nativo, conserva el modo local y conecta el modo online a Supabase.
 

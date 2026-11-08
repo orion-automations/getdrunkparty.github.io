@@ -1,20 +1,23 @@
 # Carnival of Chaos — estado actual e implementación
 
-**Actualizado:** 2026-11-07 · **Versión:** 2.3.19 · **Estado:** acceso persistente local, cuenta IndexedDB para GitHub Pages y salas online vía Supabase.
+**Actualizado:** 2026-11-08 · **Versión:** 2.3.22 · **Estado:** acceso persistente local, cuenta IndexedDB para GitHub Pages y salas online vía Supabase.
 
 Este es el documento vigente para la aplicación. Los documentos 01–14 conservan antecedentes e iteraciones anteriores; si una decisión difiere, prevalece esta versión y el código citado.
 
 ## Resumen actual
 
 - Carnival of Chaos está disponible; los otros juegos siguen bloqueados hasta tener una implementación (`js/games-catalog.js:1-24`). Se conserva `GAME_ID = "midnight-chaos"` para los datos existentes (`js/config.js:1-3`).
-- El inicio usa una tarjeta con la huella de una columna del mosaico Juegos; la carta seleccionada queda centrada y las cartas vecinas del mismo tamaño base aparecen más pequeñas, centradas verticalmente y oscurecidas. Se desliza con el dedo (`index.html:99-114`, `js/app.js:1123-1174, 2766-2783`, `css/platform.css:921-976, 1002-1019`).
-- El dado mantiene seis caras y la animación 3D. Las probabilidades del catálogo son 1% Maldición, 19% Caos, 40% Pecados y 40% Sacrificio (`js/dice.js:1-84`; creación y orientación visual: `js/app.js:77-82, 1250-1289`).
-- Las rondas cuentan un ciclo completo por los participantes activos: la ronda termina al volver al primero de la lista en el orden vigente. Cada quinto ciclo completo activa un evento; su duración todavía se descuenta por turnos individuales (`js/game.js:664-725`).
-- Las cartas jugadas, auxiliares y descartadas terminan en el cementerio. La extracción excluye esos IDs hasta reiniciar la partida (`js/game.js:545-578`, `js/decks.js:2-36`, `js/app.js:1166-1208, 2693-2718`).
-- La interfaz admite local y multijugador; en salas online el jugador activo conserva las acciones del turno y el anfitrión confirma/cierra el resultado (`index.html:137-150`, `js/app.js:104-139, 2870-2879`, SQL `supabase/sql/007_host_confirms_turns.sql`).
-- El catálogo importa 414 cartas y 24 manuales desde la guía. Los nombres visibles de los dos mazos Joker son **Jokers Bufones** y **Jokers Arlequines**. La migración de catálogo v10 también actualiza las partidas ya guardadas (`data/carnival-catalog.js`, `data/initial-cards.js:1-5`, `js/config.js:4-11`, `js/storage.js:47-63, 272-276`).
+- El inicio dibuja la portada activa al centro y deja las vecinas a los lados; el gesto táctil, Pointer Events y flechas del teclado cambian selección (`index.html:136-145`, `js/app.js:1306-1369, 2870-2898`, `css/platform.css:921-976, 1002-1019`).
+- El dado conserva seis caras con pesos 1/19/40/40 (`js/dice.js:2-57`); el cubo DOM usa esas seis caras (`js/app.js:154-164`) y `animateDiceRoll()` interpola una sola transformación 3D mediante `requestAnimationFrame` durante 1.35 s (`js/app.js:3061-3098`).
+- `finishTurn()` cuenta una ronda cuando el siguiente índice activo vuelve al inicio del orden; `applyRoundProgress()` activa eventos en múltiplos de cinco rondas completas (`js/game.js:558-704, 724-758`).
+- `drawCategory()` delega el robo a `engine.draw()`, que utiliza `drawFromDeck()`; `finishTurn()` lleva cartas normales al cementerio y agrupa cinco fragmentos antes de trasladarlos (`js/app.js:2979-3004`, `js/game.js:558-603`, `js/decks.js:2-36`).
+- La interfaz local y online comparte `renderGame()`; los botones de resultado pasan por `confirmResult()`, que exige rol anfitrión en línea (`js/app.js:185-195, 1542-1612, 3119-3168`; SQL `supabase/sql/007_host_confirms_turns.sql`).
+- El catálogo fuente contiene 414 cartas y 24 manuales. Los mazos se llaman Bufones y Arlequines; `CATALOG_VERSION` es 11. Las migraciones 9–11 limpian penalizaciones antiguas, normalizan Jokers y actualizan cartas/manuales ya guardados (`data/carnival-catalog.js`, `data/initial-cards.js:1-6`, `js/config.js:4-11`, `js/storage.js:9, 242-317`).
+- Los seis mazos son botones hijos de `#all-decks-grid`; `makeCategoryButton()` crea icono/nombre y `renderGame()` aplica habilitación de mazos auxiliares (`index.html:345`, `js/app.js:1542-1612, 2964-3021`, `css/platform.css:474-476`).
+- El dado usa una única animación 3D por `requestAnimationFrame` de 1.35 s con 3/4 giros por eje. La lentitud venía del ciclo manual de 4 s y 6/8 giros por eje; se retiraron duraciones CSS residuales de 2.5/4 s para dejar un solo controlador del transform. También se quitó la sombra 2D del contenedor hover, que cruzaba visualmente el cubo, la sombra externa por cara en tema claro y los estilos 2D heredados (`js/app.js:3061-3098`, `css/dice.css:26-35,191-192`, `css/brand.css:294-311`, `css/platform.css:560`). En modo `prefers-reduced-motion`, salta a la cara sin vueltas completas.
 - Las cuentas personales usan SQLite al correr Node local y IndexedDB al publicar como web estática. La cuenta de GitHub Pages solo existe en ese navegador; Supabase se usa para salas online y copias de nickname/avatar en el roster activo.
 - `js/local-accounts.js:1-46` detecta la API local por su cabecera `X-Zevyra-Local-Accounts: sqlite-v1` (o una respuesta 401 reconocida del servidor anterior); las respuestas genéricas 404/405 JSON ya no seleccionan SQLite. El hash de la cuenta está en IndexedDB/SQLite; el estado de sesión va a `localStorage`.
+- El header y el logo del pasaporte/marca de agua intercambian entre `assets/branding/zevyra-mode-dark.png` y `zevyra-mode-light.png` al resolver el tema (`index.html:77,153-156`, `js/app.js:1370-1378`). Las fuentes originales se conservan en `assets/LOgos sin fondo /`.
 
 ## Flujos funcionales trazables
 
@@ -64,9 +67,9 @@ El modo multijugador usa una identidad anónima técnica de Supabase para permis
 
 ### Tema, ajustes y PWA
 
-El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`). El service worker no almacena en caché las respuestas privadas de `/api/` (`sw.js:1-2, 86-94`).
+El botón de apariencia recorre Sistema → Oscuro → Claro (`js/app.js:1134-1152, 2616-2620`). Las reglas del tema claro sustituyen fondos, texto, dado, reversos, cartas y controles por superficies claras; también elimina el círculo decorativo detrás del juego (`css/platform.css:512-555, 466`). El editor de manuales pasa de dos columnas en escritorio a una columna en móvil (`index.html:592-607`; `css/platform.css:506-510, 573-574`). El menú de carta conserva un panel opaco y táctil en móvil (`css/platform.css:482-484, 496-497`). El service worker deja fuera de caché las respuestas privadas de `/api/` (`sw.js:103-112`).
 
-Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:461-485`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:2989-3023`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3047-3074, 3113-3177`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché shell son 2.3.19 (`index.html:552`, `package.json:3`, `js/config.js:1`, `sw.js:1-2`).
+Los controles de Ajustes agrupan penalizaciones, reinicio, respaldo y aplicación (`index.html:461-485`). El botón de reinicio actúa inmediatamente, sin diálogo adicional (`js/app.js:3290-3327`). Instalar y buscar actualizaciones se conectan a `beforeinstallprompt` y al service worker (`js/app.js:3400-3475`; `sw.js:1-30`). La versión visible, metadata del paquete, configuración y caché PWA son 2.3.22 (`index.html:563`, `package.json:3`, `js/config.js:1`, `sw.js:1-3`).
 
 ## Datos y migraciones
 
@@ -80,9 +83,23 @@ El esquema SQLite local está en `database/001_users.sql`; `database/local_users
 
 GitHub Pages solo sirve los archivos estáticos: no puede arrancar `server.mjs`, Python ni SQLite. En ese hosting el registro/login opera sobre IndexedDB; el perfil y su sesión se conservan en el mismo navegador. Para permitir cuentas sincronizadas entre dispositivos se necesitaría un backend de cuentas; las tablas SQLite de `database/` no se suben a Supabase ni sustituyen ese backend. Las salas online son independientes: Supabase Auth anónimo, RPC, RLS, tablas y Realtime deben estar habilitados y las migraciones 001–008 aplicadas; 009 configura el borrado programado opcional descrito en `supabase/README.md`.
 
+## Optimización de apertura aplicada
+
+La auditoría fuente encontró cinco portadas PNG de 2.2–2.6 MB, alrededor de 3.3 MB en logos heredados, precache de recursos históricos y red comprobada antes de servir la caché. No se midieron LCP ni tiempos de apertura reales en el navegador, así que estas cantidades describen archivos y estrategia de código, no una mejora cronometrada.
+
+- Las portadas de `assets/games/` permanecen intactas: no se editaron, recomprimieron, renombraron ni reemplazaron. `renderHomeGameStack()` prioriza la imagen central y solicita las laterales cuando el hilo queda ocioso; al deslizar, la nueva portada central recibe prioridad alta (`js/app.js:1295-1356`). `renderGameLibrary()` usa `loading="lazy"`, `decoding="async"` y prioridad baja, y la vista Juegos solo crea esas tarjetas cuando se abre (`js/app.js:1247-1294, 1496-1498`).
+- `render()` construye el juego, participantes, cartas, manuales y bebidas solo cuando su vista está activa; así no monta las 414 filas del editor al entrar a Inicio (`js/app.js:1481-1538`). Las exportaciones `INITIAL_CARDS` e `INITIAL_MANUALS` comparten las matrices canónicas durante la carga de módulos; el estado persistido recibe copias con `structuredClone` al sembrarse o migrarse (`data/initial-cards.js:1-6`, `data/initial-manuals.js:1-4`, `js/storage.js:15-18`). El catálogo de 414 cartas continúa formando parte del grafo de módulos inicial; dividirlo en carga asíncrona no se hizo porque `loadState()` y las migraciones son síncronas.
+- La instalación PWA precarga el shell, sus módulos y los iconos de instalación, pero ya no precarga portadas, logos heredados de gran tamaño ni `pdf-catalog.js`/`additional-challenges.js` que no se necesitan para iniciar la aplicación (`sw.js:1-49`). Los logos temáticos actuales se conservan en el shell. El tamaño de cada portada original no cambia.
+- `sw.js` entrega primero recursos guardados mientras consulta la red en segundo plano; las imágenes tienen una caché runtime aparte y se conservan por versión. La caché privada `/api/` se excluye (`sw.js:1-129`). Las hojas de Material Symbols se cargan sin bloquear el análisis de HTML, con fallback `noscript` (`index.html:40-57`). `assets/icons/favicon.svg` y `icon.svg` apuntan al logo temático actual en lugar de descargar la imagen heredada de casi 1 MB.
+- El precache actualizado se instala con solicitudes `cache: "reload"`; el shell versionado se reemplaza al activar la siguiente versión (`sw.js:51-88`). Los cambios de service worker se prueban en la primera carga con conexión; las imágenes todavía no visitadas necesitan conexión una vez.
+
+La limitación pendiente es que el catálogo de 414 cartas todavía se importa síncronamente, y no hay medición visual o de laboratorio después del cambio. La optimización reduce descargas ajenas a la pantalla inicial y evita esperar a la red cuando ya hay caché; no se afirma cuánto baja el tiempo hasta el primer pintado sin medir en GitHub Pages.
+
 El antiguo falso positivo de API estaba en el detector del cliente: cualquier JSON o respuesta 200 era aceptada como API, así que servidores estáticos con 405 JSON podían mandar al formulario hacia `/api/users/register` y devolver 405. Ahora el servidor Node marca sus respuestas con `X-Zevyra-Local-Accounts: sqlite-v1`; en ausencia de esa señal, el cliente usa IndexedDB, excepto por el 401 de compatibilidad de la versión anterior.
 
 ## Verificación de esta actualización
 
-- Se actualizó la detección entre API Node/SQLite e IndexedDB estático para que los 404/405 genéricos no se interpreten como API de cuentas.
-- `node --check` pasó para los módulos editados. No se creó una cuenta ni se ejecutó la suite. El servidor local no estaba activo y el entorno de esta sesión rechazó abrir el puerto con `EPERM`; la prueba de dos clientes online sigue pendiente después de publicar y confirmar Supabase.
+- `node --check` pasó para todos los módulos JS, catálogos, `sw.js` y `server.mjs`; `package.json` y `manifest.json` se analizaron correctamente. La suite reporta 34/39 aprobadas; fallan cinco casos existentes de catálogo de eventos, progresión de eventos, migración antigua que espera v8 frente a v11 actual y agotamiento de mazo (`tests/core.test.js:34-74,141-152,193-198`). Ninguno toca el nuevo grid o la animación.
+- Se abrió `http://localhost:8000/#inicio` y se comprobó visualmente que la portada central conserva su tamaño/recorte y que las laterales mantienen el carrusel; no se verificó visualmente el dado ni el grid de mazos en este cambio.
+- La optimización implementada está descrita arriba. No se alteraron las portadas ni se hicieron mediciones reales del tiempo de apertura; hay cinco fallos preexistentes en casos de lógica de eventos, migración antigua y agotamiento de mazo.
+- No se publicó a GitHub Pages ni se aplicaron migraciones remotas. La prueba de dos clientes Supabase sigue dependiendo del proyecto desplegado.

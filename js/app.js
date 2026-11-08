@@ -65,11 +65,13 @@ let localModeBackup = null;
 let roomPresence = [];
 let selectedGameIndex = 0;
 let homeCarouselDirection = 1;
+let homeStackRenderedIndex = null;
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 const diceFaceColor = (category) =>
   CATEGORIES[category]?.color ??
   (category === "BLOQUEADA" ? "#A5A5B4" : "#fff");
+const AUXILIARY_DECKS = new Set(["PREMIO", "CASTIGO"]);
 const PLAYER_AVATARS = Array.from({ length: 12 }, (_, index) =>
   `https://api.dicebear.com/10.x/big-smile/svg?seed=zevyra-character-${index + 1}&borderRadius=50`,
 );
@@ -1245,6 +1247,7 @@ async function initializeAccountAccess() {
 function renderGameLibrary() {
   const host = $("#games-library");
   if (!host) return;
+  if (host.dataset.rendered === "true") return;
   host.replaceChildren();
   for (const game of GAMES_CATALOG) {
     const card = document.createElement("article");
@@ -1263,8 +1266,11 @@ function renderGameLibrary() {
     cover.className = "game-card-cover-wrap";
     const image = document.createElement("img");
     image.className = "game-card-cover";
-    image.src = game.cover;
     image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.fetchPriority = "low";
+    image.src = game.cover;
     cover.append(image);
     if (!game.available) {
       const lock = document.createElement("span");
@@ -1284,10 +1290,26 @@ function renderGameLibrary() {
     card.append(cover, content);
     host.append(card);
   }
+  host.dataset.rendered = "true";
+}
+function scheduleHomeNeighborCovers(host) {
+  const loadNeighborCovers = () => {
+    if (!host.closest(".view")?.classList.contains("active")) return;
+    host.querySelectorAll(".home-game-card:not(.is-selected) img[data-src]").forEach((image) => {
+      image.src = image.dataset.src;
+      delete image.dataset.src;
+    });
+  };
+  if ("requestIdleCallback" in window) window.requestIdleCallback(loadNeighborCovers, { timeout: 1400 });
+  else window.setTimeout(loadNeighborCovers, 900);
 }
 function renderHomeGameStack() {
   const host = $("#home-game-stack");
   if (!host) return;
+  if (homeStackRenderedIndex === selectedGameIndex && host.childElementCount === 3) {
+    scheduleHomeNeighborCovers(host);
+    return;
+  }
   host.replaceChildren();
   const selected = GAMES_CATALOG[selectedGameIndex];
   if (!selected) return;
@@ -1297,9 +1319,16 @@ function renderHomeGameStack() {
     const card = document.createElement("article");
     card.className = `home-game-card ${position}${game.available ? " is-available" : " is-blocked"}`;
     const cover = document.createElement("img");
-    cover.src = game.cover;
     cover.alt = `${game.name}, portada`;
     cover.draggable = false;
+    cover.decoding = "async";
+    cover.loading = position === "is-selected" ? "eager" : "lazy";
+    cover.fetchPriority = position === "is-selected" ? "high" : "low";
+    if (position === "is-selected") {
+      cover.src = game.cover;
+    } else {
+      cover.dataset.src = game.cover;
+    }
     const coverFrame = document.createElement("div");
     coverFrame.className = "home-game-cover";
     coverFrame.append(cover);
@@ -1321,6 +1350,8 @@ function renderHomeGameStack() {
   makeCard(GAMES_CATALOG[previousIndex], "is-prev", previousIndex);
   makeCard(GAMES_CATALOG[nextIndex], "is-next", nextIndex);
   makeCard(selected, "is-selected", selectedGameIndex);
+  homeStackRenderedIndex = selectedGameIndex;
+  scheduleHomeNeighborCovers(host);
   $("#home-selected-game").replaceChildren();
   const description = document.createElement("p"); description.textContent = selected.description;
   $("#home-selected-game").append(description);
@@ -1339,8 +1370,10 @@ function applyAppearance(mode) {
   localStorage.setItem("zevyra.appearance", selection);
   const resolved = selection === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : selection;
   document.documentElement.dataset.theme = resolved;
-  const logo = $(".zevyra-brand img");
-  if (logo) logo.src = resolved === "light" ? "./assets/branding/logo-light.png" : "./assets/branding/logo-dark.png";
+  const logoPath = resolved === "light"
+    ? "./assets/branding/zevyra-mode-light.png"
+    : "./assets/branding/zevyra-mode-dark.png";
+  $$(".themed-zevyra-logo").forEach((logo) => { logo.src = logoPath; });
   const themeButton = $("#appearance-cycle");
   const themeIcon = $("#appearance-icon");
   const labels = { system: "Sistema", dark: "Oscuro", light: "Claro" };
@@ -1458,7 +1491,10 @@ function render() {
   $("#timer-inline").classList.toggle("hidden", !showGameTools);
   $("#cemetery-open").classList.toggle("hidden", !showGameTools);
   $("#fragments-open").classList.toggle("hidden", !showGameTools);
-  renderFragments();
+  const activeViewId = $(".view.active")?.id;
+  if (activeViewId === "view-home") renderHomeGameStack();
+  if (activeViewId === "view-games") renderGameLibrary();
+  if (activeViewId === "view-game") renderFragments();
   if ((state.game.fragmentCompletions ?? 0) > lastRenderedFragmentCompletions) {
     const button = $("#fragments-open");
     button.classList.remove("is-completing");
@@ -1478,18 +1514,20 @@ function render() {
   $("#open-online-game").disabled = experienceUnavailable;
   $("#play-mode-screen").classList.toggle("hidden", playMode !== "choose");
   $("#gameplay-screen").classList.toggle("hidden", playMode === "choose");
-  renderGame();
-  renderRewards();
-  renderPlayers();
+  if (activeViewId === "view-game") {
+    renderGame();
+    renderRewards();
+  }
+  if (activeViewId === "view-players") renderPlayers();
   const profileSession = getMultiplayerSession();
   if (profileSession?.profile?.username) {
     $("#profile-display-name").textContent = profileSession.profile.username;
     if (profileSession.profile.public_uid) $("#profile-uid").textContent = `UID: #${profileSession.profile.public_uid}`;
   } else if (accountProfile) updateProfileCard(accountProfile);
   else $("#profile-display-name").textContent = localStorage.getItem("zevyra.profile.name") || "Jugador";
-  renderCards();
-  renderManuals();
-  renderDrinks();
+  if (activeViewId === "view-editor") renderCards();
+  if (activeViewId === "view-manuals") renderManuals();
+  if (activeViewId === "view-settings") renderDrinks();
   $("#position-reversed").checked = state.settings.positionReversed;
   const readOnly = onlineMode && !canControlOnlineGame();
   $("#player-form button").disabled = onlineMode || readOnly;
@@ -1540,10 +1578,7 @@ function renderGame() {
     if (!rolling) {
       cube.dataset.rotationX = String(selectedFace.x);
       cube.dataset.rotationY = String(selectedFace.y);
-      cube.style.transition = "none";
       cube.style.transform = `rotateX(${selectedFace.x}deg) rotateY(${selectedFace.y}deg)`;
-      cube.offsetWidth;
-      cube.style.removeProperty("transition");
     }
   }
   const choosingPhysical = !digital && ready;
@@ -1553,24 +1588,6 @@ function renderGame() {
     : choosingPhysical || Boolean(cur);
   $("#all-decks-grid").classList.toggle("hidden", !mainDecksVisible);
   $("#blocked-choice").classList.toggle("hidden", !choosingPhysical);
-  $("#aux-decks").classList.toggle(
-    "disabled-decks",
-    !cur ||
-      cur.type === "BLOCKED" ||
-      state.game.state !== "RESOLVING" ||
-      Boolean(cur.outcome),
-  );
-  $$("#category-choices [data-category]").forEach((b) => {
-    const enabled =
-      choosingPhysical ||
-      (choosingRolledCategory && b.dataset.category === cur.category);
-    b.disabled = !enabled;
-    b.classList.toggle(
-      "selected-deck",
-      choosingRolledCategory && b.dataset.category === cur.category,
-    );
-  });
-  $("#blocked-choice").disabled = !choosingPhysical;
   const armedMiniSelection =
     cur?.category === "MINIJUEGO" ? cur.armedSelection : null;
   const effectCategories = (cur?.pendingEffects ?? [])
@@ -1584,17 +1601,20 @@ function renderGame() {
     cur.type !== "BLOCKED" &&
     state.game.state === "RESOLVING",
   );
-  $$("#aux-category-choices [data-category]").forEach((b) => {
-    b.disabled = armedMiniSelection
-      ? b.dataset.category !== armedMiniSelection.category
-      : !(
-          canDrawAuxiliary &&
-          (!cur?.outcome || effectCategories.includes(b.dataset.category))
-        );
-    b.disabled ||= readOnly;
+  $$("#all-decks-grid [data-category]").forEach((button) => {
+    const category = button.dataset.category;
+    const enabled = AUXILIARY_DECKS.has(category)
+      ? armedMiniSelection
+        ? category === armedMiniSelection.category
+        : canDrawAuxiliary && (!cur?.outcome || effectCategories.includes(category))
+      : choosingPhysical || (choosingRolledCategory && category === cur.category);
+    button.disabled = !enabled || readOnly;
+    button.classList.toggle(
+      "selected-deck",
+      !AUXILIARY_DECKS.has(category) && choosingRolledCategory && category === cur.category,
+    );
   });
-  $$("#category-choices [data-category]").forEach((button) => { button.disabled ||= readOnly; });
-  $("#blocked-choice").disabled ||= readOnly;
+  $("#blocked-choice").disabled = !choosingPhysical || readOnly;
   $("#game-mode").disabled = readOnly || Boolean(cur) || rolling || Boolean(state.game.chain) || pendingJoker;
   $("#save-minigame-participants").disabled = readOnly;
   const gameMessage = cur
@@ -2845,8 +2865,6 @@ $("#start-local-game").onclick = async () => {
 };
 $("#open-online-game").onclick = () => setView("multiplayer");
 $("#multiplayer-back").onclick = () => { playMode = "choose"; setView("game"); };
-renderGameLibrary();
-renderHomeGameStack();
 $("#home-game-stack").addEventListener("click", (event) => {
   const card = event.target.closest(".home-game-card");
   if (!card) return;
@@ -2998,10 +3016,7 @@ $("#save-minigame-participants").onclick = () => {
   renderGame();
 };
 for (const [id, category] of Object.entries(CATEGORIES)) {
-  if (["VERDAD", "DESAFIO", "MINIJUEGO", "MALDICION"].includes(id))
-    $("#category-choices").append(makeCategoryButton(id, category));
-  if (["PREMIO", "CASTIGO"].includes(id))
-    $("#aux-category-choices").append(makeCategoryButton(id, category));
+  if (id !== "SHOT") $("#all-decks-grid").append(makeCategoryButton(id, category));
 }
 $("#blocked-choice").innerHTML =
   '<span class="material-symbols-outlined category-mark" aria-hidden="true">do_not_disturb_on</span><span class="category-name">BLOQUEADA</span>';
@@ -3052,13 +3067,13 @@ function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = fa
   cube.style.setProperty("--face-color", diceFaceColor(face.category));
   const currentX = Number(cube.dataset.rotationX ?? 0);
   const currentY = Number(cube.dataset.rotationY ?? 0);
-  // Match the full four-second 3D roll from the die backup; elapsed time
-  // still keeps the animation synchronized for other players in the room.
-  const duration = 4000;
+  // One RAF loop owns the 3D roll; keep unwrapped final angles to avoid a
+  // separate CSS transform transition after the selected face lands.
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const duration = reduceMotion ? 1 : 1350;
   const elapsedBeforeAnimation = Math.min(Math.max(Date.now() - Number(startedAt), 0), duration);
-  const targetX = diceRotationTarget(currentX, face.x, 6);
-  const targetY = diceRotationTarget(currentY, face.y, 8);
-  cube.style.transition = "none";
+  const targetX = diceRotationTarget(currentX, face.x, reduceMotion ? 0 : 3);
+  const targetY = diceRotationTarget(currentY, face.y, reduceMotion ? 0 : 4);
   let animationStart = null;
   const animateRoll = (timestamp) => {
     animationStart ??= timestamp;
@@ -3071,11 +3086,9 @@ function animateDiceRoll(face, startedAt, onComplete = null, alreadyRolling = fa
       requestAnimationFrame(animateRoll);
       return;
     }
-    cube.dataset.rotationX = String(face.x);
-    cube.dataset.rotationY = String(face.y);
-    cube.style.transform = `rotateX(${face.x}deg) rotateY(${face.y}deg)`;
-    cube.offsetWidth;
-    cube.style.removeProperty("transition");
+    cube.dataset.rotationX = String(targetX);
+    cube.dataset.rotationY = String(targetY);
+    cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
     rolling = false;
     syncedRollStartedAt = null;
     onComplete?.();

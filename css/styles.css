@@ -226,45 +226,6 @@ main {
   text-align: center;
   margin: 34px 0 18px;
 }
-.die {
-  width: 100px;
-  height: 100px;
-  border: 1px solid #42424e;
-  border-radius: 23px;
-  background: linear-gradient(145deg, #282832, #14141a);
-  display: grid;
-  place-items: center;
-  margin: auto;
-  box-shadow:
-    0 12px 45px #0008,
-    inset 0 0 20px #ffffff07;
-  transform: rotate(-5deg);
-}
-.die span {
-  font-weight: 950;
-  font-size: 1.7rem;
-  color: var(--green);
-  text-align: center;
-  line-height: 1;
-}
-.die[data-face="DESAFIO"] span {
-  color: var(--magenta);
-}
-.die[data-face="MINIJUEGO"] span {
-  color: var(--blue);
-}
-.die[data-face="PREMIO"] span {
-  color: var(--yellow);
-}
-.die[data-face="CASTIGO"] span {
-  color: var(--red);
-}
-.die[data-face="SHOT"] span {
-  color: #d5d5df;
-}
-.spinning {
-  animation: roll 0.7s ease-out;
-}
 .game-message {
   color: var(--muted);
   font-size: 0.9rem;
@@ -933,20 +894,6 @@ hr {
 .hidden {
   display: none !important;
 }
-@keyframes roll {
-  0% {
-    transform: rotate(-5deg) scale(1);
-  }
-  25% {
-    transform: rotate(40deg) scale(0.9);
-  }
-  65% {
-    transform: rotate(330deg) scale(1.04);
-  }
-  100% {
-    transform: rotate(355deg) scale(1);
-  }
-}
 @keyframes rise {
   from {
     opacity: 0.5;
@@ -1040,11 +987,6 @@ hr {
   }
   .dice-stage {
     margin: 29px 0 14px;
-  }
-  .die {
-    width: 86px;
-    height: 86px;
-    border-radius: 20px;
   }
   .game-panel:before {
     width: 300px;

@@ -1,6 +1,6 @@
 # Índice maestro — documentación técnica
 
-Esta carpeta conserva el historial técnico de ZEVYRA Games / Carnival of Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.3.19, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). La guía para implementar juegos adicionales está en [16 — Integrar nuevos juegos](16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md). Los informes 01–14 documentan fases previas.
+Esta carpeta conserva el historial técnico de ZEVYRA Games / Carnival of Chaos. El estado vigente de Circus Zevyra y Carnival of Chaos, versión 2.3.22, está en [15 — Carnival of Chaos: estado actual e implementación](15_CARNIVAL_CHAOS_ESTADO_ACTUAL.md). La guía para implementar juegos adicionales está en [16 — Integrar nuevos juegos](16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md). Los informes 01–14 documentan fases previas.
 
 | Documento | Contenido |
 |---|---|

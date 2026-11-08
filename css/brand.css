@@ -279,12 +279,6 @@ select:focus {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .dice-cube {
-    transition-duration: 4s;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .empty-card {
     animation-duration: 9.33s !important;

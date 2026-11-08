@@ -57,11 +57,11 @@ El estado online comienza desde un juego vacío y miembros de la sala; no import
 
 ## Import/export
 
-JSON de cartas: array o `{version:1,cards:[...]}`; IDs, categorías, required fields, targets, iconos, penalizaciones, effects y references a manual se validan (`storage.js:180-295`). Las cartas extra se clonan y anexan. Respaldo completo tiene validación menos estricta que `isValidState`: requiere versión 1, listas cards/participants/manuals, drinks y game, luego valida cartas y reemplaza estado (`app.js:1186-1207`). Importación no ejecuta el JSON como código.
+JSON de cartas: array o `{version:1,cards:[...]}`; IDs, categorías, required fields, targets, iconos, penalizaciones, effects y references a manual se validan (`js/storage.js:460-520`). Las cartas extra se clonan y anexan. El respaldo completo requiere versión 1, listas cards/participants/manuals, drinks y game, luego valida cartas y reemplaza estado (`js/app.js:3263-3280` y siguientes). Importación no ejecuta el JSON como código.
 
 ## Cache Storage PWA
 
-El SW precachea recursos de shell bajo `zevyra-shell-2.3.19` (`sw.js:1-2`); incluye los módulos JavaScript y catálogos nuevos, pero no el SDK CDN. Para GET del mismo origen intenta red y usa caché como alternativa; `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
+El SW precachea el shell bajo `zevyra-shell-2.3.22` y mantiene una caché runtime de imágenes bajo `zevyra-images-2.3.22` (`sw.js:1-3`). Entrega los recursos guardados mientras los revalida en segundo plano, y excluye `/api/` (`sw.js:90-129`); `localStorage` permanece separado de Cache Storage. Crear o unirse a una sala requiere internet y el SDK.
 
 ## Actualización Fase 2
 

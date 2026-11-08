@@ -1,5 +1,28 @@
 # Historial de modificaciones
 
+## 2026-11-08 — Inicio más ligero y caché sin bloqueo 2.3.22
+
+- No se modificó ni reemplazó ninguna portada de juego. El carrusel prioriza la portada central y deja las dos laterales para tiempo ocioso; al cambiar de juego, la nueva carta central se solicita con prioridad alta. La biblioteca no crea sus tarjetas hasta entrar en Juegos, y sus imágenes usan carga diferida y decodificación asíncrona (`js/app.js`).
+- `render()` limita el armado de las vistas de juego, jugadores, cartas, manuales y ajustes a la pestaña activa. El editor ya no construye las 414 tarjetas durante el inicio. Los catálogos canónicos se comparten durante la evaluación de módulos y solo se clonan al crear o migrar estado (`data/initial-cards.js`, `data/initial-manuals.js`, `js/storage.js`).
+- La precarga del service worker conserva el shell y recursos compactos de instalación; las portadas y recursos históricos se descargan al usarse. El shell usa caché stale-while-revalidate y las imágenes una caché runtime propia: se entrega primero la copia local y se actualiza en segundo plano. Las rutas `/api/` quedan fuera (`sw.js`).
+- Las hojas de Material Symbols pasan a carga no bloqueante, con `noscript` como alternativa (`index.html`). El favicon SVG usa el logo temático vigente para no solicitar una imagen de marca heredada de casi 1 MB.
+- Cliente, paquete, interfaz y caché PWA pasan a 2.3.22. El cambio requiere una primera conexión para descargar recursos todavía no almacenados. No se midieron LCP ni tiempos reales en el navegador durante esta implementación.
+- Verificación: sintaxis, referencias de shell y suite existente documentadas en el informe vigente. Los cinco fallos previos de pruebas siguen siendo áreas separadas de la optimización.
+
+## 2026-11-08 — Cuadrícula única de mazos y giro 3D del dado 2.3.21
+
+- Los seis mazos ahora se insertan directamente en `#all-decks-grid`. La UI conserva los permisos de selección de Premio/Arlequines y adapta la cuadrícula a dos columnas en teléfonos de hasta 420 px (`index.html`, `js/app.js`, `css/platform.css`).
+- El giro del dado se redujo a 1.35 s y usa un único ciclo `requestAnimationFrame`, con menos rotaciones. Se quitaron las duraciones CSS residuales de 2.5/4 s para evitar otro controlador de transformaciones en los cambios de estado; se eliminó la sombra plana hover que cruzaba el cubo y la sombra externa por cara en modo claro; con movimiento reducido, el dado salta a la cara sin vueltas. Se retiraron los estilos de dado 2D sin uso (`js/app.js`, `css/dice.css`, `css/brand.css`, `css/platform.css`, `css/styles.css`).
+- La versión de cliente/paquete/caché PWA pasa a 2.3.21. La auditoría de carga identifica portadas de 2.2–2.6 MB, precache inicial amplio y fuentes de iconos externas; la propuesta de optimización de apertura queda pendiente de aprobación, sin cambios aplicados a esa carga.
+- Verificación realizada: la suite existente reportó 34 aprobadas y 5 fallidas, todas en lógica/catálogos/migración que no se tocó en este cambio; la sintaxis de JavaScript/datos/service worker/servidor pasó. La vista visual en navegador no se pudo confirmar en esta sesión.
+
+## 2026-11-08 — Logo por tema en header y pasaporte 2.3.20
+
+- Las versiones de logo `modo_oscuro.png` y `modo_claro.png` se copiaron a nombres de assets sin espacios finales en `assets/branding/zevyra-mode-dark.png` y `zevyra-mode-light.png`; los archivos originales se conservaron.
+- Header, logo del encabezado del pasaporte y marca de agua del DNI cambian al recurso según el tema ya resuelto Sistema/Oscuro/Claro (`index.html`, `js/app.js`, `css/platform.css`). Se incorporaron al shell offline.
+- La versión visible y la caché PWA pasan a 2.3.20 para descargar los recursos nuevos.
+- Verificación: sintaxis JS y existencia/lectura de los PNG. No se ejecutó la suite ni se cambió la cuadrícula de mazos; queda pendiente el ajuste de Arlequines que el usuario detallará.
+
 ## 2026-11-07 — GitHub Pages, cuenta local del navegador y guía multijuego 2.3.19
 
 - El selector de backend de cuentas reconoce la API Node mediante `X-Zevyra-Local-Accounts: sqlite-v1`; JSON genérico, 404 y 405 de hosting estático seleccionan IndexedDB en vez de llamar a SQLite (`js/local-accounts.js`, `server.mjs`).
@@ -172,14 +195,4 @@ No se modificó el contenido creativo. Requieren revisión humana por material, 
 - Se añadió pantalla Perfil con SVG clásico, nickname local persistente y sincronización del perfil/roster en salas conectadas, conservando UUID e historial (`index.html`, `js/app.js`, `js/multiplayer.js`, `js/multiplayer-rooms.js`).
 - El reverso de cartas ahora usa el emblema ZEVYRA en vez de GDP. Se bumpó la versión de app/caché a 1.7.0.
 - `npm test` y `node --check` pasaron. Sin verificación SQL remota ni prueba actualizada de dos dispositivos; aplicar `supabase/sql/006_turn_actions_and_profile.sql` y seguir la prueba descrita en el documento 13.
-# Historial de modificaciones
-
-## 2026-11-07 — GitHub Pages, cuenta local del navegador y guía multijuego 2.3.19
-
-- El selector de backend de cuentas ahora reconoce la API Node mediante `X-Zevyra-Local-Accounts: sqlite-v1`; las respuestas genéricas JSON, 404 o 405 de un servidor estático seleccionan IndexedDB en vez de intentar el endpoint SQLite (`js/local-accounts.js`, `server.mjs`).
-- Las solicitudes de la API local se resuelven bajo la ruta base de la aplicación para admitir montaje en subruta. El modo GitHub Pages no requiere Node, Python, ni SQLite; sus cuentas siguen confinadas a ese navegador.
-- El paquete, el cliente y el caché PWA se sincronizan en versión 2.3.19; el aviso para `file://` muestra `http://localhost:8000`.
-- Se añadió la guía de integración de nuevos juegos, incluyendo catálogo/portada, motor, estado, interfaz, sincronización, RPC/RLS, PWA y publicación: `DOCUMENTACION_TECNICA/16_GUIA_PARA_INTEGRAR_NUEVOS_JUEGOS.md`.
-- Se actualizaron README y documentos técnicos para explicar la separación: SQLite local/IndexedDB para cuenta personal, Supabase para salas. No se publicaron cambios en GitHub ni se aplicaron migraciones remotas.
-- Verificación: `node --check` de los módulos JavaScript tocados y revisión del endpoint local en el servidor que ya corría en el puerto 8000. No se creó usuario ni se ejecutó `npm test`.
 
