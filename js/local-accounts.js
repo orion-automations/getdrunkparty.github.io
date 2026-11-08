@@ -33,6 +33,9 @@ async function request(path, method = "GET", body = null, accessToken = readSess
   let result = {};
   try { result = await response.json(); } catch { /* handled below */ }
   if (!response.ok || result.ok === false) {
+    if (response.status === 405) {
+      throw new Error("El servidor abierto no incluye la API local de cuentas. Cierra el servidor estático e inicia la app con npm run serve desde la carpeta del proyecto.");
+    }
     const error = new Error(result.message || `La base local respondió ${response.status}.`);
     error.status = response.status;
     throw error;

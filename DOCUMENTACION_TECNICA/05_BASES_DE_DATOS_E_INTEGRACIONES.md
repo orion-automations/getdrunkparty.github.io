@@ -25,7 +25,7 @@ El esquema se inicializa en `storage.js:12-35`; validación estructural en `37-8
 
 ## APIs / servicios externos
 
-Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de `server.mjs`, que delega las consultas a `database/local_users.py` y SQLite nativo. `js/multiplayer-auth.js` solo mantiene identidad anónima técnica para salas. `js/multiplayer-rooms.js` gestiona RPC/lecturas y `js/multiplayer-sync.js` gestiona Postgres Changes y Presence. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`; los módulos online se importan solo al iniciar una conexión.
+Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de `server.mjs`, que delega las consultas a `database/local_users.py` y SQLite nativo. `npm run serve` inicia esa API y ahora usa el puerto 8000 por defecto (`PORT` puede sobrescribirlo). Un 405 al registrar significa que la petición POST no llegó a esta ruta/API; no es un error SQL de Supabase ni SQLite. `js/multiplayer-auth.js` solo mantiene identidad anónima técnica para salas. `js/multiplayer-rooms.js` gestiona RPC/lecturas y `js/multiplayer-sync.js` gestiona Postgres Changes y Presence. El SDK v2 se carga desde CDN con `async` en `index.html:14-19`; los módulos online se importan solo al iniciar una conexión.
 
 ### Tablas remotas
 
@@ -35,6 +35,8 @@ Las cuentas personales se gestionan por `js/local-accounts.js` y la API local de
 | `room_players` | Roster y nickname/avatar copiados para la sesión de sala, rol y heartbeat. | Lectura solo de miembros. Mutación por RPC. |
 | `game_states` | Snapshot JSON de partida, temporizador y versión optimista. | Lectura solo de miembros. El participante activo guarda el estado del juego; el host actualiza por separado el temporizador, todo por RPC versionada. |
 
+La limpieza opcional de salas está en `supabase/sql/009_monthly_inactive_room_cleanup.sql`: Supabase Cron ejecuta el primer día de cada mes `public.gdp_cleanup_inactive_rooms()`. Borra salas con más de 30 días de antigüedad únicamente cuando ningún participante unido o desconectado ha enviado heartbeat en los últimos 30 días. Las claves foráneas eliminan en cascada `room_players` y `game_states`; no toca cuentas locales ni usuarios de Supabase.
+
 La base de cuentas local usa `database/001_users.sql:1-33` para crear `local_users` y `local_sessions`; `database/local_users.py:40-50` aplica el esquema y `database/local_users.py:53-130` migra esquemas existentes. `database/local_users.py:260-282` crea cuentas con hash PBKDF2 y UID `zevy` más seis caracteres aleatorios. `server.mjs:67-97` expone `/api/users/register`, `/login`, `/me` y `/session`, y bloquea la descarga directa del archivo SQLite. El nickname, el avatar y los datos de identidad se guardan en SQLite; el token y el perfil devuelto se mantienen también en `localStorage` (`js/local-accounts.js:1-15`). La contraseña no se conserva en texto legible ni se envía a Supabase.
 
 ### Registro en dos pasos, pasaporte y avatar
@@ -43,7 +45,7 @@ Recorrido de registro: `index.html:90-103` (credenciales y campos de identidad) 
 
 El pasaporte visible y sus controles están en `index.html:138-224`; `js/app.js:106-142` proyecta el perfil y su bandera, `js/app.js:915-980` alterna la edición inline y guarda cambios mediante `/api/users/me`, y `database/local_users.py:301-317` actualiza los campos en SQLite. El modo de edición revela nickname, nacionalidad, edad, sexo, identidad sexual y el botón de avatar; el UID permanece bloqueado.
 
-El creador Big Smile vive en `index.html:684-701`. `js/app.js:332-460` consulta los metadatos de opciones del endpoint DiceBear 10.x, forma pestañas por categoría y genera miniaturas SVG; `js/app.js:2776-2833` gestiona apertura, selección y guardado. Los estilos del pasaporte y del catálogo visual están en `css/platform.css:1078-1165`. En gestión de participantes, `js/app.js:2271-2287` abre el mismo editor para el avatar individual. El lobby usa una imagen y el avatar del perfil, sin selector desplegable (`index.html:438`, `js/app.js:106-125`).
+El editor genérico de avatar vive en `index.html:684-701` y actualmente usa el estilo Big Smile. `js/app.js:332-460` consulta los metadatos de opciones del endpoint DiceBear 10.x, forma pestañas por categoría y genera miniaturas SVG; `js/app.js:2776-2833` gestiona apertura, selección y guardado. Los estilos responsive del pasaporte y catálogo visual están en `css/platform.css:1078-1215`. En gestión de participantes, `js/app.js:2271-2287` abre el mismo editor para el avatar individual. El lobby usa una imagen y el avatar del perfil, sin selector desplegable (`index.html:438`, `js/app.js:106-125`).
 
 El esquema online de sala está en `supabase/sql/001_multiplayer_schema.sql`; después siguen políticas/RPC/realtime en 002–004, diagnóstico/unión en 005, acciones y alias de roster en 006, confirmación de anfitrión en 007, y `008_local_accounts_only.sql` para dejar de guardar perfiles persistentes en instalaciones antiguas. El detalle está en `supabase/README.md`.
 

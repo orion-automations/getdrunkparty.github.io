@@ -119,7 +119,7 @@ const server = createServer(async (req, res) => {
   }
 });
 const host = process.env.HOST || "127.0.0.1";
-server.listen(Number(process.env.PORT) || 8080, host, () =>
+server.listen(Number(process.env.PORT) || 8000, host, () =>
   console.log(
     `Carnival of Chaos · Circus Zevyra disponible en http://${host === "0.0.0.0" ? "localhost" : host}:${server.address().port}`,
   ),

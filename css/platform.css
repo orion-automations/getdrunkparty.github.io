@@ -391,7 +391,7 @@ button.settings-shortcut { cursor: pointer; }
 :root[data-theme="light"] .home-game-card { border-color: #d4bee6; }
 :root[data-theme="light"] .home-game-card span { color: #39274a; }
 
-/* Profile identity card and Big Smile editor */
+/* Profile identity card and visual avatar editor */
 .profile-panel { width: min(100%, 620px); padding: clamp(14px, 3vw, 24px); }
 .player-id-card { overflow: hidden; border: 1px solid #7042a080; border-radius: 18px; background: linear-gradient(145deg, #191621, #101016 75%); box-shadow: 0 14px 35px #0003; }
 .player-id-banner { height: 72px; background: radial-gradient(ellipse at 22% 100%, #ff2daa88, transparent 42%), linear-gradient(110deg, #26113d, var(--profile-banner-color, #41166e) 55%, #13111b); border-bottom: 1px solid #a45aff55; }
@@ -1192,3 +1192,61 @@ dialog#manual-editor-dialog { width: min(820px,calc(100vw - 32px)); max-height: 
   .profile-avatar-controls { max-height: 48svh; }
 }
 @media (prefers-reduced-motion: reduce) { .player-id-card::before, .player-id-card::after { animation: none; } }
+
+/* Keep the visual avatar catalog inside the viewport on narrow phones. */
+dialog.avatar-editor-modal {
+  box-sizing: border-box;
+  width: min(760px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: clamp(12px, 3vw, 22px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.avatar-editor-modal .modal-heading,
+.avatar-editor-layout,
+.avatar-editor-catalog,
+.avatar-editor-preview-wrap,
+.avatar-editor-modal .modal-actions { min-width: 0; max-width: 100%; }
+.avatar-editor-layout { width: 100%; }
+.avatar-editor-tabs { max-width: 100%; touch-action: pan-x; }
+.avatar-editor-modal .profile-avatar-controls { min-width: 0; }
+.avatar-option-grid { grid-template-columns: repeat(auto-fill, minmax(min(70px, 100%), 1fr)); }
+.avatar-option-tile { min-width: 0; overflow: hidden; }
+.avatar-option-tile img,
+.avatar-option-swatch { width: min(58px, 100%); max-width: 100%; }
+.avatar-option-tile span { min-width: 0; }
+
+@media (max-width: 600px) {
+  dialog.avatar-editor-modal {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 12px;
+  }
+  .avatar-editor-modal .modal-heading { align-items: center; gap: 10px; }
+  .avatar-editor-modal .modal-heading > div { min-width: 0; }
+  .avatar-editor-modal .modal-heading h2 { font-size: clamp(1.2rem, 6vw, 1.55rem); }
+  .avatar-editor-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .avatar-editor-preview-wrap { grid-template-columns: 60px minmax(0, 1fr); justify-items: start; }
+  .avatar-editor-preview { width: 60px; border-radius: 12px; }
+  .avatar-editor-catalog { width: 100%; }
+  .avatar-editor-tabs { gap: 6px; padding-bottom: 8px; }
+  .avatar-editor-tab { min-height: 34px; padding-inline: 10px; }
+  .avatar-editor-modal .profile-avatar-controls { max-height: min(44dvh, 360px); padding-right: 2px; }
+  .avatar-option-grid { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+  .avatar-option-tile { padding: 5px; }
+  .avatar-option-tile.is-selected { padding: 4px; }
+  .avatar-option-tile img,
+  .avatar-option-swatch { width: 48px; height: 48px; }
+  .avatar-editor-modal .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .avatar-editor-modal .modal-actions .button { flex: 1 1 110px; min-width: 0; }
+}
+
+@media (max-width: 360px) {
+  dialog.avatar-editor-modal { padding: 10px; }
+  .avatar-option-grid { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+  .avatar-option-tile img,
+  .avatar-option-swatch { width: 42px; height: 42px; }
+}
